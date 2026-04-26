@@ -11,13 +11,21 @@ import sys
 import httpx
 
 
+def _ss(title: str, options: list[str]) -> dict:
+    """Build a SingleSelect column with options in NocoDB v2 format."""
+    return {
+        "title": title,
+        "uidt": "SingleSelect",
+        "colOptions": {"options": [{"title": o} for o in options]},
+    }
+
+
 TABLE_DEFINITIONS: dict[str, dict] = {
     "Users": {
         "columns": [
             {"title": "telegram_id", "uidt": "Number"},
             {"title": "name", "uidt": "SingleLineText"},
-            {"title": "role", "uidt": "SingleSelect",
-             "options": ["sasha", "seryozha"]},
+            _ss("role", ["sasha", "seryozha"]),
             {"title": "timezone", "uidt": "SingleLineText"},
             {"title": "created_at", "uidt": "DateTime"},
         ],
@@ -25,16 +33,13 @@ TABLE_DEFINITIONS: dict[str, dict] = {
     "Projects": {
         "columns": [
             {"title": "slug", "uidt": "SingleLineText"},
-            {"title": "category", "uidt": "SingleSelect",
-             "options": ["personal", "learning", "work"]},
+            _ss("category", ["personal", "learning", "work"]),
             {"title": "name", "uidt": "SingleLineText"},
             {"title": "description", "uidt": "LongText"},
             {"title": "context_notes", "uidt": "LongText"},
             {"title": "context_notes_compact", "uidt": "LongText"},
-            {"title": "visibility", "uidt": "SingleSelect",
-             "options": ["private", "shared"]},
-            {"title": "owner_role", "uidt": "SingleSelect",
-             "options": ["sasha", "seryozha"]},
+            _ss("visibility", ["private", "shared"]),
+            _ss("owner_role", ["sasha", "seryozha"]),
             {"title": "folder_path", "uidt": "SingleLineText"},
             {"title": "color", "uidt": "SingleLineText"},
             {"title": "created_at", "uidt": "DateTime"},
@@ -45,14 +50,12 @@ TABLE_DEFINITIONS: dict[str, dict] = {
         "columns": [
             {"title": "created_at", "uidt": "DateTime"},
             {"title": "author_id", "uidt": "Number"},
-            {"title": "source_type", "uidt": "SingleSelect",
-             "options": ["url", "text", "voice", "photo", "file", "forward"]},
+            _ss("source_type", ["url", "text", "voice", "photo", "file", "forward"]),
             {"title": "raw_content", "uidt": "LongText"},
             {"title": "title", "uidt": "SingleLineText"},
             {"title": "summary", "uidt": "LongText"},
             {"title": "caption", "uidt": "LongText"},
-            {"title": "status", "uidt": "SingleSelect",
-             "options": ["new", "thinking", "proposed", "processed", "archived"]},
+            _ss("status", ["new", "thinking", "proposed", "processed", "archived"]),
             {"title": "project_id", "uidt": "Number"},
             {"title": "target_path", "uidt": "SingleLineText"},
             {"title": "action_taken", "uidt": "LongText"},
@@ -70,12 +73,10 @@ TABLE_DEFINITIONS: dict[str, dict] = {
             {"title": "title", "uidt": "SingleLineText"},
             {"title": "description", "uidt": "LongText"},
             {"title": "project_id", "uidt": "Number"},
-            {"title": "quadrant", "uidt": "SingleSelect",
-             "options": ["Q1", "Q2", "Q3", "Q4"]},
+            _ss("quadrant", ["Q1", "Q2", "Q3", "Q4"]),
             {"title": "due_date", "uidt": "Date"},
             {"title": "due_time", "uidt": "Time"},
-            {"title": "status", "uidt": "SingleSelect",
-             "options": ["todo", "in_progress", "done", "archived"]},
+            _ss("status", ["todo", "in_progress", "done", "archived"]),
             {"title": "done_at", "uidt": "DateTime"},
             {"title": "inbox_id", "uidt": "Number"},
             {"title": "source_text", "uidt": "LongText"},
@@ -89,9 +90,8 @@ TABLE_DEFINITIONS: dict[str, dict] = {
             {"title": "inbox_id", "uidt": "Number"},
             {"title": "task_id", "uidt": "Number"},
             {"title": "author_id", "uidt": "Number"},
-            {"title": "action_type", "uidt": "SingleSelect",
-             "options": ["propose_project", "process", "move",
-                         "summarize", "transcribe", "clarify", "compact"]},
+            _ss("action_type", ["propose_project", "process", "move",
+                                "summarize", "transcribe", "clarify", "compact"]),
             {"title": "llm_input", "uidt": "LongText"},
             {"title": "llm_output", "uidt": "LongText"},
             {"title": "llm_model", "uidt": "SingleLineText"},
@@ -117,9 +117,11 @@ def main() -> int:
                 print(f"skip: {title} exists")
                 continue
             payload = {"title": title, "columns": spec["columns"]}
-            c.post(f"/meta/bases/{base_id}/tables",
-                   json=payload).raise_for_status()
-            print(f"created: {title}")
+            resp = c.post(f"/meta/bases/{base_id}/tables", json=payload)
+            if resp.is_error:
+                print(f"ERROR {title}: {resp.text}")
+                return 1
+            print(f"created: {title} (id={resp.json().get('id')})")
     return 0
 
 

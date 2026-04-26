@@ -48,6 +48,7 @@ async def capture_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         "title": cls["title"],
         "summary": cls["summary"],
         "confidence": cls["confidence"],
+        "action_taken": cls.get("guess_project_slug", ""),
         "created_at": now_iso,
         "status": "new",
     })

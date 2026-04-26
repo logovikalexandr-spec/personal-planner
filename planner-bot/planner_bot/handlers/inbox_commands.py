@@ -27,8 +27,14 @@ async def on_process_callback(update: Update,
         return
 
     projects = context.bot_data["projects_repo"]
-    target_slug = "learning"
+    target_slug = (item.get("action_taken") or "").strip() or "inbox"
     project = await projects.get_by_slug(target_slug)
+    if project is None:
+        all_projects = await projects.list_all()
+        project = all_projects[0] if all_projects else None
+    if project is None:
+        await q.edit_message_text("Нет проектов. Создай хотя бы один в NocoDB.")
+        return
 
     process_inbox = context.bot_data["process_inbox"]
     decision = await process_inbox(item=item, target_project=project,
