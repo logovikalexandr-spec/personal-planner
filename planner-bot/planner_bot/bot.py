@@ -48,6 +48,15 @@ from planner_bot.nocodb.repos import (
 )
 
 
+def _setup_logging(*, level: str, logs_dir):
+    from pathlib import Path
+    logs_dir = Path(logs_dir); logs_dir.mkdir(parents=True, exist_ok=True)
+    logger.remove()
+    logger.add(logs_dir / "bot.log", rotation="10 MB",
+               retention=7, level=level, enqueue=True)
+    logger.add(lambda m: print(m, end=""), level=level)
+
+
 def _wire_bot_data(app: Application, settings: Settings) -> None:
     nc = NocoDBClient(base_url=settings.nocodb_url, token=settings.nocodb_token)
     ant = AnthropicLLM(
@@ -142,6 +151,7 @@ def build_application(settings: Settings) -> Application:
 def main() -> None:
     settings = Settings()
     logging.basicConfig(level=settings.log_level.upper())
+    _setup_logging(level=settings.log_level.upper(), logs_dir="/app/logs")
     logger.info("planner-bot starting")
     app = build_application(settings)
     app.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
