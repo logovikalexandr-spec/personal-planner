@@ -55,7 +55,7 @@ def render_inbox_list(items: list[dict], viewer_role: str) -> str:
     for i in items:
         author = i.get("author_name") or ""
         suffix = f" ({author})" if author else ""
-        out.append(f"  #{i['Id']} {i['title']}{suffix}")
+        out.append(f"  #{i['Id']} {i['title'] or '(без названия)'}{suffix}")
     return "\n".join(out)
 
 
