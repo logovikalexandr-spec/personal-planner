@@ -32,9 +32,15 @@ async def test_document_pipeline(tmp_path: Path):
     ctx = FakeContext()
     (tmp_path / "_inbox").mkdir()
     (tmp_path / "_attachments").mkdir()
+    async def fake_classify(data):
+        return {"title": "ZIMA отчёт", "summary": "апрель",
+                "confidence": 0.85, "guess_project_slug": "zima",
+                "tokens_in": 10, "tokens_out": 5, "cost_usd": 0.001}
+
     ctx.bot_data.update({
         "users_repo": users_repo, "inbox_repo": inbox_repo,
         "actions_repo": actions_repo,
+        "classify_inbox": fake_classify,
         "git_safe_commit": MagicMock(), "repo_path": tmp_path,
     })
     await capture_document(upd, ctx)
@@ -42,3 +48,5 @@ async def test_document_pipeline(tmp_path: Path):
     assert args["source_type"] == "file"
     assert "report.pdf" in args["raw_content"]
     assert args["caption"] == "ZIMA отчёт за апрель"
+    assert args["title"] == "ZIMA отчёт"
+    assert args["action_taken"] == "zima"

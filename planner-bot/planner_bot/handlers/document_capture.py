@@ -8,6 +8,10 @@ from telegram.ext import ContextTypes
 from planner_bot.markdown_files import write_inbox_md
 
 
+def _confidence_label(c: float) -> str:
+    return f"{int(c * 100)}%"
+
+
 async def capture_document(update: Update,
                            context: ContextTypes.DEFAULT_TYPE) -> None:
     msg = update.message
@@ -28,7 +32,13 @@ async def capture_document(update: Update,
     await file_obj.download_to_drive(str(target))
 
     caption = (msg.caption or "").strip()
-    title = caption[:60] if caption else (doc.file_name or "File")
+    raw_content = caption or safe_name
+    initial_title = raw_content[:80]
+
+    classify = context.bot_data["classify_inbox"]
+    cls = await classify({"raw_content": raw_content, "source_type": "file",
+                          "initial_title": initial_title})
+
     inbox = context.bot_data["inbox_repo"]
     actions = context.bot_data["actions_repo"]
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -36,9 +46,11 @@ async def capture_document(update: Update,
         "author_id": user["Id"],
         "source_type": "file",
         "raw_content": str(target.relative_to(repo_root)),
-        "caption": caption, "title": title,
-        "summary": caption or (doc.mime_type or ""),
-        "confidence": 0.0,
+        "caption": caption,
+        "title": cls["title"],
+        "summary": cls["summary"],
+        "confidence": cls["confidence"],
+        "action_taken": cls.get("guess_project_slug", ""),
         "created_at": now_iso, "status": "new",
         "attachment_url": str(target.relative_to(repo_root)),
     })
@@ -46,7 +58,7 @@ async def capture_document(update: Update,
         "Id": rec["Id"], "author_name": user["name"].lower(),
         "source_type": "file",
         "raw_content": str(target.relative_to(repo_root)),
-        "title": title, "summary": caption or "",
+        "title": cls["title"], "summary": cls["summary"],
         "transcript": "", "created_at": now_iso,
         "status": "new", "project_slug": None,
     }
@@ -58,19 +70,28 @@ async def capture_document(update: Update,
         message=f"inbox: file #{rec['Id']} ({user['name'].lower()})",
     )
     await actions.log(action_type="propose_project", author_id=user["Id"],
-                      inbox_id=rec["Id"], llm_model="-",
-                      llm_output=f"file {safe_name}")
+                      inbox_id=rec["Id"], llm_model="claude-haiku-4-5",
+                      tokens_in=cls.get("tokens_in", 0),
+                      tokens_out=cls.get("tokens_out", 0),
+                      cost_usd=cls.get("cost_usd", 0.0),
+                      llm_input=raw_content[:500],
+                      llm_output=str(cls)[:500])
+
+    guess = cls.get("guess_project_slug")
+    conf = cls.get("confidence", 0.0)
     kb = [
         [InlineKeyboardButton("📥 Обработать",
-                              callback_data=f"process:{rec['Id']}"),
-         InlineKeyboardButton("🔍 Извлечь текст",
-                              callback_data=f"analyze:{rec['Id']}")],
-        [InlineKeyboardButton("📂 Изменить проект",
-                              callback_data=f"clarify:{rec['Id']}"),
-         InlineKeyboardButton("🗑 Архив",
-                              callback_data=f"archive:{rec['Id']}")],
+                              callback_data=f"process:{rec['Id']}")],
     ]
-    await msg.reply_text(
-        f"📎 Принято #{rec['Id']} «{title}»",
-        reply_markup=InlineKeyboardMarkup(kb),
-    )
+    if guess and conf >= 0.7:
+        kb.insert(0, [InlineKeyboardButton(
+            f"📂 Сразу в {guess}", callback_data=f"assign:{rec['Id']}:{guess}",
+        )])
+    kb.append([
+        InlineKeyboardButton("✏️ Иначе", callback_data=f"clarify:{rec['Id']}"),
+        InlineKeyboardButton("🗑 Архив", callback_data=f"archive:{rec['Id']}"),
+    ])
+    text = f"📎 Принято #{rec['Id']} «{cls['title']}»\n{cls['summary']}"
+    if guess:
+        text += f"\n🤖 Похоже на: {guess} ({_confidence_label(conf)})"
+    await msg.reply_text(text, reply_markup=InlineKeyboardMarkup(kb))
