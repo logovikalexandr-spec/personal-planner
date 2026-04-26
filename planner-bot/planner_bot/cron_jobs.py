@@ -51,6 +51,29 @@ async def _morning_job_callback(context):
         )
 
 
+async def evening_q1_for_user(*, bot, user, tasks_repo, today: date):
+    rows = await tasks_repo.list_q1_today(author_id=user["Id"],
+                                          today=today.isoformat())
+    if not rows:
+        return
+    out = ["Вечерняя проверка 🌆\n\nQ1 на сегодня (статус todo):"]
+    for t in rows:
+        out.append(f"  ⏳ #{t['Id']} {t['title']}")
+    await bot.send_message(chat_id=user["telegram_id"],
+                           text="\n".join(out))
+
+
+async def _evening_q1_callback(context):
+    users_repo = context.application.bot_data["users_repo"]
+    tasks_repo = context.application.bot_data["tasks_repo"]
+    today = date.today()
+    for u in await users_repo.list_all():
+        if not u.get("telegram_id"):
+            continue
+        await evening_q1_for_user(bot=context.bot, user=u,
+                                  tasks_repo=tasks_repo, today=today)
+
+
 def register_cron_jobs(app: Application) -> None:
     settings = app.bot_data["settings"]
     tz = ZoneInfo(settings.default_timezone)
@@ -58,4 +81,9 @@ def register_cron_jobs(app: Application) -> None:
         _morning_job_callback,
         time=time(hour=8, minute=0, tzinfo=tz),
         name="morning_digest",
+    )
+    app.job_queue.run_daily(
+        _evening_q1_callback,
+        time=time(hour=19, minute=0, tzinfo=tz),
+        name="evening_q1",
     )
