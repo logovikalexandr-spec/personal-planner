@@ -10,7 +10,18 @@ async def find_command(update, context):
         return
     query = " ".join(args)
     inbox = context.bot_data["inbox_repo"]
-    rows = await inbox.search_text(query, limit=10)
+    rows = await inbox.search_text(query, limit=20)
+    if rows:
+        projects = context.bot_data.get("projects_repo")
+        if projects:
+            all_projs = await projects.list_all()
+            slug_to_proj = {p["slug"]: p for p in all_projs}
+            from planner_bot.acl import can_access_project
+            rows = [r for r in rows
+                    if not r.get("project_slug")
+                    or can_access_project(
+                        user, slug_to_proj.get(r["project_slug"], {}))]
+        rows = rows[:10]
     if not rows:
         await update.message.reply_text(f"🔍 По «{query}» ничего нет.")
         return
