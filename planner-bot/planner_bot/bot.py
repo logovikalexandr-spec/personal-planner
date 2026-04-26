@@ -131,6 +131,9 @@ def build_application(settings: Settings) -> Application:
     app.add_handler(MessageHandler(filters.Document.ALL, capture_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND,
                                    handle_free_text))
+
+    from planner_bot.cron_jobs import register_cron_jobs
+    register_cron_jobs(app)
     return app
 
 
