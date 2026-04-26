@@ -43,3 +43,21 @@ def test_skeleton_dirs_includes_all_projects():
     assert "_meta/context_notes_history" in dirs
     assert "_meta/monthly_reports" in dirs
     assert "tasks" in dirs
+
+
+def test_slugify_collapses_consecutive_dashes():
+    assert slugify("Foo --- bar") == "foo-bar"
+    assert slugify("hello---world") == "hello-world"
+
+
+def test_slugify_strips_trailing_dash_after_truncation():
+    long = "a" * 30 + "-" + "b" * 30
+    out = slugify(long, maxlen=31)
+    assert not out.endswith("-")
+
+
+def test_slugify_empty_or_punctuation_falls_back():
+    assert slugify("") == "untitled"
+    assert slugify("!!!") == "untitled"
+    assert slugify("   ") == "untitled"
+    assert slugify("---") == "untitled"

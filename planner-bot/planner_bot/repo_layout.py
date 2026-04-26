@@ -22,8 +22,9 @@ def slugify(text: str, maxlen: int = 60) -> str:
     text = unicodedata.normalize("NFKD", text)
     text = "".join(c for c in text if not unicodedata.combining(c))
     text = re.sub(r"[^a-z0-9\s\-]+", "", text)
-    text = re.sub(r"[\s_]+", "-", text).strip("-")
-    return text[:maxlen]
+    text = re.sub(r"[\s_\-]+", "-", text).strip("-")
+    truncated = text[:maxlen].rstrip("-")
+    return truncated or "untitled"
 
 
 def _ts_compact(iso: str) -> tuple[str, str]:
