@@ -70,7 +70,8 @@ async def test_inbox_list_unprocessed_for_user():
     assert rows == [{"Id": 1}]
     where = cli.calls[0][2]["where"]
     assert "status,eq,new" in where
-    assert "author_id,in,1,2" in where
+    assert "author_id,eq,1" in where
+    assert "author_id,eq,2" in where
 
 
 @pytest.mark.asyncio

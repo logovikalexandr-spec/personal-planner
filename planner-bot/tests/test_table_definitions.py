@@ -14,7 +14,8 @@ def test_inbox_table_columns():
 def test_tasks_table_has_quadrant():
     tasks = TABLE_DEFINITIONS["Tasks"]
     quad = next(c for c in tasks["columns"] if c["title"] == "quadrant")
-    assert set(quad["options"]) == {"Q1", "Q2", "Q3", "Q4"}
+    opts = {o["title"] for o in quad["colOptions"]["options"]}
+    assert opts == {"Q1", "Q2", "Q3", "Q4"}
 
 
 def test_actions_table_present():

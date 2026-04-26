@@ -73,8 +73,9 @@ class InboxRepo:
 
     async def list_unprocessed_for_user(self, author_id: int,
                                         shared_authors: list[int]) -> list[dict]:
-        ids = ",".join(str(i) for i in [author_id, *shared_authors])
-        where = f"(status,eq,new)~and(author_id,in,{ids})"
+        all_ids = [author_id, *shared_authors]
+        author_filter = "~or".join(f"(author_id,eq,{i})" for i in all_ids)
+        where = f"(status,eq,new)~and({author_filter})"
         return await self._c.list("Inbox", where=where, sort="-created_at",
                                   limit=50)
 
@@ -100,19 +101,22 @@ class TasksRepo:
         return await self._c.update("Tasks", task_id, data)
 
     async def list_for_user_active(self, author_id: int) -> list[dict]:
-        where = f"(author_id,eq,{author_id})~and(status,in,todo,in_progress)"
+        where = (f"(author_id,eq,{author_id})"
+                 f"~and((status,eq,todo)~or(status,eq,in_progress))")
         return await self._c.list("Tasks", where=where,
                                   sort="quadrant,due_date", limit=200)
 
     async def list_today(self, author_id: int, today: str) -> list[dict]:
-        where = (f"(author_id,eq,{author_id})~and(status,in,todo,in_progress)"
+        where = (f"(author_id,eq,{author_id})"
+                 f"~and((status,eq,todo)~or(status,eq,in_progress))"
                  f"~and(due_date,eq,{today})")
         return await self._c.list("Tasks", where=where,
                                   sort="quadrant,due_time", limit=100)
 
     async def list_week(self, author_id: int, start: str, end: str) -> list[dict]:
-        where = (f"(author_id,eq,{author_id})~and(status,in,todo,in_progress)"
-                 f"~and(due_date,btw,{start},{end})")
+        where = (f"(author_id,eq,{author_id})"
+                 f"~and((status,eq,todo)~or(status,eq,in_progress))"
+                 f"~and(due_date,ge,{start})~and(due_date,le,{end})")
         return await self._c.list("Tasks", where=where,
                                   sort="due_date,quadrant,due_time", limit=200)
 
