@@ -14,6 +14,7 @@ from telegram.ext import (
 
 from planner_bot.config import Settings
 from planner_bot.git_ops import safe_commit
+from planner_bot.handlers.admin import admin_command
 from planner_bot.handlers.find_command import find_command
 from planner_bot.handlers.free_text import handle_free_text
 from planner_bot.handlers.help_command import help_command
@@ -105,6 +106,7 @@ def build_application(settings: Settings) -> Application:
     app = Application.builder().token(settings.tg_bot_token).build()
     _wire_bot_data(app, settings)
 
+    app.add_handler(CommandHandler("admin", admin_command))
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("inbox", inbox_command))
     app.add_handler(CommandHandler("today", today_command))
