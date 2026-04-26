@@ -73,3 +73,75 @@ async def on_process_callback(update: Update,
         f"`{rel_path}`",
         parse_mode="Markdown",
     )
+
+
+async def on_clarify_callback(update: Update,
+                              context: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    await q.answer()
+    _, item_id_str = q.data.split(":", 1)
+    context.user_data["pending_clarify_inbox_id"] = int(item_id_str)
+    await q.edit_message_text(
+        "Расскажи в двух словах что это и куда отнести "
+        "(укажи slug проекта или опиши что за тип материала)."
+    )
+
+
+async def on_clarify_text(update: Update,
+                          context: ContextTypes.DEFAULT_TYPE) -> None:
+    item_id = context.user_data.get("pending_clarify_inbox_id")
+    if not item_id:
+        return
+    msg = update.message
+    users = context.bot_data["users_repo"]
+    user = await users.get_by_telegram_id(update.effective_user.id)
+    inbox = context.bot_data["inbox_repo"]
+    item = await inbox.get(item_id)
+    extract = context.bot_data["extract_clarification"]
+    extracted = await extract(text=msg.text, item=item)
+    target_slug = extracted["project_slug"]
+    projects = context.bot_data["projects_repo"]
+    project = await projects.get_by_slug(target_slug)
+    if project is None:
+        await msg.reply_text(f"Проект `{target_slug}` не найден. Попробуй ещё.",
+                             parse_mode="Markdown")
+        return
+    notes_old = project.get("context_notes") or ""
+    rule = extracted["rule_to_remember"].strip()
+    notes_new = (notes_old + "\n- " + rule) if rule else notes_old
+    if rule:
+        await projects.update_context_notes(project_id=project["Id"],
+                                            notes=notes_new)
+    process_inbox = context.bot_data["process_inbox"]
+    decision = await process_inbox(item=item, target_project=project,
+                                   recent_filenames=[])
+    repo_root: Path = context.bot_data["repo_path"]
+    src = repo_root / item["file_path_repo"]
+    dest_dir = repo_root / project["folder_path"] / decision["subfolder"]
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / src.name
+    text = src.read_text()
+    if decision.get("summary_md"):
+        text = text + "\n" + decision["summary_md"] + "\n"
+    src.unlink()
+    dest.write_text(text)
+    await inbox.update(item_id, {
+        "status": "processed", "project_id": project["Id"],
+        "target_path": str(dest.relative_to(repo_root)),
+        "action_taken": "clarify+move",
+        "processed_at": datetime.now(timezone.utc).isoformat(),
+        "file_path_repo": str(dest.relative_to(repo_root)),
+    })
+    context.bot_data["git_safe_commit"](
+        repo_path=repo_root, paths=[src, dest],
+        message=f"clarify #{item_id}: → {project['slug']}/{decision['subfolder']}",
+    )
+    actions = context.bot_data["actions_repo"]
+    await actions.log(action_type="clarify", author_id=user["Id"],
+                      inbox_id=item_id, llm_model="claude-haiku-4-5",
+                      llm_input=msg.text[:500], user_decision=target_slug)
+    context.user_data.pop("pending_clarify_inbox_id", None)
+    await msg.reply_text(
+        f"✅ #{item_id} → {project['slug']}/{decision['subfolder']}.\n"
+        f"Запомнил: {rule}" if rule else f"✅ #{item_id} → {project['slug']}/{decision['subfolder']}"
+    )
