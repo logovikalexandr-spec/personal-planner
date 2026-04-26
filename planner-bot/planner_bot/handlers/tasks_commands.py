@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from planner_bot.acl import can_access_project
@@ -47,3 +48,47 @@ async def create_task_with_args(*, user: dict, title: str, description: str,
                       task_id=rec["Id"], user_decision=quadrant,
                       llm_input=source_text[:500])
     return rec
+
+
+async def prompt_quadrant_for_task(*, update, context, title, description,
+                                   project_slug, due_date, due_time,
+                                   source_text) -> None:
+    context.user_data["pending_task"] = {
+        "title": title, "description": description,
+        "project_slug": project_slug,
+        "due_date": due_date, "due_time": due_time,
+        "source_text": source_text,
+    }
+    kb = [
+        [InlineKeyboardButton("🔥 Q1 Срочно+Важно", callback_data="quad:Q1")],
+        [InlineKeyboardButton("📌 Q2 Важно", callback_data="quad:Q2")],
+        [InlineKeyboardButton("⏰ Q3 Срочно", callback_data="quad:Q3")],
+        [InlineKeyboardButton("💤 Q4 Не важно", callback_data="quad:Q4")],
+    ]
+    text = (f"Создать задачу:\n📌 {title}\n"
+            f"📅 {due_date or '—'} {due_time or ''}\n"
+            f"📂 Проект: {project_slug or '—'}\n"
+            f"Куда по матрице? Q1 Срочно+Важно / Q2 Важно / Q3 Срочно / Q4 Не важно")
+    await update.message.reply_text(text,
+                                    reply_markup=InlineKeyboardMarkup(kb))
+
+
+async def on_quadrant_selected(update, context):
+    q = update.callback_query
+    await q.answer()
+    _, quadrant = q.data.split(":", 1)
+    pending = context.user_data.get("pending_task")
+    if not pending:
+        await q.edit_message_text("Нет задачи в работе.")
+        return
+    users = context.bot_data["users_repo"]
+    user = await users.get_by_telegram_id(q.from_user.id)
+    rec = await create_task_with_args(
+        user=user, title=pending["title"], description=pending["description"],
+        project_slug=pending["project_slug"], quadrant=quadrant,
+        due_date=pending["due_date"], due_time=pending["due_time"],
+        source_text=pending["source_text"], context=context,
+    )
+    context.user_data.pop("pending_task", None)
+    await q.edit_message_text(
+        f"✅ Создана задача #{rec['Id']} ({quadrant})")
