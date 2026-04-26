@@ -74,6 +74,42 @@ async def _evening_q1_callback(context):
                                   tasks_repo=tasks_repo, today=today)
 
 
+async def warn_due_for_user(*, bot, user, tasks_repo, today: date,
+                            warned_today: set):
+    rows = await tasks_repo.list_for_user_active(user["Id"])
+    overdue = [r for r in rows
+               if r.get("due_date") and r["due_date"] <= today.isoformat()]
+    if not overdue:
+        return
+    new_ids = [r["Id"] for r in overdue if r["Id"] not in warned_today]
+    if not new_ids:
+        return
+    out = ["⏰ Дедлайны:"]
+    for r in overdue:
+        if r["Id"] in new_ids:
+            out.append(f"  #{r['Id']} {r['title']} (до {r['due_date']})")
+    await bot.send_message(chat_id=user["telegram_id"],
+                           text="\n".join(out))
+    warned_today.update(new_ids)
+
+
+async def _due_warner_callback(context):
+    users_repo = context.application.bot_data["users_repo"]
+    tasks_repo = context.application.bot_data["tasks_repo"]
+    today = date.today()
+    cache = context.application.bot_data.setdefault(
+        "_warned_today", {"date": today, "ids": set()})
+    if cache["date"] != today:
+        cache["date"] = today
+        cache["ids"] = set()
+    for u in await users_repo.list_all():
+        if not u.get("telegram_id"):
+            continue
+        await warn_due_for_user(bot=context.bot, user=u,
+                                tasks_repo=tasks_repo, today=today,
+                                warned_today=cache["ids"])
+
+
 def register_cron_jobs(app: Application) -> None:
     settings = app.bot_data["settings"]
     tz = ZoneInfo(settings.default_timezone)
@@ -86,4 +122,8 @@ def register_cron_jobs(app: Application) -> None:
         _evening_q1_callback,
         time=time(hour=19, minute=0, tzinfo=tz),
         name="evening_q1",
+    )
+    app.job_queue.run_repeating(
+        _due_warner_callback,
+        interval=3600, first=600, name="due_warner",
     )
