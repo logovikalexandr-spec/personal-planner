@@ -60,3 +60,21 @@ def test_app_wires_bot_data_keys(monkeypatch):
                      "extract_clarification",
                      "git_safe_commit", "repo_path"}
     assert expected_keys.issubset(app.bot_data.keys())
+
+
+def test_app_registers_expected_commands(monkeypatch):
+    _set_env(monkeypatch)
+    settings = Settings()
+    with patch("planner_bot.bot.NocoDBClient"), \
+         patch("planner_bot.bot.AnthropicLLM"), \
+         patch("planner_bot.bot.WhisperClient"):
+        app = build_application(settings)
+    cmd_names = set()
+    for h_list in app.handlers.values():
+        for h in h_list:
+            if h.__class__.__name__ == "CommandHandler":
+                for c in h.commands:
+                    cmd_names.add(c)
+    expected = {"start", "inbox", "today", "week", "projects", "project",
+                "find", "task", "stats", "settings", "help"}
+    assert expected.issubset(cmd_names)
