@@ -20,7 +20,8 @@ from planner_bot.handlers.free_text import handle_free_text
 from planner_bot.handlers.help_command import help_command
 from planner_bot.handlers.inbox_capture import capture_message
 from planner_bot.handlers.inbox_commands import (
-    on_archive_callback, on_clarify_callback, on_process_callback,
+    on_archive_callback, on_assign_callback, on_clarify_callback,
+    on_confirm_callback, on_process_callback, on_reclassify_callback,
 )
 from planner_bot.handlers.inbox_list_command import inbox_command
 from planner_bot.handlers.photo_capture import capture_photo
@@ -140,6 +141,12 @@ def build_application(settings: Settings) -> Application:
 
     app.add_handler(CallbackQueryHandler(on_process_callback,
                                          pattern=r"^process:"))
+    app.add_handler(CallbackQueryHandler(on_confirm_callback,
+                                         pattern=r"^confirm:"))
+    app.add_handler(CallbackQueryHandler(on_assign_callback,
+                                         pattern=r"^assign:"))
+    app.add_handler(CallbackQueryHandler(on_reclassify_callback,
+                                         pattern=r"^reclassify:"))
     app.add_handler(CallbackQueryHandler(on_clarify_callback,
                                          pattern=r"^clarify:"))
     app.add_handler(CallbackQueryHandler(on_archive_callback,
