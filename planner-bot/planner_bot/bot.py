@@ -20,8 +20,9 @@ from planner_bot.handlers.free_text import handle_free_text
 from planner_bot.handlers.help_command import help_command
 from planner_bot.handlers.inbox_capture import capture_message
 from planner_bot.handlers.inbox_commands import (
-    on_archive_callback, on_assign_callback, on_clarify_callback,
-    on_confirm_callback, on_process_callback, on_reclassify_callback,
+    on_analyze_callback, on_archive_callback, on_assign_callback,
+    on_clarify_callback, on_confirm_callback, on_process_callback,
+    on_reclassify_callback,
 )
 from planner_bot.handlers.inbox_list_command import inbox_command
 from planner_bot.handlers.photo_capture import capture_photo
@@ -42,6 +43,7 @@ from planner_bot.llm.classify import classify_inbox
 from planner_bot.llm.clarify import extract_clarification
 from planner_bot.llm.intent import detect_intent
 from planner_bot.llm.process import process_inbox
+from planner_bot.llm.vision import analyze_photo
 from planner_bot.llm.whisper_client import WhisperClient
 from planner_bot.nocodb.client import NocoDBClient
 from planner_bot.nocodb.repos import (
@@ -104,6 +106,10 @@ def _wire_bot_data(app: Application, settings: Settings) -> None:
         return await whisper.transcribe(audio_path,
                                         duration_sec=duration_sec)
 
+    async def _analyze_photo(*, image_path, caption=""):
+        return await analyze_photo(llm=ant, image_path=image_path,
+                                   caption=caption)
+
     app.bot_data.update({
         "settings": settings,
         "nocodb_client": nc,
@@ -114,6 +120,7 @@ def _wire_bot_data(app: Application, settings: Settings) -> None:
         "detect_intent": _detect_intent,
         "extract_clarification": _extract_clarification,
         "transcribe_voice": _transcribe,
+        "analyze_photo": _analyze_photo,
         "capture_message": capture_message,
         "today_command": today_command,
         "prompt_quadrant_for_task": prompt_quadrant_for_task,
@@ -139,6 +146,8 @@ def build_application(settings: Settings) -> Application:
     app.add_handler(CommandHandler("settings", settings_command))
     app.add_handler(CommandHandler("help", help_command))
 
+    app.add_handler(CallbackQueryHandler(on_analyze_callback,
+                                         pattern=r"^analyze:"))
     app.add_handler(CallbackQueryHandler(on_process_callback,
                                          pattern=r"^process:"))
     app.add_handler(CallbackQueryHandler(on_confirm_callback,

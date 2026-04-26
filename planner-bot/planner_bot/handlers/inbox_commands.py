@@ -299,6 +299,55 @@ async def on_clarify_text(update: Update,
     )
 
 
+async def on_analyze_callback(update: Update,
+                              context: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    await q.answer()
+    item_id = int(q.data.split(":", 1)[1])
+    users = context.bot_data["users_repo"]
+    user = await users.get_by_telegram_id(q.from_user.id)
+    if user is None:
+        await q.edit_message_text("Доступа нет.")
+        return
+    inbox = context.bot_data["inbox_repo"]
+    item = await inbox.get(item_id)
+    if item is None:
+        await q.edit_message_text("Item не найден.")
+        return
+    attach = item.get("attachment_url") or item.get("raw_content") or ""
+    if not attach:
+        await q.edit_message_text("Нет прикреплённого файла для анализа.")
+        return
+    repo_root: Path = context.bot_data["repo_path"]
+    image_path = repo_root / attach
+    if not image_path.exists():
+        await q.edit_message_text(f"Файл не найден: {attach}")
+        return
+    await q.edit_message_text("🔍 Анализирую изображение…")
+    analyze = context.bot_data["analyze_photo"]
+    result = await analyze(image_path=image_path,
+                           caption=item.get("caption") or "")
+    description = result["description"]
+    await inbox.update(item_id, {"transcript": description[:4000]})
+    actions = context.bot_data["actions_repo"]
+    await actions.log(action_type="summarize", author_id=user["Id"],
+                      inbox_id=item_id, llm_model="claude-haiku-4-5",
+                      tokens_in=result["tokens_in"],
+                      tokens_out=result["tokens_out"],
+                      cost_usd=result["cost_usd"],
+                      llm_output=description[:500])
+    kb = InlineKeyboardMarkup([[
+        InlineKeyboardButton("📥 Обработать",
+                             callback_data=f"process:{item_id}"),
+        InlineKeyboardButton("🗑 Архив",
+                             callback_data=f"archive:{item_id}"),
+    ]])
+    await q.edit_message_text(
+        f"🔍 Vision #{item_id}:\n{description[:3000]}",
+        reply_markup=kb,
+    )
+
+
 async def on_archive_callback(update, context):
     q = update.callback_query
     await q.answer()

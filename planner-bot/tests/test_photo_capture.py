@@ -32,13 +32,19 @@ async def test_photo_creates_inbox_no_analysis(tmp_path: Path):
     ctx = FakeContext()
     (tmp_path / "_inbox").mkdir()
     (tmp_path / "_attachments").mkdir()
+    async def fake_classify(data):
+        return {"title": "Photo U", "summary": "фото",
+                "confidence": 0.5, "guess_project_slug": None,
+                "tokens_in": 5, "tokens_out": 3, "cost_usd": 0.0001}
+
     ctx.bot_data.update({
         "users_repo": users_repo, "inbox_repo": inbox_repo,
         "actions_repo": actions_repo,
+        "classify_inbox": fake_classify,
         "git_safe_commit": git_safe_commit, "repo_path": tmp_path,
     })
     await capture_photo(upd, ctx)
     args = inbox_repo.create.call_args.args[0]
     assert args["source_type"] == "photo"
-    assert args["title"].startswith("Photo")
+    assert args["title"] == "Photo U"
     assert any("Принято" in m["text"] for m in upd.message.sent)
