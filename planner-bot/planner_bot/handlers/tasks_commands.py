@@ -130,3 +130,22 @@ async def week_command(update, context):
             if p is not None:
                 rows = [r for r in rows if r.get("project_id") == p["Id"]]
     await update.message.reply_text(render_week(rows, today=today))
+
+
+async def task_command(update, context):
+    users = context.bot_data["users_repo"]
+    user = await users.get_by_telegram_id(update.effective_user.id)
+    if user is None:
+        await update.message.reply_text("Доступа нет."); return
+    title = " ".join(getattr(context, "args", []) or []).strip()
+    if not title:
+        context.user_data["pending_task_title_prompt"] = True
+        await update.message.reply_text(
+            "Что за задача? Напиши одной строкой.")
+        return
+    await prompt_quadrant_for_task(
+        update=update, context=context,
+        title=title, description="",
+        project_slug=None, due_date=None, due_time=None,
+        source_text=f"/task {title}",
+    )
