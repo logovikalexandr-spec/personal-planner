@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -92,3 +92,41 @@ async def on_quadrant_selected(update, context):
     context.user_data.pop("pending_task", None)
     await q.edit_message_text(
         f"✅ Создана задача #{rec['Id']} ({quadrant})")
+
+
+from planner_bot.formatters import render_today, render_week  # noqa: E402
+
+
+async def today_command(update, context):
+    users = context.bot_data["users_repo"]
+    user = await users.get_by_telegram_id(update.effective_user.id)
+    if user is None:
+        await update.message.reply_text("Доступа нет.")
+        return
+    tasks_repo = context.bot_data["tasks_repo"]
+    today = date.today()
+    rows = await tasks_repo.list_today(author_id=user["Id"],
+                                       today=today.isoformat())
+    await update.message.reply_text(render_today(rows, today=today))
+
+
+async def week_command(update, context):
+    users = context.bot_data["users_repo"]
+    user = await users.get_by_telegram_id(update.effective_user.id)
+    if user is None:
+        await update.message.reply_text("Доступа нет.")
+        return
+    tasks_repo = context.bot_data["tasks_repo"]
+    today = date.today()
+    end = today + timedelta(days=6)
+    rows = await tasks_repo.list_week(author_id=user["Id"],
+                                      start=today.isoformat(),
+                                      end=end.isoformat())
+    project_filter = (context.args[0] if getattr(context, "args", None) else None)
+    if project_filter:
+        projects = context.bot_data.get("projects_repo")
+        if projects is not None:
+            p = await projects.get_by_slug(project_filter)
+            if p is not None:
+                rows = [r for r in rows if r.get("project_id") == p["Id"]]
+    await update.message.reply_text(render_week(rows, today=today))
