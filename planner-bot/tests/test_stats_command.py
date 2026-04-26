@@ -18,14 +18,16 @@ async def test_stats_renders_counts():
     user = {"Id": 1, "name": "Sasha", "role": "sasha"}
     users_repo = MagicMock()
     users_repo.get_by_telegram_id = AsyncMock(return_value=user)
+    from datetime import date
+    ts = date.today().replace(day=1).isoformat() + "T10:00:00Z"
     raw_client = StubClient({
-        "Inbox": [{"Id": 1, "status": "processed"},
-                  {"Id": 2, "status": "new"},
-                  {"Id": 3, "status": "processed"}],
-        "Tasks": [{"Id": 1, "status": "done", "quadrant": "Q1"},
-                  {"Id": 2, "status": "todo", "quadrant": "Q2"}],
-        "Actions": [{"Id": 1, "cost_usd": 0.05},
-                    {"Id": 2, "cost_usd": 0.02}],
+        "Inbox": [{"Id": 1, "status": "processed", "created_at": ts},
+                  {"Id": 2, "status": "new", "created_at": ts},
+                  {"Id": 3, "status": "processed", "created_at": ts}],
+        "Tasks": [{"Id": 1, "status": "done", "quadrant": "Q1", "created_at": ts},
+                  {"Id": 2, "status": "todo", "quadrant": "Q2", "created_at": ts}],
+        "Actions": [{"Id": 1, "cost_usd": 0.05, "created_at": ts},
+                    {"Id": 2, "cost_usd": 0.02, "created_at": ts}],
     })
     upd = make_update("/stats", user_id=42)
     ctx = FakeContext()

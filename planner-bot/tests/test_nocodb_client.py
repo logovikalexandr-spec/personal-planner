@@ -21,7 +21,9 @@ async def test_list_passes_query_params(monkeypatch):
     rows = await c.list("Inbox", where="(status,eq,new)", limit=50)
     assert rows == [{"Id": 1}]
     assert captured["url"] == "/tables/Inbox/records"
-    assert captured["params"] == {"where": "(status,eq,new)", "limit": 50}
+    params = captured["params"]
+    assert ("limit", 50) in params
+    assert ("where", "(status,eq,new)") in params
 
 
 @pytest.mark.asyncio

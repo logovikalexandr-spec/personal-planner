@@ -9,21 +9,23 @@ async def stats_command(update, context):
     client = context.bot_data["nocodb_client"]
     today = date.today()
     month_start = today.replace(day=1).isoformat()
-    inbox_rows = await client.list(
-        "Inbox", limit=1000,
-        where=(f"(author_id,eq,{user['Id']})"
-               f"~and(created_at,gte,{month_start})"),
-    )
-    tasks_rows = await client.list(
-        "Tasks", limit=1000,
-        where=(f"(author_id,eq,{user['Id']})"
-               f"~and(created_at,gte,{month_start})"),
-    )
-    actions_rows = await client.list(
-        "Actions", limit=2000,
-        where=(f"(author_id,eq,{user['Id']})"
-               f"~and(created_at,gte,{month_start})"),
-    )
+
+    # Fetch all user records then filter in Python — avoids NocoDB datetime gte quirks
+    all_inbox = await client.list("Inbox", limit=2000,
+                                  where=f"(author_id,eq,{user['Id']})")
+    all_tasks = await client.list("Tasks", limit=2000,
+                                  where=f"(author_id,eq,{user['Id']})")
+    all_actions = await client.list("Actions", limit=5000,
+                                    where=f"(author_id,eq,{user['Id']})")
+
+    def _in_month(row):
+        ts = (row.get("created_at") or row.get("CreatedAt") or "")
+        return ts[:10] >= month_start
+
+    inbox_rows = [r for r in all_inbox if _in_month(r)]
+    tasks_rows = [r for r in all_tasks if _in_month(r)]
+    actions_rows = [r for r in all_actions if _in_month(r)]
+
     in_total = len(inbox_rows)
     in_done = sum(1 for r in inbox_rows if r["status"] == "processed")
     t_total = len(tasks_rows)

@@ -29,14 +29,18 @@ class NocoDBClient:
     async def list(self, table: str, *, where: str | None = None,
                    limit: int = 25, offset: int = 0,
                    sort: str | None = None) -> list[dict]:
-        params: dict = {"limit": limit}
+        # Build as list of tuples to support repeated sort params
+        params: list[tuple] = [("limit", limit)]
         if offset:
-            params["offset"] = offset
+            params.append(("offset", offset))
         if where:
-            params["where"] = where
+            params.append(("where", where))
         if sort:
-            params["sort"] = sort
-        r = await self._client.get(f"/tables/{self._tbl(table)}/records", params=params)
+            # NocoDB v2 needs repeated sort params, not comma-separated
+            for field in sort.split(","):
+                params.append(("sort", field.strip()))
+        r = await self._client.get(f"/tables/{self._tbl(table)}/records",
+                                   params=params)
         r.raise_for_status()
         return r.json().get("list", [])
 
