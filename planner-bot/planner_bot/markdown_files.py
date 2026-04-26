@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from planner_bot.repo_layout import inbox_path
+from planner_bot.repo_layout import inbox_path, task_path
 
 
 _FRONTMATTER_TEMPLATE = """---
@@ -51,4 +51,35 @@ def write_inbox_md(repo: Path, item: dict) -> Path:
     p.parent.mkdir(parents=True, exist_ok=True)
     text = render_inbox_frontmatter(item) + render_inbox_body(item)
     p.write_text(text)
+    return p
+
+
+_TASK_FRONTMATTER = """---
+task_id: {Id}
+author: {author}
+project: {project}
+quadrant: {quadrant}
+due: {due}
+due_time: {due_time}
+status: {status}
+created: {created}
+---
+"""
+
+
+def write_task_md(repo: Path, task: dict) -> Path:
+    p = task_path(repo, task["created"], task["title"])
+    p.parent.mkdir(parents=True, exist_ok=True)
+    fm = _TASK_FRONTMATTER.format(
+        Id=task["Id"], author=task["author"],
+        project=task.get("project") or "null",
+        quadrant=task["quadrant"],
+        due=task.get("due") or "null",
+        due_time=task.get("due_time") or "null",
+        status=task["status"], created=task["created"],
+    )
+    body = f"\n# {task['title']}\n"
+    if task.get("description"):
+        body += f"\n{task['description']}\n"
+    p.write_text(fm + body)
     return p
