@@ -145,3 +145,25 @@ async def on_clarify_text(update: Update,
         f"✅ #{item_id} → {project['slug']}/{decision['subfolder']}.\n"
         f"Запомнил: {rule}" if rule else f"✅ #{item_id} → {project['slug']}/{decision['subfolder']}"
     )
+
+
+async def on_archive_callback(update, context):
+    q = update.callback_query
+    await q.answer()
+    _, item_id_str = q.data.split(":", 1)
+    item_id = int(item_id_str)
+    users = context.bot_data["users_repo"]
+    user = await users.get_by_telegram_id(q.from_user.id)
+    if user is None:
+        await q.edit_message_text("Доступа нет.")
+        return
+    inbox = context.bot_data["inbox_repo"]
+    item = await inbox.get(item_id)
+    if item is None:
+        await q.edit_message_text("Item не найден.")
+        return
+    await inbox.update(item_id, {"status": "archived"})
+    actions = context.bot_data["actions_repo"]
+    await actions.log(action_type="move", author_id=user["Id"],
+                      inbox_id=item_id, user_decision="archived")
+    await q.edit_message_text(f"🗑 #{item_id} архив")
