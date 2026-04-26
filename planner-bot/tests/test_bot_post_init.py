@@ -9,6 +9,9 @@ def test_post_init_registers_jobs(monkeypatch):
         "OPENAI_API_KEY": "x", "NOCODB_URL": "http://x",
         "NOCODB_TOKEN": "x", "GIT_REPO_PATH": "/tmp/x",
         "ADMIN_CHAT_ID": "1",
+        "NOCODB_TABLE_USERS": "tid_u", "NOCODB_TABLE_PROJECTS": "tid_p",
+        "NOCODB_TABLE_INBOX": "tid_i", "NOCODB_TABLE_TASKS": "tid_t",
+        "NOCODB_TABLE_ACTIONS": "tid_a",
     }.items():
         monkeypatch.setenv(k, v)
     settings = Settings()

@@ -58,7 +58,17 @@ def _setup_logging(*, level: str, logs_dir):
 
 
 def _wire_bot_data(app: Application, settings: Settings) -> None:
-    nc = NocoDBClient(base_url=settings.nocodb_url, token=settings.nocodb_token)
+    nc = NocoDBClient(
+        base_url=settings.nocodb_url,
+        token=settings.nocodb_token,
+        table_map={
+            "Users": settings.nocodb_table_users,
+            "Projects": settings.nocodb_table_projects,
+            "Inbox": settings.nocodb_table_inbox,
+            "Tasks": settings.nocodb_table_tasks,
+            "Actions": settings.nocodb_table_actions,
+        },
+    )
     ant = AnthropicLLM(
         client=anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key),
         sonnet_model="claude-sonnet-4-6",
