@@ -45,6 +45,7 @@ class FakeContext:
         self.bot_data: dict = {}
         self.user_data: dict = {}
         self.chat_data: dict = {}
+        self.args: list[str] = []
 
 
 def make_update(text: str, user_id: int = 100, chat_id: int = 100,

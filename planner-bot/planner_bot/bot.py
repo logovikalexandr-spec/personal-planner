@@ -24,6 +24,7 @@ def main() -> None:
     logging.basicConfig(level=settings.log_level.upper())
     logger.info("planner-bot starting")
     app = build_application(settings)
+    # close_loop=False: container PID 1 owns lifecycle; PTB does not need to tear down the loop
     app.run_polling(close_loop=False)
 
 
