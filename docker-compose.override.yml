@@ -1,0 +1,15 @@
+services:
+  planner-bot:
+    build:
+      context: ./planner-bot
+    image: planner-bot:latest
+    restart: always
+    env_file: ./planner-bot/.env
+    volumes:
+      - /root/personal-planner:/app/repo
+      - /root/.ssh:/root/.ssh:ro
+      - ./planner-bot/logs:/app/logs
+    depends_on:
+      - nocodb
+    networks:
+      - default
