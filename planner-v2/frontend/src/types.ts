@@ -1,0 +1,27 @@
+export type Priority = "none" | "low" | "medium" | "high";
+export type TaskStatus = "todo" | "in_progress" | "done" | "archived";
+
+export interface Task {
+  id: number;
+  title: string;
+  project_id: number | null;
+  priority: Priority;
+  status: TaskStatus;
+  due_date: string | null;
+  due_time: string | null;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  slug: string;
+  is_inbox: boolean;
+}
+
+export interface InboxItem {
+  id: number;
+  kind: string;
+  source: string;
+  raw_content: string;
+  status: string;
+}
