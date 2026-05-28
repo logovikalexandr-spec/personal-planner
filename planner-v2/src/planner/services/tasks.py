@@ -27,7 +27,9 @@ async def list_tasks(session, *, scope: str = "all", project_id: int | None = No
         stmt = stmt.where(Task.due_date == date.today(), Task.status != "done")
     elif scope == "week":
         end = date.today() + timedelta(days=7)
-        stmt = stmt.where(Task.due_date >= date.today(), Task.due_date <= end, Task.status != "done")
+        stmt = stmt.where(
+            Task.due_date >= date.today(), Task.due_date <= end, Task.status != "done"
+        )
     elif scope == "inbox":
         inbox_id = await _inbox_project_id(session)
         stmt = stmt.where(Task.project_id == inbox_id)

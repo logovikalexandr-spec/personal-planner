@@ -17,7 +17,9 @@ def classify_text(text: str) -> str:
     return "link" if _URL_RE.search(text) else "text"
 
 
-async def _capture_and_ack(message: Message, *, kind: str, raw: str, attachment: dict | None = None) -> None:
+async def _capture_and_ack(
+    message: Message, *, kind: str, raw: str, attachment: dict | None = None
+) -> None:
     async for session in get_session():
         await inbox_svc.capture(session, kind=kind, raw_content=raw, attachment=attachment)
         await session.commit()
@@ -38,5 +40,7 @@ async def on_photo(message: Message) -> None:
 async def on_text(message: Message) -> None:
     text = message.text or ""
     kind = classify_text(text)
-    att = {"kind": "link", "url_or_fileid": _URL_RE.search(text).group(0)} if kind == "link" else None
+    att = None
+    if kind == "link":
+        att = {"kind": "link", "url_or_fileid": _URL_RE.search(text).group(0)}
     await _capture_and_ack(message, kind=kind, raw=text, attachment=att)

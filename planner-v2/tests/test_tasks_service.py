@@ -47,7 +47,9 @@ async def test_triage_inbox_creates_task(db_session):
     item = InboxItem(kind="text", source="manual", raw_content="сделать креатив")
     db_session.add(item)
     await db_session.flush()
-    t = await svc.triage_inbox(db_session, item.id, project_id=proj.id, title="сделать креатив", priority="high")
+    t = await svc.triage_inbox(
+        db_session, item.id, project_id=proj.id, title="сделать креатив", priority="high"
+    )
     assert t.project_id == proj.id
     assert t.priority == "high"
     assert item.status == "triaged"

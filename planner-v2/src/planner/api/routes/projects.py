@@ -17,7 +17,8 @@ async def list_projects(
     _: Annotated[TelegramUser, Depends(require_owner)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    rows = await db.execute(select(Project).where(Project.archived.is_(False)).order_by(Project.name))
+    stmt = select(Project).where(Project.archived.is_(False)).order_by(Project.name)
+    rows = await db.execute(stmt)
     return rows.scalars().all()
 
 
