@@ -15,6 +15,7 @@ export default function App() {
   const [tab, setTab] = useState<TabKey>("today");
   const [active, setActive] = useState<ActiveList>({ kind: "smart", key: "today", title: "Сегодня" });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerClosing, setDrawerClosing] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -23,6 +24,11 @@ export default function App() {
   const touchY = useRef<number | null>(null);
 
   function bump() { setReloadKey((k) => k + 1); }
+  function openDrawer() { setDrawerClosing(false); setDrawerOpen(true); }
+  function closeDrawer() {
+    setDrawerClosing(true);
+    window.setTimeout(() => { setDrawerOpen(false); setDrawerClosing(false); }, 220);
+  }
 
   useEffect(() => {
     applyTelegramTheme();
@@ -40,16 +46,16 @@ export default function App() {
 
   function selectList(a: ActiveList) {
     setActive(a);
-    setDrawerOpen(false);
     setTab("today");
     bump();
+    closeDrawer();
   }
 
   function onTabChange(k: TabKey) {
     setTab(k);
     if (k === "today") setActive({ kind: "smart", key: "today", title: "Сегодня" });
     if (k === "tasks") setActive({ kind: "smart", key: "all", title: "Все задачи" });
-    if (k === "projects") setDrawerOpen(true);
+    if (k === "projects") openDrawer();
   }
 
   const onTask = tab === "today" || tab === "tasks" || tab === "projects";
@@ -58,7 +64,7 @@ export default function App() {
   if (tab === "calendar") screen = <Calendar />;
   else if (tab === "goals") screen = <Goals />;
   else screen = (
-    <ListView active={active} reloadKey={reloadKey} onMenu={() => setDrawerOpen(true)} onInboxChange={bump} />
+    <ListView active={active} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} />
   );
 
   const showFab = onTask && !(active.kind === "smart" && active.key === "inbox");
@@ -75,14 +81,14 @@ export default function App() {
         if (sx === null || sy === null || drawerOpen) return;
         const dx = e.changedTouches[0].clientX - sx;
         const dy = Math.abs(e.changedTouches[0].clientY - sy);
-        // широкая зона: старт в левой половине экрана, горизонтальный свайп вправо
-        if (sx < window.innerWidth * 0.5 && dx > 50 && dx > dy) setDrawerOpen(true);
+        // свайп вправо откуда угодно по экрану, явно горизонтальный
+        if (dx > 60 && dx > dy * 1.5) openDrawer();
       }}
     >
       {screen}
       {showFab && <Fab onAdd={() => setAddOpen(true)} onAi={() => setAiOpen(true)} />}
       {drawerOpen && (
-        <Drawer active={active} name={name} onSelect={selectList} onClose={() => setDrawerOpen(false)} />
+        <Drawer active={active} name={name} closing={drawerClosing} onSelect={selectList} onClose={closeDrawer} />
       )}
       {addOpen && <AddSheet onClose={() => setAddOpen(false)} onAdd={add} />}
       {aiOpen && (

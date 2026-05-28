@@ -31,8 +31,8 @@ function subtreeCount(p: Project, byParent: Map<number | null, Project[]>): numb
 }
 
 export function Drawer({
-  active, name, onSelect, onClose,
-}: { active: ActiveList; name: string; onSelect: (a: ActiveList) => void; onClose: () => void }) {
+  active, name, closing, onSelect, onClose,
+}: { active: ActiveList; name: string; closing?: boolean; onSelect: (a: ActiveList) => void; onClose: () => void }) {
   const [counts, setCounts] = useState<Counts | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
@@ -86,8 +86,8 @@ export function Drawer({
   }
 
   return (
-    <div className="drawer-backdrop" onClick={onClose}>
-      <div className="drawer" onClick={(e) => e.stopPropagation()}>
+    <div className={`drawer-backdrop ${closing ? "closing" : ""}`} onClick={onClose}>
+      <div className={`drawer ${closing ? "closing" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="drawer-head">
           <div className="drawer-avatar">{(name || "A").slice(0, 1).toUpperCase()}</div>
           <div className="drawer-label" style={{ fontWeight: 600, fontSize: 17 }}>{name || "Planner"}</div>

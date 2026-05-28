@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from planner.api.routes import counts, health, inbox, me, projects, tasks
@@ -14,6 +14,20 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router)
     app.include_router(inbox.router)
     app.include_router(counts.router)
+
+    # Telegram кэширует Mini App агрессивно. index.html (HTML) не кэшируем,
+    # чтобы новые сборки (с новыми hashed-ассетами) всегда подхватывались.
+    # Сами ассеты с хэшем в имени можно кэшировать долго.
+    @app.middleware("http")
+    async def cache_headers(request: Request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        ctype = response.headers.get("content-type", "")
+        if path.startswith("/app") and ("text/html" in ctype or path in ("/app", "/app/")):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        elif "/app/assets/" in path:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
 
     dist = os.environ.get("MINI_APP_DIST_DIR", "frontend/dist")
     if os.path.isdir(dist):
