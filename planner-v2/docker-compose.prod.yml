@@ -1,0 +1,84 @@
+services:
+  planner-postgres:
+    image: postgres:16
+    container_name: planner-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: planner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-planner}
+      POSTGRES_DB: planner
+    volumes: ["planner_pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planner -d planner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [planner_net]
+
+  planner-redis:
+    image: redis:7-alpine
+    container_name: planner-redis
+    restart: unless-stopped
+    volumes: ["planner_redisdata:/data"]
+    networks: [planner_net]
+
+  planner-migrate:
+    build: .
+    image: planner-app:latest
+    container_name: planner-migrate
+    command: ["alembic", "upgrade", "head"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://planner:${POSTGRES_PASSWORD:-planner}@planner-postgres:5432/planner
+    depends_on:
+      planner-postgres: { condition: service_healthy }
+    networks: [planner_net]
+    restart: "no"
+
+  planner-api:
+    image: planner-app:latest
+    container_name: planner-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://planner:${POSTGRES_PASSWORD:-planner}@planner-postgres:5432/planner
+      REDIS_URL: redis://planner-redis:6379/0
+      MINI_APP_DIST_DIR: /app/frontend/dist
+    depends_on:
+      planner-migrate: { condition: service_completed_successfully }
+    networks: [planner_net]
+
+  planner-bot:
+    image: planner-app:latest
+    container_name: planner-bot
+    restart: unless-stopped
+    command: ["python", "-m", "planner.bot.main"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://planner:${POSTGRES_PASSWORD:-planner}@planner-postgres:5432/planner
+      REDIS_URL: redis://planner-redis:6379/0
+    depends_on:
+      planner-api: { condition: service_started }
+    networks: [planner_net]
+
+  planner-caddy:
+    image: caddy:2-alpine
+    container_name: planner-caddy
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - planner_caddy_data:/data
+      - planner_caddy_config:/config
+    depends_on: [planner-api]
+    networks: [planner_net]
+
+volumes:
+  planner_pgdata:
+  planner_redisdata:
+  planner_caddy_data:
+  planner_caddy_config:
+
+networks:
+  planner_net:
+    driver: bridge

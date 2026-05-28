@@ -1,0 +1,8 @@
+planner-188-245-42-4.sslip.io {
+    encode gzip
+    reverse_proxy planner-api:8000
+    log {
+        output stdout
+        format console
+    }
+}
