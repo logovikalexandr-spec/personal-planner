@@ -27,8 +27,7 @@ export function Inbox({ onChange }: { onChange: () => void }) {
   }
 
   return (
-    <div className="screen">
-      <h1>Inbox</h1>
+    <>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
         {(["all", "manual", "session"] as const).map((f) => (
           <button
@@ -60,6 +59,6 @@ export function Inbox({ onChange }: { onChange: () => void }) {
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }
