@@ -20,6 +20,7 @@ export default function App() {
   const [reloadKey, setReloadKey] = useState(0);
   const [name, setName] = useState("");
   const touchX = useRef<number | null>(null);
+  const touchY = useRef<number | null>(null);
 
   function bump() { setReloadKey((k) => k + 1); }
 
@@ -65,11 +66,17 @@ export default function App() {
   return (
     <div
       className="app"
-      onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
+      onTouchStart={(e) => { touchX.current = e.touches[0].clientX; touchY.current = e.touches[0].clientY; }}
       onTouchEnd={(e) => {
         const sx = touchX.current;
+        const sy = touchY.current;
         touchX.current = null;
-        if (sx !== null && sx < 30 && e.changedTouches[0].clientX - sx > 60) setDrawerOpen(true);
+        touchY.current = null;
+        if (sx === null || sy === null || drawerOpen) return;
+        const dx = e.changedTouches[0].clientX - sx;
+        const dy = Math.abs(e.changedTouches[0].clientY - sy);
+        // широкая зона: старт в левой половине экрана, горизонтальный свайп вправо
+        if (sx < window.innerWidth * 0.5 && dx > 50 && dx > dy) setDrawerOpen(true);
       }}
     >
       {screen}

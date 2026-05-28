@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { getCounts, getProjects } from "../api";
+import {
+  IcoAll, IcoDot, IcoInbox, IcoNext7, IcoTodaySmall, IcoTomorrow, IcoWeekPlan,
+} from "./icons";
 import type { ActiveList, Counts, Project, SmartKey } from "../types";
 
-const SMART: { key: SmartKey; title: string; ico: string }[] = [
-  { key: "all", title: "Все", ico: "—" },
-  { key: "today", title: "Сегодня", ico: "•" },
-  { key: "tomorrow", title: "Завтра", ico: "»" },
-  { key: "next7", title: "Следующие 7 дней", ico: "7" },
-  { key: "inbox", title: "Входящие", ico: "In" },
-  { key: "week", title: "План на неделю", ico: "≋" },
+const SMART: { key: SmartKey; title: string; Ico: () => JSX.Element }[] = [
+  { key: "all", title: "Все", Ico: IcoAll },
+  { key: "today", title: "Сегодня", Ico: IcoTodaySmall },
+  { key: "tomorrow", title: "Завтра", Ico: IcoTomorrow },
+  { key: "next7", title: "Следующие 7 дней", Ico: IcoNext7 },
+  { key: "inbox", title: "Входящие", Ico: IcoInbox },
+  { key: "week", title: "План на неделю", Ico: IcoWeekPlan },
 ];
 
 function countFor(k: SmartKey, c: Counts | null): number {
@@ -46,6 +49,7 @@ export function Drawer({
     if (!byParent.has(k)) byParent.set(k, []);
     byParent.get(k)!.push(p);
   }
+  const roots = byParent.get(null) ?? [];
 
   function toggle(id: number) {
     setExpanded((s) => {
@@ -55,12 +59,8 @@ export function Drawer({
     });
   }
 
-  function isActiveSmart(k: SmartKey) {
-    return active.kind === "smart" && active.key === k;
-  }
-  function isActiveProject(id: number) {
-    return active.kind === "project" && active.id === id;
-  }
+  const isActiveSmart = (k: SmartKey) => active.kind === "smart" && active.key === k;
+  const isActiveProject = (id: number) => active.kind === "project" && active.id === id;
 
   function renderProject(p: Project, depth: number) {
     const children = byParent.get(p.id) ?? [];
@@ -71,7 +71,7 @@ export function Drawer({
           className={`drawer-row ${isActiveProject(p.id) ? "active" : ""} ${depth > 0 ? "tree-child" : ""}`}
           onClick={() => onSelect({ kind: "project", id: p.id, title: p.name })}
         >
-          <span className="drawer-ico">#</span>
+          <span className="drawer-ico"><IcoDot /></span>
           <span className="drawer-label">{p.name}</span>
           {cnt > 0 && <span className="drawer-count">{cnt}</span>}
           {children.length > 0 && (
@@ -90,21 +90,29 @@ export function Drawer({
       <div className="drawer" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-head">
           <div className="drawer-avatar">{(name || "A").slice(0, 1).toUpperCase()}</div>
-          <div className="drawer-label" style={{ fontWeight: 600 }}>{name || "Planner"}</div>
+          <div className="drawer-label" style={{ fontWeight: 600, fontSize: 17 }}>{name || "Planner"}</div>
         </div>
-        {SMART.map((s) => (
+
+        <div className="drawer-section">Списки</div>
+        {SMART.map(({ key, title, Ico }) => (
           <div
-            key={s.key}
-            className={`drawer-row ${isActiveSmart(s.key) ? "active" : ""}`}
-            onClick={() => onSelect({ kind: "smart", key: s.key, title: s.title })}
+            key={key}
+            className={`drawer-row ${isActiveSmart(key) ? "active" : ""}`}
+            onClick={() => onSelect({ kind: "smart", key, title })}
           >
-            <span className="drawer-ico">{s.ico}</span>
-            <span className="drawer-label">{s.title}</span>
-            {countFor(s.key, counts) > 0 && <span className="drawer-count">{countFor(s.key, counts)}</span>}
+            <span className="drawer-ico"><Ico /></span>
+            <span className="drawer-label">{title}</span>
+            {countFor(key, counts) > 0 && <span className="drawer-count">{countFor(key, counts)}</span>}
           </div>
         ))}
-        <div className="drawer-sep" />
-        {(byParent.get(null) ?? []).map((p) => renderProject(p, 0))}
+
+        {roots.length > 0 && (
+          <>
+            <div className="drawer-sep" />
+            <div className="drawer-section">Проекты</div>
+            {roots.map((p) => renderProject(p, 0))}
+          </>
+        )}
       </div>
     </div>
   );
