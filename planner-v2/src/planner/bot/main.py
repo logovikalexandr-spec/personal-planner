@@ -3,7 +3,7 @@ import asyncio
 import structlog
 from aiogram import Bot, Dispatcher
 
-from planner.bot.handlers import start
+from planner.bot.handlers import capture, start
 from planner.bot.middlewares.allowlist import AllowlistMiddleware
 from planner.config import get_settings
 
@@ -16,6 +16,7 @@ async def run() -> None:
     dp = Dispatcher()
     dp.update.middleware(AllowlistMiddleware(settings.owner_telegram_id))
     dp.include_router(start.router)
+    dp.include_router(capture.router)
     log.info("planner-bot started")
     await dp.start_polling(bot)
 
