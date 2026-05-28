@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCounts, getProjects } from "../api";
 import {
   IcoAll, IcoDot, IcoInbox, IcoNext7, IcoTodaySmall, IcoTomorrow, IcoWeekPlan,
@@ -36,6 +36,8 @@ export function Drawer({
   const [counts, setCounts] = useState<Counts | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const sx = useRef<number | null>(null);
+  const sy = useRef<number | null>(null);
 
   useEffect(() => {
     getCounts().then(setCounts).catch(() => setCounts(null));
@@ -87,7 +89,21 @@ export function Drawer({
 
   return (
     <div className={`drawer-backdrop ${closing ? "closing" : ""}`} onClick={onClose}>
-      <div className={`drawer ${closing ? "closing" : ""}`} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={`drawer ${closing ? "closing" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => { sx.current = e.touches[0].clientX; sy.current = e.touches[0].clientY; }}
+        onTouchEnd={(e) => {
+          const x = sx.current;
+          const y = sy.current;
+          sx.current = null;
+          sy.current = null;
+          if (x === null || y === null) return;
+          const dx = e.changedTouches[0].clientX - x;
+          const dy = Math.abs(e.changedTouches[0].clientY - y);
+          if (dx < -50 && Math.abs(dx) > dy * 1.5) onClose();
+        }}
+      >
         <div className="drawer-head">
           <div className="drawer-avatar">{(name || "A").slice(0, 1).toUpperCase()}</div>
           <div className="drawer-label" style={{ fontWeight: 600, fontSize: 17 }}>{name || "Planner"}</div>

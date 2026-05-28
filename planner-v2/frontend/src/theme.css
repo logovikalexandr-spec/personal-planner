@@ -1,5 +1,5 @@
 :root {
-  --bg: #08080a;            /* near-black, reads "чернющий", не чистый #000 */
+  --bg: var(--tg-theme-bg-color, #08080a);  /* наследуем фон Telegram (как в Ledger) */
   --surface: #161619;       /* строки, карточки */
   --surface-2: #1f1f23;     /* инпут, приподнятое, чипы */
   --text: #f4f4f5;
