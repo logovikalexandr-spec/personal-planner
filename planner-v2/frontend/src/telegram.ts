@@ -11,6 +11,6 @@ export function applyTelegramTheme(): void {
   if (!w) return;
   w.ready();
   w.expand?.();
-  w.setBackgroundColor?.("#1a1a1c");
-  w.setHeaderColor?.("#1a1a1c");
+  w.setBackgroundColor?.("#0f0f11");
+  w.setHeaderColor?.("#0f0f11");
 }

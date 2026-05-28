@@ -17,7 +17,7 @@ export function TaskItem({ task, onToggle }: { task: Task; onToggle: (t: Task) =
       <div className="grow">
         <div className={done ? "title-done" : ""}>{task.title}</div>
         {(task.due_date || task.due_time) && (
-          <div className="muted" style={{ fontSize: 13 }}>
+          <div className="muted mono" style={{ fontSize: 13 }}>
             {task.due_date ?? ""} {task.due_time ?? ""}
           </div>
         )}
