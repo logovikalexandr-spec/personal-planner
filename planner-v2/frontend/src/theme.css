@@ -1,7 +1,7 @@
 :root {
-  --bg: #0f0f11;
-  --surface: #1a1b1f;
-  --surface-2: #242529;
+  --bg: #08080a;            /* near-black, reads "чернющий", не чистый #000 */
+  --surface: #161619;       /* строки, карточки */
+  --surface-2: #1f1f23;     /* инпут, приподнятое, чипы */
   --text: #f4f4f5;
   --text-muted: #8a8b91;
   --accent: #ee8a3c;
@@ -10,10 +10,15 @@
   --danger: #ff5c5c;
   --warning: #ffb02e;
   --border: rgba(255, 255, 255, 0.07);
-  --radius: 12px;
-  --radius-sm: 10px;
-  --gap: 12px;
-  --tab-h: 64px;
+
+  /* spacing scale */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
+
+  --radius: 16px;
+  --radius-sm: 12px;
+  --tab-h: 72px;
+  --fab: 56px;
+  --tap: 48px;
   --font: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
@@ -30,81 +35,131 @@ body {
 }
 
 .app { min-height: 100dvh; padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
-.screen { padding: 16px; }
-.screen h1 { font-size: 22px; font-weight: 700; margin: 8px 0 16px; letter-spacing: -0.3px; }
+.screen { padding: var(--s5) var(--s4) var(--s6); }
+.screen h1 { font-size: 26px; font-weight: 700; margin: 0 0 var(--s2); letter-spacing: -0.4px; }
+.screen-hero { margin-bottom: var(--s5); }
+.screen-hero .date { font-family: var(--font-mono); color: var(--text-muted); font-size: 14px; margin-top: 2px; }
+.section-label {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+  color: var(--text-muted); margin: var(--s6) 0 var(--s3);
+}
 .muted { color: var(--text-muted); }
 .mono { font-family: var(--font-mono); font-feature-settings: "tnum"; }
 
-.card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+.card { background: var(--surface); border-radius: var(--radius); padding: var(--s4); }
+.list { display: flex; flex-direction: column; gap: var(--s2); }
+
+/* full-width tappable entry (Inbox, navigation rows) */
+.entry-card {
+  display: flex; align-items: center; gap: var(--s3);
+  background: var(--surface); border-radius: var(--radius);
+  padding: var(--s4); min-height: 60px; cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease;
 }
-.list { display: flex; flex-direction: column; gap: 8px; }
+.entry-card:active { transform: scale(0.99); background: var(--surface-2); }
+.entry-card .lead { width: 28px; text-align: center; color: var(--accent); }
+.entry-card .count {
+  font-family: var(--font-mono); background: var(--accent); color: #fff;
+  border-radius: 999px; font-size: 13px; font-weight: 700; padding: 2px 9px; min-width: 24px; text-align: center;
+}
+.entry-card .chev { color: var(--text-muted); }
 
 .btn {
   appearance: none; border: none; cursor: pointer;
   background: var(--accent); color: var(--accent-contrast);
-  border-radius: var(--radius-sm); padding: 12px 16px; font-size: 16px; font-weight: 600;
-  min-height: 44px; transition: opacity 140ms ease, transform 140ms ease;
+  border-radius: var(--radius-sm); padding: 0 var(--s5); font-size: 16px; font-weight: 600;
+  min-height: var(--tap); display: inline-flex; align-items: center; justify-content: center;
+  transition: opacity 140ms ease, transform 140ms ease;
 }
-.btn:active { transform: scale(0.98); opacity: 0.9; }
+.btn:active { transform: scale(0.97); opacity: 0.9; }
+.btn-block { width: 100%; }
 .btn-ghost { background: transparent; color: var(--accent); }
 .btn-chip {
   background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
-  border-radius: 999px; padding: 7px 13px; min-height: 34px; font-size: 14px; font-weight: 500;
+  border-radius: 999px; padding: 9px 15px; min-height: 38px; font-size: 14px; font-weight: 500;
   cursor: pointer; transition: background 140ms ease, color 140ms ease;
 }
 .btn-chip.active { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
 
 .input {
   width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 12px 14px; font-size: 16px; background: var(--surface-2); color: var(--text);
-  min-height: 44px; outline: none;
+  padding: 14px var(--s4); font-size: 16px; background: var(--surface-2); color: var(--text);
+  min-height: var(--tap); outline: none;
 }
 .input:focus { border-color: var(--accent); }
 .input::placeholder { color: var(--text-muted); }
+
+/* Floating action buttons (как в Ledger) */
+.fab {
+  position: fixed; right: var(--s4);
+  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + var(--s3));
+  width: var(--fab); height: var(--fab); border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  font-size: 28px; line-height: 1; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45); transition: transform 140ms ease;
+  z-index: 40;
+}
+.fab:active { transform: scale(0.94); }
+.fab-secondary {
+  left: var(--s4); right: auto; background: var(--surface-2); color: var(--accent);
+  border: 1px solid var(--border); width: 50px; height: 50px; font-size: 22px;
+}
+
+/* bottom sheet (add task) */
+.sheet-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 50;
+  display: flex; align-items: flex-end;
+}
+.sheet {
+  width: 100%; background: var(--surface); border-radius: 20px 20px 0 0;
+  padding: var(--s5) var(--s4) calc(var(--s5) + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: var(--s3);
+}
+.sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto var(--s2); }
 
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: calc(var(--tab-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   display: grid; grid-template-columns: repeat(5, 1fr);
-  background: var(--surface); border-top: 1px solid var(--border);
+  background: var(--surface); border-top: 1px solid var(--border); z-index: 30;
 }
 .tabbar button {
   appearance: none; border: none; background: transparent; cursor: pointer;
   position: relative;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; font-size: 11px; color: var(--text-muted); padding: 0;
+  gap: 4px; font-size: 11px; color: var(--text-muted); padding: 0;
   transition: color 140ms ease;
 }
 .tabbar button.active { color: var(--accent); }
+.tabbar svg { width: 24px; height: 24px; }
 .tab-badge {
-  position: absolute; top: 8px; left: 50%; transform: translateX(4px);
-  background: var(--accent); color: #fff; border-radius: 999px;
-  font-family: var(--font-mono);
+  position: absolute; top: 10px; left: 50%; transform: translateX(6px);
+  background: var(--accent); color: #fff; border-radius: 999px; font-family: var(--font-mono);
   font-size: 10px; font-weight: 700; padding: 1px 6px; min-width: 16px; text-align: center; line-height: 1.5;
 }
+
+.task-row {
+  display: flex; align-items: center; gap: var(--s3);
+  background: var(--surface); border-radius: var(--radius); padding: var(--s4);
+  min-height: 60px;
+}
 .checkbox {
-  width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border);
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border);
   display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
-  flex: 0 0 auto; color: #fff; font-size: 13px; transition: background 140ms ease, border-color 140ms ease;
+  flex: 0 0 auto; color: #fff; font-size: 14px; transition: background 140ms ease, border-color 140ms ease;
 }
 .checkbox.done { background: var(--accent); border-color: var(--accent); }
 .prio-high { box-shadow: inset 3px 0 0 var(--danger); }
 .prio-medium { box-shadow: inset 3px 0 0 var(--warning); }
 .prio-low { box-shadow: inset 3px 0 0 var(--accent); }
-.row { display: flex; align-items: center; gap: 12px; }
+.row { display: flex; align-items: center; gap: var(--s3); }
 .grow { flex: 1 1 auto; min-width: 0; }
 .title-done { text-decoration: line-through; color: var(--text-muted); }
 
-/* Skeleton loaders (no spinners) */
 .skeleton {
   background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%);
-  background-size: 400% 100%;
-  animation: shimmer 1.2s ease infinite;
-  border-radius: var(--radius);
-  height: 56px;
+  background-size: 400% 100%; animation: shimmer 1.2s ease infinite;
+  border-radius: var(--radius); height: 60px;
 }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }

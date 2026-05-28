@@ -1,30 +1,27 @@
 import { useEffect, useState } from "react";
-import { AddTaskBar } from "../components/AddTaskBar";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
-import { createTask, getTasks, patchTask } from "../api";
+import { getTasks, patchTask } from "../api";
 import type { Task } from "../types";
 
-export function Today({ onInbox }: { onInbox: () => void }) {
+const FMT = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+
+export function Today({ reloadKey, inboxCount, onInbox }: { reloadKey: number; inboxCount: number; onInbox: () => void }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
   async function load() {
     try {
       setTasks(await getTasks("today"));
+      setErr(null);
     } catch (e) {
       setErr(String(e));
     }
   }
   useEffect(() => {
     load();
-  }, []);
+  }, [reloadKey]);
 
-  async function add(title: string) {
-    const today = new Date().toISOString().slice(0, 10);
-    await createTask(title, { due_date: today });
-    await load();
-  }
   async function toggle(t: Task) {
     await patchTask(t.id, { status: t.status === "done" ? "todo" : "done" });
     await load();
@@ -32,11 +29,21 @@ export function Today({ onInbox }: { onInbox: () => void }) {
 
   return (
     <div className="screen">
-      <h1>Сегодня</h1>
-      <button className="btn-ghost" onClick={onInbox} style={{ marginBottom: 12 }}>Разобрать Inbox</button>
-      <AddTaskBar onAdd={add} />
+      <div className="screen-hero">
+        <h1>Сегодня</h1>
+        <div className="date">{FMT.format(new Date())}</div>
+      </div>
+
+      <div className="entry-card" onClick={onInbox}>
+        <span className="lead">In</span>
+        <span className="grow">Разобрать Inbox</span>
+        {inboxCount > 0 && <span className="count">{inboxCount}</span>}
+        <span className="chev">{"›"}</span>
+      </div>
+
+      <div className="section-label">Задачи на сегодня</div>
       {err && <div className="card">Ошибка: {err}</div>}
-      {!err && tasks.length === 0 && <Empty text="На сегодня пусто. Добавь задачу выше." />}
+      {!err && tasks.length === 0 && <Empty text="На сегодня пусто. Жми + чтобы добавить." />}
       <div className="list">
         {tasks.map((t) => (
           <TaskItem key={t.id} task={t} onToggle={toggle} />
