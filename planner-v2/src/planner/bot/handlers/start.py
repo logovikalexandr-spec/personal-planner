@@ -10,8 +10,8 @@ def is_owner(user_id: int, *, owner_id: int) -> bool:
 
 
 def greeting_text(name: str | None) -> str:
-    who = name or "tam"
-    return f"Privet, {who}. Eto tvoy planner. Kidaj zadachi syuda, razberyom v Mini App."
+    who = name or "там"
+    return f"Привет, {who}. Это твой планнер. Кидай задачи сюда, разберём в Mini App."
 
 
 @router.message(CommandStart())

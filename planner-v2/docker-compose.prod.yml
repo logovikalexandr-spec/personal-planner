@@ -61,9 +61,14 @@ services:
       planner-api: { condition: service_started }
     networks: [planner_net]
 
+  # На VPS ledger уже держит 80/443. По умолчанию этот caddy НЕ стартует.
+  # Запускать только если planner деплоится изолированно (без общего caddy):
+  #   docker compose -f docker-compose.prod.yml --profile standalone-caddy up -d
+  # Иначе planner-api подключается в общий Caddy ledger (см. runbook).
   planner-caddy:
     image: caddy:2-alpine
     container_name: planner-caddy
+    profiles: ["standalone-caddy"]
     restart: unless-stopped
     ports: ["80:80", "443:443"]
     volumes:
