@@ -33,8 +33,7 @@ export function Inbox({ onChange }: { onChange: () => void }) {
         {(["all", "manual", "session"] as const).map((f) => (
           <button
             key={f}
-            className={filter === f ? "btn" : "btn btn-ghost"}
-            style={{ padding: "8px 12px", minHeight: 36 }}
+            className={filter === f ? "btn-chip active" : "btn-chip"}
             onClick={() => setFilter(f)}
           >
             {f === "all" ? "Все" : f === "manual" ? "Мои" : "Из сессий"}
@@ -53,12 +52,7 @@ export function Inbox({ onChange }: { onChange: () => void }) {
               {projects
                 .filter((p) => !p.is_inbox)
                 .map((p) => (
-                  <button
-                    key={p.id}
-                    className="btn btn-ghost"
-                    style={{ padding: "6px 10px", minHeight: 32, border: "1px solid var(--border)" }}
-                    onClick={() => triage(it, p.id)}
-                  >
+                  <button key={p.id} className="btn-chip" onClick={() => triage(it, p.id)}>
                     {p.name}
                   </button>
                 ))}
