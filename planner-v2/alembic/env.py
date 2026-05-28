@@ -6,7 +6,7 @@ from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from planner.db.base import Base
-import planner.db  # noqa: F401  (точка для импорта моделей в Phase 1)
+import planner.db.models  # noqa: F401  (регистрация моделей)
 
 config = context.config
 if config.config_file_name:
