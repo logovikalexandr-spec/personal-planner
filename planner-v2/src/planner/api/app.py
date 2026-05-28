@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from planner.api.routes import health, inbox, me, projects, tasks
+from planner.api.routes import counts, health, inbox, me, projects, tasks
 
 
 def create_app() -> FastAPI:
@@ -13,6 +13,7 @@ def create_app() -> FastAPI:
     app.include_router(projects.router)
     app.include_router(tasks.router)
     app.include_router(inbox.router)
+    app.include_router(counts.router)
 
     dist = os.environ.get("MINI_APP_DIST_DIR", "frontend/dist")
     if os.path.isdir(dist):

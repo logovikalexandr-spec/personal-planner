@@ -18,7 +18,12 @@ async def list_tasks(
     db: Annotated[AsyncSession, Depends(get_db)],
     scope: str = "all",
     project_id: int | None = None,
+    include_children: bool = False,
 ):
+    if project_id is not None and include_children:
+        from planner.services.tasks import descendant_project_ids
+        project_ids = await descendant_project_ids(db, project_id)
+        return await svc.list_tasks(db, scope=scope, project_ids=project_ids)
     return await svc.list_tasks(db, scope=scope, project_id=project_id)
 
 

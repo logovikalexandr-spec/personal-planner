@@ -8,6 +8,7 @@ from planner.api.auth import TelegramUser, require_owner
 from planner.api.deps import get_db
 from planner.api.schemas import ProjectCreate, ProjectOut
 from planner.db.models import Project
+from planner.services.tasks import count_open_by_project
 
 router = APIRouter(prefix="/api/projects")
 
@@ -19,7 +20,19 @@ async def list_projects(
 ):
     stmt = select(Project).where(Project.archived.is_(False)).order_by(Project.name)
     rows = await db.execute(stmt)
-    return rows.scalars().all()
+    projects = rows.scalars().all()
+    counts = await count_open_by_project(db)
+    return [
+        ProjectOut(
+            id=p.id,
+            name=p.name,
+            slug=p.slug,
+            is_inbox=p.is_inbox,
+            parent_id=p.parent_id,
+            open_count=counts.get(p.id, 0),
+        )
+        for p in projects
+    ]
 
 
 @router.post("", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
