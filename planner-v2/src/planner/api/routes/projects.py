@@ -8,6 +8,7 @@ from planner.api.auth import TelegramUser, require_owner
 from planner.api.deps import get_db
 from planner.api.schemas import ProjectCreate, ProjectOut
 from planner.db.models import Project
+from planner.services.projects import create_project as create_project_svc
 from planner.services.tasks import count_open_by_project
 
 router = APIRouter(prefix="/api/projects")
@@ -29,6 +30,7 @@ async def list_projects(
             slug=p.slug,
             is_inbox=p.is_inbox,
             parent_id=p.parent_id,
+            color=p.color,
             open_count=counts.get(p.id, 0),
         )
         for p in projects
@@ -41,8 +43,22 @@ async def create_project(
     _: Annotated[TelegramUser, Depends(require_owner)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    proj = Project(name=payload.name, slug=payload.slug, color=payload.color)
-    db.add(proj)
+    proj = await create_project_svc(
+        db,
+        name=payload.name,
+        parent_id=payload.parent_id,
+        color=payload.color,
+        icon=payload.icon,
+        slug=payload.slug,
+    )
     await db.commit()
     await db.refresh(proj)
-    return proj
+    return ProjectOut(
+        id=proj.id,
+        name=proj.name,
+        slug=proj.slug,
+        is_inbox=proj.is_inbox,
+        parent_id=proj.parent_id,
+        color=proj.color,
+        open_count=0,
+    )

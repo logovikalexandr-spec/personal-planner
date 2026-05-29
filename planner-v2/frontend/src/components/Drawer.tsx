@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { getCounts, getProjects } from "../api";
+import { createProject, getCounts, getProjects } from "../api";
 import {
-  IcoAll, IcoDot, IcoInbox, IcoNext7, IcoTodaySmall, IcoTomorrow, IcoWeekPlan,
+  IcoAll, IcoDot, IcoInbox, IcoNext7, IcoPlus, IcoTodaySmall, IcoTomorrow, IcoWeekPlan,
 } from "./icons";
+import { ProjectSheet } from "./ProjectSheet";
 import type { ActiveList, Counts, Project, SmartKey } from "../types";
 
 const SMART: { key: SmartKey; title: string; Ico: () => JSX.Element }[] = [
@@ -36,13 +37,25 @@ export function Drawer({
   const [counts, setCounts] = useState<Counts | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [sheetOpen, setSheetOpen] = useState(false);
   const sx = useRef<number | null>(null);
   const sy = useRef<number | null>(null);
 
+  function loadProjects() {
+    getProjects().then(setProjects).catch(() => setProjects([]));
+  }
+
   useEffect(() => {
     getCounts().then(setCounts).catch(() => setCounts(null));
-    getProjects().then(setProjects).catch(() => setProjects([]));
+    loadProjects();
   }, []);
+
+  async function handleCreate(name: string, opts: { parent_id?: number | null; color?: string | null }) {
+    const created = await createProject(name, opts);
+    setSheetOpen(false);
+    if (created.parent_id != null) setExpanded((s) => new Set(s).add(created.parent_id!));
+    loadProjects();
+  }
 
   const byParent = new Map<number | null, Project[]>();
   for (const p of projects) {
@@ -73,7 +86,13 @@ export function Drawer({
           className={`drawer-row ${isActiveProject(p.id) ? "active" : ""} ${depth > 0 ? "tree-child" : ""}`}
           onClick={() => onSelect({ kind: "project", id: p.id, title: p.name })}
         >
-          <span className="drawer-ico"><IcoDot /></span>
+          <span className="drawer-ico">
+            {p.color ? (
+              <span style={{ display: "block", width: 11, height: 11, borderRadius: "50%", background: p.color, margin: "0 auto" }} />
+            ) : (
+              <IcoDot />
+            )}
+          </span>
           <span className="drawer-label">{p.name}</span>
           {cnt > 0 && <span className="drawer-count">{cnt}</span>}
           {children.length > 0 && (
@@ -87,7 +106,7 @@ export function Drawer({
     );
   }
 
-  return (
+  const drawer = (
     <div className={`drawer-backdrop ${closing ? "closing" : ""}`} onClick={onClose}>
       <div
         className={`drawer ${closing ? "closing" : ""}`}
@@ -122,14 +141,23 @@ export function Drawer({
           </div>
         ))}
 
-        {roots.length > 0 && (
-          <>
-            <div className="drawer-sep" />
-            <div className="drawer-section">Проекты</div>
-            {roots.map((p) => renderProject(p, 0))}
-          </>
-        )}
+        <div className="drawer-sep" />
+        <div className="drawer-section">Проекты</div>
+        {roots.map((p) => renderProject(p, 0))}
+        <div className="drawer-row drawer-add" onClick={() => setSheetOpen(true)}>
+          <span className="drawer-ico"><IcoPlus /></span>
+          <span className="drawer-label">Проект</span>
+        </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {drawer}
+      {sheetOpen && (
+        <ProjectSheet projects={projects} onClose={() => setSheetOpen(false)} onCreate={handleCreate} />
+      )}
+    </>
   );
 }

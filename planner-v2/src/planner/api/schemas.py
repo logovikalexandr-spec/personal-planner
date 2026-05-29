@@ -37,6 +37,7 @@ class ProjectOut(BaseModel):
     slug: str
     is_inbox: bool
     parent_id: int | None = None
+    color: str | None = None
     open_count: int = 0
 
     model_config = {"from_attributes": True}
@@ -52,8 +53,10 @@ class CountsOut(BaseModel):
 
 class ProjectCreate(BaseModel):
     name: str
-    slug: str
+    parent_id: int | None = None
     color: str | None = None
+    icon: str | None = None
+    slug: str | None = None
 
 
 class InboxOut(BaseModel):

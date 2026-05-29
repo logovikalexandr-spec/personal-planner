@@ -208,6 +208,13 @@ body {
 .drawer-count { font-family: var(--font-mono); color: var(--text-muted); font-size: 14px; }
 .drawer-exp { color: var(--text-muted); width: 20px; text-align: center; cursor: pointer; }
 .tree-child { padding-left: var(--s8); }
+.drawer-add .drawer-ico { color: var(--text-muted); }
+.drawer-add .drawer-label { color: var(--text-muted); }
+.color-chip {
+  width: 30px; height: 30px; border-radius: 50%; border: none; padding: 0; cursor: pointer;
+  flex: 0 0 auto;
+}
+select.input { appearance: none; -webkit-appearance: none; }
 
 .skeleton {
   background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%);

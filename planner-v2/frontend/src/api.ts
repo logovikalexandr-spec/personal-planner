@@ -14,6 +14,10 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const getMe = () => req<{ id: number; first_name: string | null }>("/api/me");
 export const getProjects = () => req<Project[]>("/api/projects");
+export const createProject = (
+  name: string,
+  opts: { parent_id?: number | null; color?: string | null } = {},
+) => req<Project>("/api/projects", { method: "POST", body: JSON.stringify({ name, ...opts }) });
 export const getCounts = () => req<Counts>("/api/counts");
 export const getTasks = (scope = "all", projectId?: number, includeChildren = false) =>
   req<Task[]>(
