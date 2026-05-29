@@ -143,7 +143,7 @@ function Row({
 }
 
 export function ProjectTree({
-  projects, activeProjectId, expanded, subtreeCount, onSelect, onToggle, onMenu, onReorder,
+  projects, activeProjectId, expanded, subtreeCount, onSelect, onToggle, onMenu, onReorder, onDragActiveChange,
 }: {
   projects: Project[];
   activeProjectId: number | null;
@@ -153,6 +153,7 @@ export function ProjectTree({
   onToggle: (id: number) => void;
   onMenu: (p: Project) => void;
   onReorder: (items: { id: number; parent_id: number | null; order_index: number }[]) => void;
+  onDragActiveChange?: (active: boolean) => void;
 }) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [overId, setOverId] = useState<number | null>(null);
@@ -190,6 +191,7 @@ export function ProjectTree({
   function handleStart(e: DragStartEvent) {
     setActiveId(Number(e.active.id));
     setOverId(Number(e.active.id));
+    onDragActiveChange?.(true);
     (tg() as { HapticFeedback?: { impactOccurred?: (s: string) => void } } | undefined)
       ?.HapticFeedback?.impactOccurred?.("medium");
   }
@@ -203,6 +205,7 @@ export function ProjectTree({
     setActiveId(null);
     setOverId(null);
     setOffsetX(0);
+    onDragActiveChange?.(false);
     if (aId == null || !e.over || !proj) return;
 
     const overIndex = visible.findIndex((i) => i.id === Number(e.over!.id));
@@ -224,11 +227,12 @@ export function ProjectTree({
   return (
     <DndContext
       sensors={sensors}
+      autoScroll={false}
       collisionDetection={closestCenter}
       onDragStart={handleStart}
       onDragMove={handleMove}
       onDragEnd={handleEnd}
-      onDragCancel={() => { setActiveId(null); setOverId(null); setOffsetX(0); }}
+      onDragCancel={() => { setActiveId(null); setOverId(null); setOffsetX(0); onDragActiveChange?.(false); }}
     >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         {visible.map((item) => (

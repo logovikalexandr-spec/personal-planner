@@ -42,6 +42,7 @@ export function Drawer({
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [menuFor, setMenuFor] = useState<Project | null>(null);
+  const [dragging, setDragging] = useState(false);
   const sx = useRef<number | null>(null);
   const sy = useRef<number | null>(null);
 
@@ -138,7 +139,7 @@ export function Drawer({
   const drawer = (
     <div className={`drawer-backdrop ${closing ? "closing" : ""}`} onClick={onClose}>
       <div
-        className={`drawer ${closing ? "closing" : ""}`}
+        className={`drawer ${closing ? "closing" : ""} ${dragging ? "dragging" : ""}`}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => { sx.current = e.touches[0].clientX; sy.current = e.touches[0].clientY; }}
         onTouchEnd={(e) => {
@@ -146,7 +147,7 @@ export function Drawer({
           const y = sy.current;
           sx.current = null;
           sy.current = null;
-          if (x === null || y === null) return;
+          if (x === null || y === null || dragging) return;
           const dx = e.changedTouches[0].clientX - x;
           const dy = Math.abs(e.changedTouches[0].clientY - y);
           if (dx < -50 && Math.abs(dx) > dy * 1.5) onClose();
@@ -181,6 +182,7 @@ export function Drawer({
           onToggle={toggle}
           onMenu={(p) => setMenuFor(p)}
           onReorder={handleReorder}
+          onDragActiveChange={setDragging}
         />
         <div className="drawer-row drawer-add" onClick={() => setSheet({ mode: "create", parentId: null })}>
           <span className="drawer-ico"><IcoPlus /></span>
