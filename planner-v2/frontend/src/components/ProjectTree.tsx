@@ -1,6 +1,6 @@
-import { useMemo, useState, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
 import {
-  DndContext, DragOverlay, PointerSensor, TouchSensor, closestCenter,
+  DndContext, DragOverlay, MouseSensor, TouchSensor, closestCenter,
   useSensor, useSensors,
   type DragEndEvent, type DragMoveEvent, type DragStartEvent,
 } from "@dnd-kit/core";
@@ -117,6 +117,7 @@ function Row({
   };
 
   const stop = (e: SyntheticEvent) => e.stopPropagation();
+  const stopActivators = { onPointerDown: stop, onTouchStart: stop, onMouseDown: stop };
 
   return (
     <div
@@ -131,11 +132,11 @@ function Row({
       <span className="drawer-label">{item.pinned ? "📌 " : ""}{item.name}</span>
       {count > 0 && <span className="drawer-count">{count}</span>}
       {hasChildren && (
-        <button className="tree-btn" onPointerDown={stop} onClick={(e) => { stop(e); onToggle(); }}>
+        <button className="tree-btn" {...stopActivators} onClick={(e) => { stop(e); onToggle(); }}>
           <span className={`tree-chev ${expanded ? "open" : ""}`}>▸</span>
         </button>
       )}
-      <button className="tree-btn" onPointerDown={stop} onClick={(e) => { stop(e); onMenu(); }} aria-label="Меню">
+      <button className="tree-btn" {...stopActivators} onClick={(e) => { stop(e); onMenu(); }} aria-label="Меню">
         <IcoMore />
       </button>
     </div>
@@ -159,11 +160,21 @@ export function ProjectTree({
   const [overId, setOverId] = useState<number | null>(null);
   const [offsetX, setOffsetX] = useState(0);
 
-  // hold-to-drag: 220ms press picks up; moving before that scrolls the drawer
+  // hold-to-drag: 200ms press picks up; moving before that scrolls the drawer.
+  // ONE touch sensor only (Pointer+Touch together breaks on iOS WebView). Mouse for desktop.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 10 } }),
   );
+
+  // While dragging, kill native scroll without touching touch-action (which would
+  // cancel the active touch on iOS). Non-passive preventDefault leaves the gesture intact.
+  useEffect(() => {
+    if (activeId == null) return;
+    const block = (e: TouchEvent) => e.preventDefault();
+    document.addEventListener("touchmove", block, { passive: false });
+    return () => document.removeEventListener("touchmove", block);
+  }, [activeId]);
 
   const flat = useMemo(() => flatten(projects, expanded), [projects, expanded]);
 

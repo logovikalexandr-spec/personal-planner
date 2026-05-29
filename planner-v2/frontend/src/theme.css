@@ -241,12 +241,9 @@ select.input { appearance: none; -webkit-appearance: none; }
 .drawer {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
-/* freeze drawer scroll while dragging a project so only the row moves */
-.drawer.dragging {
-  overflow: hidden;
-  touch-action: none;
-  overscroll-behavior: contain;
-}
+/* drag scroll-lock is handled in JS (document touchmove preventDefault) to avoid
+   cancelling the active touch on iOS; only dampen overscroll bounce here */
+.drawer.dragging { overscroll-behavior: contain; }
 .tree-row { position: relative; }
 .tree-btn {
   background: none; border: none; padding: 0; margin-left: 2px;
