@@ -45,8 +45,18 @@ export function Drawer({
   const sx = useRef<number | null>(null);
   const sy = useRef<number | null>(null);
 
+  const didInitExpand = useRef(false);
+
   function loadProjects() {
-    getProjects().then(setProjects).catch(() => setProjects([]));
+    getProjects().then((ps) => {
+      setProjects(ps);
+      if (!didInitExpand.current) {
+        didInitExpand.current = true;
+        const parents = new Set<number>();
+        for (const p of ps) if (p.parent_id != null) parents.add(p.parent_id);
+        if (parents.size) setExpanded(parents);
+      }
+    }).catch(() => setProjects([]));
   }
 
   useEffect(() => {
@@ -169,7 +179,7 @@ export function Drawer({
           subtreeCount={subtreeCount}
           onSelect={(p) => onSelect({ kind: "project", id: p.id, title: p.name })}
           onToggle={toggle}
-          onLongPress={(p) => setMenuFor(p)}
+          onMenu={(p) => setMenuFor(p)}
           onReorder={handleReorder}
         />
         <div className="drawer-row drawer-add" onClick={() => setSheet({ mode: "create", parentId: null })}>

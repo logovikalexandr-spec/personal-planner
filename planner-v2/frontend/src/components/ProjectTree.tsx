@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState, type SyntheticEvent } from "react";
 import {
   DndContext, DragOverlay, PointerSensor, TouchSensor, closestCenter,
   useSensor, useSensors,
@@ -7,7 +7,8 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Project } from "../types";
-import { IcoDot } from "./icons";
+import { IcoDot, IcoMore } from "./icons";
+import { tg } from "../telegram";
 
 const INDENT = 22;
 
@@ -26,16 +27,12 @@ function getDescendants(items: FlatProject[], id: number): number[] {
   while (stack.length) {
     const cur = stack.pop()!;
     for (const it of items) {
-      if (it.parent_id === cur) {
-        out.push(it.id);
-        stack.push(it.id);
-      }
+      if (it.parent_id === cur) { out.push(it.id); stack.push(it.id); }
     }
   }
   return out;
 }
 
-// flatten respecting expanded state; collapsed nodes hide their subtree
 function flatten(projects: Project[], expanded: Set<number>): FlatProject[] {
   const byParent = new Map<number | null, Project[]>();
   for (const p of projects) {
@@ -55,12 +52,14 @@ function flatten(projects: Project[], expanded: Set<number>): FlatProject[] {
   return out;
 }
 
-function getProjection(
-  items: FlatProject[],
-  activeId: number,
-  overId: number,
-  dragOffsetX: number,
-): Projection {
+function arrayMoveLocal<T>(arr: T[], from: number, to: number): T[] {
+  const copy = arr.slice();
+  const [moved] = copy.splice(from, 1);
+  copy.splice(to, 0, moved);
+  return copy;
+}
+
+function getProjection(items: FlatProject[], activeId: number, overId: number, dragOffsetX: number): Projection {
   const overIndex = items.findIndex((i) => i.id === overId);
   const activeIndex = items.findIndex((i) => i.id === activeId);
   const newItems = arrayMoveLocal(items, activeIndex, overIndex);
@@ -69,7 +68,7 @@ function getProjection(
   const dragDepth = Math.round(dragOffsetX / INDENT);
   const projectedRaw = (items[activeIndex]?.depth ?? 0) + dragDepth;
 
-  const maxDepth = prev ? Math.min(prev.depth + 1, 2) : 0; // cap nesting at 2 levels deep
+  const maxDepth = prev ? Math.min(prev.depth + 1, 2) : 0;
   const minDepth = next ? next.depth : 0;
   let depth = projectedRaw;
   if (depth > maxDepth) depth = maxDepth;
@@ -80,26 +79,22 @@ function getProjection(
     if (depth === prev.depth) parentId = prev.parent_id;
     else if (depth > prev.depth) parentId = prev.id;
     else {
-      const ancestor = newItems
-        .slice(0, overIndex)
-        .reverse()
-        .find((i) => i.depth === depth);
+      const ancestor = newItems.slice(0, overIndex).reverse().find((i) => i.depth === depth);
       parentId = ancestor?.parent_id ?? null;
     }
   }
   return { depth, parentId };
 }
 
-function arrayMoveLocal<T>(arr: T[], from: number, to: number): T[] {
-  const copy = arr.slice();
-  const [moved] = copy.splice(from, 1);
-  copy.splice(to, 0, moved);
-  return copy;
+function Icon({ p }: { p: Project }) {
+  if (p.icon) return <span style={{ fontSize: 18, lineHeight: 1 }}>{p.icon}</span>;
+  if (p.color)
+    return <span style={{ display: "block", width: 11, height: 11, borderRadius: "50%", background: p.color, margin: "0 auto" }} />;
+  return <IcoDot />;
 }
 
 function Row({
-  item, projectedDepth, isActiveSelected, hasChildren, expanded, count,
-  onSelect, onToggle, onLongPress,
+  item, projectedDepth, isActiveSelected, hasChildren, expanded, count, onSelect, onToggle, onMenu,
 }: {
   item: FlatProject;
   projectedDepth: number;
@@ -109,71 +104,46 @@ function Row({
   count: number;
   onSelect: () => void;
   onToggle: () => void;
-  onLongPress: () => void;
+  onMenu: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
-  const pressTimer = useRef<number | null>(null);
-  const longPressed = useRef(false);
 
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
     paddingLeft: 16 + projectedDepth * INDENT,
-    opacity: isDragging ? 0.4 : 1,
+    opacity: isDragging ? 0.35 : 1,
   };
 
-  function cancelPress() {
-    if (pressTimer.current) { window.clearTimeout(pressTimer.current); pressTimer.current = null; }
-  }
-  const onDown = (e: React.PointerEvent) => {
-    (listeners as Record<string, ((e: React.PointerEvent) => void) | undefined>)?.onPointerDown?.(e);
-    longPressed.current = false;
-    pressTimer.current = window.setTimeout(() => { longPressed.current = true; onLongPress(); }, 480);
-  };
-  const onUp = () => cancelPress();
-  const onMove = () => cancelPress();
-  const onClick = () => {
-    if (longPressed.current) { longPressed.current = false; return; }
-    onSelect();
-  };
+  const stop = (e: SyntheticEvent) => e.stopPropagation();
 
   return (
     <div
       ref={setNodeRef}
-      className={`drawer-row ${isActiveSelected ? "active" : ""}`}
+      className={`drawer-row tree-row ${isActiveSelected ? "active" : ""}`}
       style={style}
       {...attributes}
       {...listeners}
-      onPointerDown={onDown}
-      onPointerUp={onUp}
-      onPointerMove={onMove}
-      onPointerCancel={onUp}
-      onClick={onClick}
+      onClick={onSelect}
     >
-      <span className="drawer-ico">
-        {item.icon ? (
-          <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
-        ) : item.color ? (
-          <span style={{ display: "block", width: 11, height: 11, borderRadius: "50%", background: item.color, margin: "0 auto" }} />
-        ) : (
-          <IcoDot />
-        )}
-      </span>
+      <span className="drawer-ico"><Icon p={item} /></span>
       <span className="drawer-label">{item.pinned ? "📌 " : ""}{item.name}</span>
       {count > 0 && <span className="drawer-count">{count}</span>}
       {hasChildren && (
-        <span className="drawer-exp" onClick={(e) => { e.stopPropagation(); onToggle(); }}>
-          {expanded ? "▾" : "▸"}
-        </span>
+        <button className="tree-btn" onPointerDown={stop} onClick={(e) => { stop(e); onToggle(); }}>
+          <span className={`tree-chev ${expanded ? "open" : ""}`}>▸</span>
+        </button>
       )}
+      <button className="tree-btn" onPointerDown={stop} onClick={(e) => { stop(e); onMenu(); }} aria-label="Меню">
+        <IcoMore />
+      </button>
     </div>
   );
 }
 
 export function ProjectTree({
-  projects, activeProjectId, expanded, subtreeCount,
-  onSelect, onToggle, onLongPress, onReorder,
+  projects, activeProjectId, expanded, subtreeCount, onSelect, onToggle, onMenu, onReorder,
 }: {
   projects: Project[];
   activeProjectId: number | null;
@@ -181,21 +151,31 @@ export function ProjectTree({
   subtreeCount: (id: number) => number;
   onSelect: (p: Project) => void;
   onToggle: (id: number) => void;
-  onLongPress: (p: Project) => void;
+  onMenu: (p: Project) => void;
   onReorder: (items: { id: number; parent_id: number | null; order_index: number }[]) => void;
 }) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const [overId, setOverId] = useState<number | null>(null);
   const [offsetX, setOffsetX] = useState(0);
 
+  // hold-to-drag: 220ms press picks up; moving before that scrolls the drawer
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
   );
 
   const flat = useMemo(() => flatten(projects, expanded), [projects, expanded]);
 
-  // hide descendants of the dragged (collapsed-or-not) node while dragging
+  // hasChildren from the FULL list, independent of expand state
+  const childCount = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const p of projects) {
+      if (p.is_inbox || p.parent_id == null) continue;
+      m.set(p.parent_id, (m.get(p.parent_id) ?? 0) + 1);
+    }
+    return m;
+  }, [projects]);
+
   const visible = useMemo(() => {
     if (activeId == null) return flat;
     const desc = new Set(getDescendants(flat, activeId));
@@ -203,16 +183,15 @@ export function ProjectTree({
   }, [flat, activeId]);
 
   const projection =
-    activeId != null && overId != null
-      ? getProjection(visible, activeId, overId, offsetX)
-      : null;
+    activeId != null && overId != null ? getProjection(visible, activeId, overId, offsetX) : null;
 
   const ids = visible.map((i) => i.id);
-  const childCount = (id: number) => flat.filter((i) => i.parent_id === id).length;
 
   function handleStart(e: DragStartEvent) {
     setActiveId(Number(e.active.id));
     setOverId(Number(e.active.id));
+    (tg() as { HapticFeedback?: { impactOccurred?: (s: string) => void } } | undefined)
+      ?.HapticFeedback?.impactOccurred?.("medium");
   }
   function handleMove(e: DragMoveEvent) {
     setOffsetX(e.delta.x);
@@ -231,8 +210,6 @@ export function ProjectTree({
     const reordered = arrayMoveLocal(visible, activeIndex, overIndex).map((i) =>
       i.id === aId ? { ...i, parent_id: proj.parentId, depth: proj.depth } : i,
     );
-
-    // recompute order_index per parent group in new visual order
     const counters = new Map<number | null, number>();
     const payload = reordered.map((i) => {
       const n = counters.get(i.parent_id) ?? 0;
@@ -260,21 +237,19 @@ export function ProjectTree({
             item={item}
             projectedDepth={activeId === item.id && projection ? projection.depth : item.depth}
             isActiveSelected={activeProjectId === item.id}
-            hasChildren={childCount(item.id) > 0}
+            hasChildren={(childCount.get(item.id) ?? 0) > 0}
             expanded={expanded.has(item.id)}
             count={subtreeCount(item.id)}
             onSelect={() => onSelect(item)}
             onToggle={() => onToggle(item.id)}
-            onLongPress={() => onLongPress(item)}
+            onMenu={() => onMenu(item)}
           />
         ))}
       </SortableContext>
-      <DragOverlay>
+      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.18,0.67,0.6,1.22)" }}>
         {activeItem ? (
-          <div className="drawer-row" style={{ paddingLeft: 16, background: "var(--surface-2)", borderRadius: 10 }}>
-            <span className="drawer-ico">
-              {activeItem.icon ? <span style={{ fontSize: 18 }}>{activeItem.icon}</span> : <IcoDot />}
-            </span>
+          <div className="drawer-row drag-ghost">
+            <span className="drawer-ico"><Icon p={activeItem} /></span>
             <span className="drawer-label">{activeItem.name}</span>
           </div>
         ) : null}

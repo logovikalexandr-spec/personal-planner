@@ -58,3 +58,4 @@ export const IcoInbox = () => sv(<><path d="M3 13l2.5-7A2 2 0 0 1 7.4 5h9.2a2 2 
 export const IcoWeekPlan = () => sv(<><path d="M5 3h11l3 3v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M9 8h6M9 12h6M9 16h4" /></>);
 export const IcoDot = () => sv(<circle cx="12" cy="12" r="4.5" />);
 export const IcoPlus = () => sv(<><path d="M12 5v14M5 12h14" /></>);
+export const IcoMore = () => sv(<><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" /></>);

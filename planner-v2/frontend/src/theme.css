@@ -237,6 +237,31 @@ select.input { appearance: none; -webkit-appearance: none; }
 .menu-item:active { background: var(--surface-2); }
 .menu-item.danger { color: var(--danger, #E5564B); }
 
+/* project tree drag */
+.drawer {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.tree-row { position: relative; }
+.tree-btn {
+  background: none; border: none; padding: 0; margin-left: 2px;
+  width: 30px; height: 30px; flex: 0 0 auto; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+}
+.tree-btn svg { width: 18px; height: 18px; }
+.tree-chev {
+  display: inline-block; color: var(--text-muted); font-size: 13px;
+  transition: transform 180ms ease;
+}
+.tree-chev.open { transform: rotate(90deg); }
+.drag-ghost {
+  background: var(--surface-2);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  transform: scale(1.02);
+  padding-left: 16px;
+}
+
 .skeleton {
   background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%);
   background-size: 400% 100%; animation: shimmer 1.2s ease infinite;
