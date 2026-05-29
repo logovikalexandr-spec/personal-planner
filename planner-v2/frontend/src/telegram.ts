@@ -11,4 +11,6 @@ export function applyTelegramTheme(): void {
   if (!w) return;
   w.ready();
   w.expand?.();
+  // Глушим вертикальный свайп вниз, который сворачивает/закрывает Mini App (Bot API 7.7+).
+  (w as { disableVerticalSwipes?: () => void }).disableVerticalSwipes?.();
 }
