@@ -8,8 +8,8 @@ import asyncio
 
 from sqlalchemy import select
 
+from planner.db import session as db_session
 from planner.db.models import Project
-from planner.db.session import _init, _sessionmaker
 
 # (name, slug, [children]) — children = (name, slug)
 CATEGORIES: list[tuple[str, str, list[tuple[str, str]]]] = [
@@ -48,10 +48,11 @@ async def _get_or_create(session, *, name: str, slug: str, parent_id: int | None
 
 
 async def seed() -> None:
-    _init()
-    assert _sessionmaker is not None
+    db_session._init()
+    maker = db_session._sessionmaker
+    assert maker is not None
     created = 0
-    async with _sessionmaker() as session:
+    async with maker() as session:
         for name, slug, children in CATEGORIES:
             root = await _get_or_create(session, name=name, slug=slug, parent_id=None)
             for child_name, child_slug in children:
