@@ -4,7 +4,7 @@ import type { Priority, Project } from "../types";
 import { Sheet } from "./Sheet";
 import { DateSheet, type DateValue } from "./DateSheet";
 import { Flag, PRIORITY_COLOR, PriorityPicker, ProjectPickerSheet, TagPickerSheet } from "./pickers";
-import { IcoMore, IcoPlus } from "./icons";
+import { IcoExpand, IcoMore, IcoSend } from "./icons";
 
 type Picker = "date" | "priority" | "project" | "tag" | null;
 
@@ -46,6 +46,12 @@ export function TaskComposer({
   const [subDraft, setSubDraft] = useState("");
 
   useEffect(() => { getProjects().then(setProjects).catch(() => setProjects([])); }, []);
+
+  // blur the title before opening a picker so the keyboard drops and doesn't cover it
+  function openPicker(p: Picker) {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    setPicker(p);
+  }
 
   const proj = projectId != null ? projects.find((p) => p.id === projectId) : undefined;
   const ds = dateSummary(date);
@@ -117,27 +123,27 @@ export function TaskComposer({
       )}
 
       <div className="composer-bar">
-        <button className="cbar-btn" onClick={() => setPicker("date")}>
+        <button className="cbar-btn" onClick={() => openPicker("date")}>
           <span className="cbar-ico">📅</span>
           {ds && <span className="cbar-txt">{ds}</span>}
         </button>
-        <button className="cbar-btn" onClick={() => setPicker("priority")}>
+        <button className="cbar-btn" onClick={() => openPicker("priority")}>
           <Flag color={PRIORITY_COLOR[priority]} filled={priority !== "none"} />
         </button>
-        <button className="cbar-btn" onClick={() => setPicker("project")}>
+        <button className="cbar-btn" onClick={() => openPicker("project")}>
           <span className="cbar-ico">{proj?.icon ?? "📥"}</span>
           <span className="cbar-txt">{proj?.name ?? "Входящие"}</span>
         </button>
-        <button className="cbar-btn" onClick={() => setPicker("tag")}>
+        <button className="cbar-btn" onClick={() => openPicker("tag")}>
           <span className="cbar-ico">🏷️</span>
           {tagIds.length > 0 && <span className="cbar-txt">{tagIds.length}</span>}
         </button>
         <button className="cbar-btn" onClick={() => setExpanded((x) => !x)} aria-label="Развернуть">
-          {expanded ? <IcoMore /> : <span className="cbar-ico">⤢</span>}
+          {expanded ? <IcoMore /> : <IcoExpand />}
         </button>
         <div style={{ flex: 1 }} />
         <button className="cbar-send" disabled={!title.trim() || saving} onClick={save} aria-label="Сохранить">
-          <IcoPlus />
+          <IcoSend />
         </button>
       </div>
     </Sheet>

@@ -59,3 +59,5 @@ export const IcoWeekPlan = () => sv(<><path d="M5 3h11l3 3v15a1 1 0 0 1-1 1H5a1 
 export const IcoDot = () => sv(<circle cx="12" cy="12" r="4.5" />);
 export const IcoPlus = () => sv(<><path d="M12 5v14M5 12h14" /></>);
 export const IcoMore = () => sv(<><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" /></>);
+export const IcoSend = () => sv(<><path d="M12 19V5M6 11l6-6 6 6" /></>);
+export const IcoExpand = () => sv(<><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></>);

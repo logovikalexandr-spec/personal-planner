@@ -38,7 +38,7 @@ function localISO(d: Date): string {
 }
 function addMin(time: string, min: number): string {
   const [h, m] = time.split(":").map(Number);
-  const total = (h * 60 + m + min) % 1440;
+  const total = Math.min(h * 60 + m + min, 23 * 60 + 59); // clamp to same day, no overnight wrap
   return `${`${Math.floor(total / 60)}`.padStart(2, "0")}:${`${total % 60}`.padStart(2, "0")}:00`;
 }
 function nextMonday(): Date {
@@ -53,7 +53,13 @@ export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; o
   const [dueDate, setDueDate] = useState<string | null>(initial.due_date);
   const [dueTime, setDueTime] = useState<string | null>(initial.due_time);
   const [endTime, setEndTime] = useState<string | null>(initial.end_time);
-  const [reminderMin, setReminderMin] = useState<number | null>(null);
+  const [reminderMin, setReminderMin] = useState<number | null>(() => {
+    if (!initial.reminder_at || !initial.due_date) return null;
+    const t = initial.due_time ?? "09:00:00";
+    const due = new Date(`${initial.due_date}T${t.length === 5 ? t + ":00" : t}`);
+    const diff = Math.round((due.getTime() - new Date(initial.reminder_at).getTime()) / 60000);
+    return REMINDERS.some((r) => r.min === diff) ? diff : null;
+  });
   const [recurrence, setRecurrence] = useState<string>(initial.recurrence ?? "");
 
   const today = new Date();

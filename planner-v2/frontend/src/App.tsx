@@ -11,6 +11,11 @@ import { getMe } from "./api";
 import type { ActiveList } from "./types";
 import { applyTelegramTheme } from "./telegram";
 
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
+}
+
 export default function App() {
   const [tab, setTab] = useState<TabKey>("today");
   const [active, setActive] = useState<ActiveList>({ kind: "smart", key: "today", title: "Сегодня" });
@@ -84,7 +89,7 @@ export default function App() {
       {addOpen && (
         <TaskComposer
           defaultProjectId={active.kind === "project" ? active.id : null}
-          initialDate={active.kind === "smart" && active.key === "today" ? new Date().toISOString().slice(0, 10) : null}
+          initialDate={active.kind === "smart" && active.key === "today" ? localToday() : null}
           onClose={() => setAddOpen(false)}
           onSaved={bump}
         />
