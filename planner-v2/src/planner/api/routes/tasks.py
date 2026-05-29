@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -19,12 +20,13 @@ async def list_tasks(
     scope: str = "all",
     project_id: int | None = None,
     include_children: bool = False,
+    on_date: date | None = None,
 ):
     if project_id is not None and include_children:
         from planner.services.tasks import descendant_project_ids
         project_ids = await descendant_project_ids(db, project_id)
-        return await svc.list_tasks(db, scope=scope, project_ids=project_ids)
-    return await svc.list_tasks(db, scope=scope, project_id=project_id)
+        return await svc.list_tasks(db, scope=scope, project_ids=project_ids, on_date=on_date)
+    return await svc.list_tasks(db, scope=scope, project_id=project_id, on_date=on_date)
 
 
 @router.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
@@ -35,7 +37,8 @@ async def create_task(
 ):
     t = await svc.create_task(
         db, title=payload.title, project_id=payload.project_id,
-        priority=payload.priority, due_date=payload.due_date, due_time=payload.due_time,
+        priority=payload.priority, due_date=payload.due_date,
+        due_time=payload.due_time, end_time=payload.end_time,
     )
     await db.commit()
     await db.refresh(t)
@@ -58,10 +61,10 @@ async def patch_task(
         t = await db.get(Task, task_id)
         if t is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "task not found")
-    if payload.priority is not None:
-        t.priority = payload.priority
-    if payload.project_id is not None:
-        t.project_id = payload.project_id
+    fields = payload.model_dump(exclude_unset=True)
+    for key in ("priority", "project_id", "due_date", "due_time", "end_time"):
+        if key in fields:
+            setattr(t, key, fields[key])
     await db.commit()
     await db.refresh(t)
     return t

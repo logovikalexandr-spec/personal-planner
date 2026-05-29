@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, time
+from datetime import date, datetime, time
 
 from pydantic import BaseModel
 
@@ -11,6 +11,7 @@ class TaskCreate(BaseModel):
     priority: str = "none"
     due_date: date | None = None
     due_time: time | None = None
+    end_time: time | None = None
 
 
 class TaskOut(BaseModel):
@@ -21,6 +22,9 @@ class TaskOut(BaseModel):
     status: str
     due_date: date | None
     due_time: time | None
+    end_time: time | None = None
+    recurrence: str | None = None
+    reminder_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -29,6 +33,9 @@ class TaskPatch(BaseModel):
     status: str | None = None
     priority: str | None = None
     project_id: int | None = None
+    due_date: date | None = None
+    due_time: time | None = None
+    end_time: time | None = None
 
 
 class ProjectOut(BaseModel):

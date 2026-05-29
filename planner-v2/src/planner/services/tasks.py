@@ -63,9 +63,12 @@ async def list_tasks(
     scope: str = "all",
     project_id: int | None = None,
     project_ids: list[int] | None = None,
+    on_date: date | None = None,
 ) -> list[Task]:
     stmt = select(Task).where(Task.status != "archived")
-    if scope == "today":
+    if on_date is not None:
+        stmt = stmt.where(Task.due_date == on_date)
+    elif scope == "today":
         stmt = stmt.where(Task.due_date == date.today(), Task.status != "done")
     elif scope == "week":
         end = date.today() + timedelta(days=7)

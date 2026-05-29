@@ -40,12 +40,15 @@ export const getTasks = (scope = "all", projectId?: number, includeChildren = fa
       (projectId ? `&project_id=${projectId}` : "") +
       (includeChildren ? `&include_children=true` : ""),
   );
+export const getDayTasks = (date: string) => req<Task[]>(`/api/tasks?on_date=${date}`);
 export const createTask = (
   title: string,
-  opts: Partial<Pick<Task, "project_id" | "priority" | "due_date">> = {},
+  opts: Partial<Pick<Task, "project_id" | "priority" | "due_date" | "due_time" | "end_time">> = {},
 ) => req<Task>("/api/tasks", { method: "POST", body: JSON.stringify({ title, ...opts }) });
-export const patchTask = (id: number, patch: { status?: string; priority?: Priority; project_id?: number }) =>
-  req<Task>(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export const patchTask = (
+  id: number,
+  patch: Partial<{ status: string; priority: Priority; project_id: number; due_date: string | null; due_time: string | null; end_time: string | null }>,
+) => req<Task>(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 export const getInbox = () => req<InboxItem[]>("/api/inbox");
 export const triageInbox = (id: number, projectId: number, title: string, priority: Priority = "none") =>
   req<Task>(`/api/inbox/${id}/triage`, { method: "POST", body: JSON.stringify({ project_id: projectId, title, priority }) });

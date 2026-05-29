@@ -3,7 +3,9 @@ export type TaskStatus = "todo" | "in_progress" | "done" | "archived";
 
 export interface Task {
   id: number; title: string; project_id: number | null;
-  priority: Priority; status: TaskStatus; due_date: string | null; due_time: string | null;
+  priority: Priority; status: TaskStatus;
+  due_date: string | null; due_time: string | null; end_time: string | null;
+  recurrence?: string | null; reminder_at?: string | null;
 }
 export interface Project {
   id: number; name: string; slug: string; is_inbox: boolean;
