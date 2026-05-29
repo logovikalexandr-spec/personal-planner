@@ -69,7 +69,7 @@ export default function App() {
         const sy = touchY.current;
         touchX.current = null;
         touchY.current = null;
-        if (sx === null || sy === null || drawerOpen) return;
+        if (sx === null || sy === null || drawerOpen || addOpen || aiOpen) return;
         const dx = e.changedTouches[0].clientX - sx;
         const dy = Math.abs(e.changedTouches[0].clientY - sy);
         // свайп вправо откуда угодно по экрану, явно горизонтальный
