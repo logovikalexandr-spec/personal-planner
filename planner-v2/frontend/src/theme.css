@@ -257,12 +257,11 @@ select.input { appearance: none; -webkit-appearance: none; }
   transition: transform 180ms ease;
 }
 .tree-chev.open { transform: rotate(90deg); }
-.drag-ghost {
+.tree-row.lifted {
   background: var(--surface-2);
   border-radius: 12px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-  transform: scale(1.02);
-  padding-left: 16px;
+  position: relative;
 }
 
 .skeleton {

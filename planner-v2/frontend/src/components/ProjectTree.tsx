@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
 import {
-  DndContext, DragOverlay, MouseSensor, TouchSensor, closestCenter,
+  DndContext, MouseSensor, TouchSensor, closestCenter,
   useSensor, useSensors,
-  type DragEndEvent, type DragMoveEvent, type DragStartEvent,
+  type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import type { Project } from "../types";
 import { IcoDot, IcoMore } from "./icons";
 import { tg } from "../telegram";
@@ -14,23 +13,6 @@ const INDENT = 22;
 
 export interface FlatProject extends Project {
   depth: number;
-}
-
-interface Projection {
-  depth: number;
-  parentId: number | null;
-}
-
-function getDescendants(items: FlatProject[], id: number): number[] {
-  const out: number[] = [];
-  const stack = [id];
-  while (stack.length) {
-    const cur = stack.pop()!;
-    for (const it of items) {
-      if (it.parent_id === cur) { out.push(it.id); stack.push(it.id); }
-    }
-  }
-  return out;
 }
 
 function flatten(projects: Project[], expanded: Set<number>): FlatProject[] {
@@ -59,33 +41,6 @@ function arrayMoveLocal<T>(arr: T[], from: number, to: number): T[] {
   return copy;
 }
 
-function getProjection(items: FlatProject[], activeId: number, overId: number, dragOffsetX: number): Projection {
-  const overIndex = items.findIndex((i) => i.id === overId);
-  const activeIndex = items.findIndex((i) => i.id === activeId);
-  const newItems = arrayMoveLocal(items, activeIndex, overIndex);
-  const prev = newItems[overIndex - 1];
-  const next = newItems[overIndex + 1];
-  const dragDepth = Math.round(dragOffsetX / INDENT);
-  const projectedRaw = (items[activeIndex]?.depth ?? 0) + dragDepth;
-
-  const maxDepth = prev ? Math.min(prev.depth + 1, 2) : 0;
-  const minDepth = next ? next.depth : 0;
-  let depth = projectedRaw;
-  if (depth > maxDepth) depth = maxDepth;
-  if (depth < minDepth) depth = minDepth;
-
-  let parentId: number | null = null;
-  if (depth > 0 && prev) {
-    if (depth === prev.depth) parentId = prev.parent_id;
-    else if (depth > prev.depth) parentId = prev.id;
-    else {
-      const ancestor = newItems.slice(0, overIndex).reverse().find((i) => i.depth === depth);
-      parentId = ancestor?.parent_id ?? null;
-    }
-  }
-  return { depth, parentId };
-}
-
 function Icon({ p }: { p: Project }) {
   if (p.icon) return <span style={{ fontSize: 18, lineHeight: 1 }}>{p.icon}</span>;
   if (p.color)
@@ -94,10 +49,9 @@ function Icon({ p }: { p: Project }) {
 }
 
 function Row({
-  item, projectedDepth, isActiveSelected, hasChildren, expanded, count, onSelect, onToggle, onMenu,
+  item, isActiveSelected, hasChildren, expanded, count, onSelect, onToggle, onMenu,
 }: {
   item: FlatProject;
-  projectedDepth: number;
   isActiveSelected: boolean;
   hasChildren: boolean;
   expanded: boolean;
@@ -109,11 +63,12 @@ function Row({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
+  const translate = transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined;
   const style = {
-    transform: CSS.Translate.toString(transform),
+    transform: isDragging && translate ? `${translate} scale(1.02)` : translate,
     transition,
-    paddingLeft: 16 + projectedDepth * INDENT,
-    opacity: isDragging ? 0.35 : 1,
+    paddingLeft: 16 + item.depth * INDENT,
+    zIndex: isDragging ? 50 : undefined,
   };
 
   const stop = (e: SyntheticEvent) => e.stopPropagation();
@@ -122,7 +77,7 @@ function Row({
   return (
     <div
       ref={setNodeRef}
-      className={`drawer-row tree-row ${isActiveSelected ? "active" : ""}`}
+      className={`drawer-row tree-row ${isActiveSelected ? "active" : ""} ${isDragging ? "lifted" : ""}`}
       style={style}
       {...attributes}
       {...listeners}
@@ -157,10 +112,7 @@ export function ProjectTree({
   onDragActiveChange?: (active: boolean) => void;
 }) {
   const [activeId, setActiveId] = useState<number | null>(null);
-  const [overId, setOverId] = useState<number | null>(null);
-  const [offsetX, setOffsetX] = useState(0);
 
-  // hold-to-drag: 200ms press picks up; moving before that scrolls the drawer.
   // ONE touch sensor only (Pointer+Touch together breaks on iOS WebView). Mouse for desktop.
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
@@ -178,7 +130,6 @@ export function ProjectTree({
 
   const flat = useMemo(() => flatten(projects, expanded), [projects, expanded]);
 
-  // hasChildren from the FULL list, independent of expand state
   const childCount = useMemo(() => {
     const m = new Map<number, number>();
     for (const p of projects) {
@@ -188,52 +139,37 @@ export function ProjectTree({
     return m;
   }, [projects]);
 
-  const visible = useMemo(() => {
-    if (activeId == null) return flat;
-    const desc = new Set(getDescendants(flat, activeId));
-    return flat.filter((i) => !desc.has(i.id));
-  }, [flat, activeId]);
-
-  const projection =
-    activeId != null && overId != null ? getProjection(visible, activeId, overId, offsetX) : null;
-
-  const ids = visible.map((i) => i.id);
+  const ids = flat.map((i) => i.id);
 
   function handleStart(e: DragStartEvent) {
     setActiveId(Number(e.active.id));
-    setOverId(Number(e.active.id));
     onDragActiveChange?.(true);
     (tg() as { HapticFeedback?: { impactOccurred?: (s: string) => void } } | undefined)
       ?.HapticFeedback?.impactOccurred?.("medium");
   }
-  function handleMove(e: DragMoveEvent) {
-    setOffsetX(e.delta.x);
-    if (e.over) setOverId(Number(e.over.id));
-  }
+
   function handleEnd(e: DragEndEvent) {
     const aId = activeId;
-    const proj = projection;
     setActiveId(null);
-    setOverId(null);
-    setOffsetX(0);
     onDragActiveChange?.(false);
-    if (aId == null || !e.over || !proj) return;
+    if (aId == null || !e.over) return;
+    const overId = Number(e.over.id);
+    if (overId === aId) return;
 
-    const overIndex = visible.findIndex((i) => i.id === Number(e.over!.id));
-    const activeIndex = visible.findIndex((i) => i.id === aId);
-    const reordered = arrayMoveLocal(visible, activeIndex, overIndex).map((i) =>
-      i.id === aId ? { ...i, parent_id: proj.parentId, depth: proj.depth } : i,
-    );
-    const counters = new Map<number | null, number>();
-    const payload = reordered.map((i) => {
-      const n = counters.get(i.parent_id) ?? 0;
-      counters.set(i.parent_id, n + 1);
-      return { id: i.id, parent_id: i.parent_id, order_index: n };
-    });
+    const activeItem = flat.find((i) => i.id === aId);
+    if (!activeItem) return;
+    const parent = activeItem.parent_id ?? null;
+
+    const aIdx = flat.findIndex((i) => i.id === aId);
+    const oIdx = flat.findIndex((i) => i.id === overId);
+    if (aIdx < 0 || oIdx < 0) return;
+
+    // reorder within the SAME parent only — never reparent via drag
+    const moved = arrayMoveLocal(flat, aIdx, oIdx);
+    const siblings = moved.filter((i) => (i.parent_id ?? null) === parent);
+    const payload = siblings.map((i, idx) => ({ id: i.id, parent_id: parent, order_index: idx }));
     onReorder(payload);
   }
-
-  const activeItem = flat.find((i) => i.id === activeId) ?? null;
 
   return (
     <DndContext
@@ -241,16 +177,14 @@ export function ProjectTree({
       autoScroll={false}
       collisionDetection={closestCenter}
       onDragStart={handleStart}
-      onDragMove={handleMove}
       onDragEnd={handleEnd}
-      onDragCancel={() => { setActiveId(null); setOverId(null); setOffsetX(0); onDragActiveChange?.(false); }}
+      onDragCancel={() => { setActiveId(null); onDragActiveChange?.(false); }}
     >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-        {visible.map((item) => (
+        {flat.map((item) => (
           <Row
             key={item.id}
             item={item}
-            projectedDepth={activeId === item.id && projection ? projection.depth : item.depth}
             isActiveSelected={activeProjectId === item.id}
             hasChildren={(childCount.get(item.id) ?? 0) > 0}
             expanded={expanded.has(item.id)}
@@ -261,14 +195,6 @@ export function ProjectTree({
           />
         ))}
       </SortableContext>
-      <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.18,0.67,0.6,1.22)" }}>
-        {activeItem ? (
-          <div className="drawer-row drag-ghost">
-            <span className="drawer-ico"><Icon p={activeItem} /></span>
-            <span className="drawer-label">{activeItem.name}</span>
-          </div>
-        ) : null}
-      </DragOverlay>
     </DndContext>
   );
 }
