@@ -12,6 +12,11 @@ from planner.services import tasks as svc
 
 router = APIRouter(prefix="/api/tasks")
 
+_TASK_FIELDS = (
+    "priority", "project_id", "due_date", "due_time", "end_time",
+    "description", "reminder_at", "recurrence", "parent_task_id",
+)
+
 
 @router.get("", response_model=list[TaskOut])
 async def list_tasks(
@@ -21,12 +26,15 @@ async def list_tasks(
     project_id: int | None = None,
     include_children: bool = False,
     on_date: date | None = None,
+    parent_task_id: int | None = None,
 ):
     if project_id is not None and include_children:
         from planner.services.tasks import descendant_project_ids
         project_ids = await descendant_project_ids(db, project_id)
         return await svc.list_tasks(db, scope=scope, project_ids=project_ids, on_date=on_date)
-    return await svc.list_tasks(db, scope=scope, project_id=project_id, on_date=on_date)
+    return await svc.list_tasks(
+        db, scope=scope, project_id=project_id, on_date=on_date, parent_task_id=parent_task_id,
+    )
 
 
 @router.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
@@ -35,13 +43,12 @@ async def create_task(
     _: Annotated[TelegramUser, Depends(require_owner)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    t = await svc.create_task(
-        db, title=payload.title, project_id=payload.project_id,
-        priority=payload.priority, due_date=payload.due_date,
-        due_time=payload.due_time, end_time=payload.end_time,
-    )
+    fields = payload.model_dump(exclude_unset=True, exclude={"title", "project_id", "tag_ids"})
+    t = await svc.create_task(db, title=payload.title, project_id=payload.project_id, **fields)
+    if payload.tag_ids is not None:
+        await svc.set_task_tags(db, t.id, payload.tag_ids)
     await db.commit()
-    await db.refresh(t)
+    await db.refresh(t, ["tags"])
     return t
 
 
@@ -62,9 +69,11 @@ async def patch_task(
         if t is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "task not found")
     fields = payload.model_dump(exclude_unset=True)
-    for key in ("priority", "project_id", "due_date", "due_time", "end_time"):
+    for key in _TASK_FIELDS:
         if key in fields:
             setattr(t, key, fields[key])
+    if payload.tag_ids is not None:
+        await svc.set_task_tags(db, task_id, payload.tag_ids)
     await db.commit()
-    await db.refresh(t)
+    await db.refresh(t, ["tags"])
     return t

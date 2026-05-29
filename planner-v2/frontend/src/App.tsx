@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { BottomTabs, type TabKey } from "./components/BottomTabs";
 import { Drawer } from "./components/Drawer";
 import { Fab } from "./components/Fab";
-import { AddSheet } from "./components/AddSheet";
+import { TaskComposer } from "./components/TaskComposer";
 import { Sheet } from "./components/Sheet";
 import { ListView } from "./components/ListView";
 import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
-import { createTask, getMe } from "./api";
-import type { ActiveList, Priority } from "./types";
+import { getMe } from "./api";
+import type { ActiveList } from "./types";
 import { applyTelegramTheme } from "./telegram";
 
 export default function App() {
@@ -34,15 +34,6 @@ export default function App() {
     applyTelegramTheme();
     getMe().then((m) => setName(m.first_name ?? "")).catch(() => {});
   }, []);
-
-  async function add(title: string, prio: Priority) {
-    const opts: { priority: Priority; project_id?: number; due_date?: string } = { priority: prio };
-    if (active.kind === "project") opts.project_id = active.id;
-    else if (active.kind === "smart" && active.key === "today") opts.due_date = new Date().toISOString().slice(0, 10);
-    await createTask(title, opts);
-    setAddOpen(false);
-    bump();
-  }
 
   function selectList(a: ActiveList) {
     setActive(a);
@@ -90,7 +81,14 @@ export default function App() {
       {drawerOpen && (
         <Drawer active={active} name={name} closing={drawerClosing} onSelect={selectList} onClose={closeDrawer} />
       )}
-      {addOpen && <AddSheet onClose={() => setAddOpen(false)} onAdd={add} />}
+      {addOpen && (
+        <TaskComposer
+          defaultProjectId={active.kind === "project" ? active.id : null}
+          initialDate={active.kind === "smart" && active.key === "today" ? new Date().toISOString().slice(0, 10) : null}
+          onClose={() => setAddOpen(false)}
+          onSaved={bump}
+        />
+      )}
       {aiOpen && (
         <Sheet onClose={() => setAiOpen(false)}>
           <h1 style={{ fontSize: 20 }}>AI-копайлот</h1>

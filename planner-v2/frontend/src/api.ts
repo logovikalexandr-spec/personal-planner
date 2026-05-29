@@ -1,5 +1,5 @@
 import { tg } from "./telegram";
-import type { Counts, InboxItem, Priority, Project, Task } from "./types";
+import type { Counts, InboxItem, Priority, Project, Tag, Task } from "./types";
 
 function initData(): string { return tg()?.initData ?? ""; }
 
@@ -41,14 +41,31 @@ export const getTasks = (scope = "all", projectId?: number, includeChildren = fa
       (includeChildren ? `&include_children=true` : ""),
   );
 export const getDayTasks = (date: string) => req<Task[]>(`/api/tasks?on_date=${date}`);
-export const createTask = (
-  title: string,
-  opts: Partial<Pick<Task, "project_id" | "priority" | "due_date" | "due_time" | "end_time">> = {},
-) => req<Task>("/api/tasks", { method: "POST", body: JSON.stringify({ title, ...opts }) });
+export const getSubtasks = (parentId: number) => req<Task[]>(`/api/tasks?parent_task_id=${parentId}`);
+
+export interface TaskInput {
+  project_id?: number | null;
+  priority?: Priority;
+  due_date?: string | null;
+  due_time?: string | null;
+  end_time?: string | null;
+  description?: string | null;
+  reminder_at?: string | null;
+  recurrence?: string | null;
+  parent_task_id?: number | null;
+  tag_ids?: number[];
+}
+
+export const createTask = (title: string, opts: TaskInput = {}) =>
+  req<Task>("/api/tasks", { method: "POST", body: JSON.stringify({ title, ...opts }) });
 export const patchTask = (
   id: number,
-  patch: Partial<{ status: string; priority: Priority; project_id: number; due_date: string | null; due_time: string | null; end_time: string | null }>,
+  patch: Partial<{ status: string } & TaskInput>,
 ) => req<Task>(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+
+export const getTags = () => req<Tag[]>("/api/tags");
+export const createTag = (name: string, color?: string | null) =>
+  req<Tag>("/api/tags", { method: "POST", body: JSON.stringify({ name, color }) });
 export const getInbox = () => req<InboxItem[]>("/api/inbox");
 export const triageInbox = (id: number, projectId: number, title: string, priority: Priority = "none") =>
   req<Task>(`/api/inbox/${id}/triage`, { method: "POST", body: JSON.stringify({ project_id: projectId, title, priority }) });

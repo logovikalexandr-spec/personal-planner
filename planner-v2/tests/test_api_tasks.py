@@ -68,3 +68,52 @@ def test_patch_task_time(client):
     assert r.status_code == 200, r.text
     assert r.json()["due_time"] == "10:00:00"
     assert r.json()["end_time"] == "11:00:00"
+
+
+def test_create_task_full_fields(client):
+    r = client.post(
+        "/api/tasks",
+        json={
+            "title": "Глубокая задача",
+            "description": "детали",
+            "recurrence": "daily",
+            "reminder_at": "2026-05-29T09:00:00",
+            "priority": "high",
+        },
+        headers=HDR,
+    )
+    assert r.status_code == 201, r.text
+    b = r.json()
+    assert b["description"] == "детали"
+    assert b["recurrence"] == "daily"
+    assert b["priority"] == "high"
+    assert b["reminder_at"].startswith("2026-05-29T09:00:00")
+
+
+def test_tag_create_list_and_attach(client):
+    t1 = client.post("/api/tags", json={"name": "важное", "color": "#E5564B"}, headers=HDR)
+    assert t1.status_code == 201, t1.text
+    tag_id = t1.json()["id"]
+    # idempotent by name
+    again = client.post("/api/tags", json={"name": "важное"}, headers=HDR)
+    assert again.json()["id"] == tag_id
+    lst = client.get("/api/tags", headers=HDR)
+    assert any(t["name"] == "важное" for t in lst.json())
+    # attach to a task
+    task = client.post("/api/tasks", json={"title": "с тегом", "tag_ids": [tag_id]}, headers=HDR)
+    assert task.status_code == 201, task.text
+    assert [t["id"] for t in task.json()["tags"]] == [tag_id]
+
+
+def test_tags_require_auth(client):
+    assert client.get("/api/tags").status_code == 401
+
+
+def test_subtasks_via_parent(client):
+    parent = client.post("/api/tasks", json={"title": "родитель"}, headers=HDR).json()
+    client.post("/api/tasks", json={"title": "шаг 1", "parent_task_id": parent["id"]}, headers=HDR)
+    client.post("/api/tasks", json={"title": "шаг 2", "parent_task_id": parent["id"]}, headers=HDR)
+    r = client.get(f"/api/tasks?parent_task_id={parent['id']}", headers=HDR)
+    assert r.status_code == 200, r.text
+    titles = {t["title"] for t in r.json()}
+    assert titles == {"шаг 1", "шаг 2"}

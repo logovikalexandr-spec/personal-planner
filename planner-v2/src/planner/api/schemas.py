@@ -5,6 +5,19 @@ from datetime import date, datetime, time
 from pydantic import BaseModel
 
 
+class TagOut(BaseModel):
+    id: int
+    name: str
+    color: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class TagCreate(BaseModel):
+    name: str
+    color: str | None = None
+
+
 class TaskCreate(BaseModel):
     title: str
     project_id: int | None = None
@@ -12,6 +25,11 @@ class TaskCreate(BaseModel):
     due_date: date | None = None
     due_time: time | None = None
     end_time: time | None = None
+    description: str | None = None
+    reminder_at: datetime | None = None
+    recurrence: str | None = None
+    parent_task_id: int | None = None
+    tag_ids: list[int] | None = None
 
 
 class TaskOut(BaseModel):
@@ -25,6 +43,9 @@ class TaskOut(BaseModel):
     end_time: time | None = None
     recurrence: str | None = None
     reminder_at: datetime | None = None
+    description: str | None = None
+    parent_task_id: int | None = None
+    tags: list[TagOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -36,6 +57,11 @@ class TaskPatch(BaseModel):
     due_date: date | None = None
     due_time: time | None = None
     end_time: time | None = None
+    description: str | None = None
+    reminder_at: datetime | None = None
+    recurrence: str | None = None
+    parent_task_id: int | None = None
+    tag_ids: list[int] | None = None
 
 
 class ProjectOut(BaseModel):

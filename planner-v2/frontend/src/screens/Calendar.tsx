@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createTask, getDayTasks, getProjects, patchTask } from "../api";
-import { AddSheet } from "../components/AddSheet";
+import { getDayTasks, getProjects, patchTask } from "../api";
+import { TaskComposer } from "../components/TaskComposer";
 import { tg } from "../telegram";
-import type { Priority, Project, Task } from "../types";
+import type { Project, Task } from "../types";
 
 const HOUR_H = 56;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -73,15 +73,6 @@ export function Calendar() {
   async function toggle(t: Task) {
     tg()?.HapticFeedback?.impactOccurred?.("light");
     await patchTask(t.id, { status: t.status === "done" ? "todo" : "done" });
-    load();
-  }
-
-  async function addAt(title: string, prio: Priority) {
-    if (addHour == null) return;
-    const start = `${`${addHour}`.padStart(2, "0")}:00:00`;
-    const end = `${`${Math.min(addHour + 1, 23)}`.padStart(2, "0")}:00:00`;
-    await createTask(title, { priority: prio, due_date: iso, due_time: start, end_time: end });
-    setAddHour(null);
     load();
   }
 
@@ -161,7 +152,13 @@ export function Calendar() {
       </div>
 
       {addHour != null && (
-        <AddSheet onClose={() => setAddHour(null)} onAdd={addAt} />
+        <TaskComposer
+          initialDate={iso}
+          initialTime={`${`${addHour}`.padStart(2, "0")}:00:00`}
+          initialEnd={`${`${Math.min(addHour + 1, 23)}`.padStart(2, "0")}:00:00`}
+          onClose={() => setAddHour(null)}
+          onSaved={() => { setAddHour(null); load(); }}
+        />
       )}
     </div>
   );

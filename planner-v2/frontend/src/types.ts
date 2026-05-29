@@ -1,11 +1,14 @@
 export type Priority = "none" | "low" | "medium" | "high";
 export type TaskStatus = "todo" | "in_progress" | "done" | "archived";
 
+export interface Tag { id: number; name: string; color?: string | null; }
+
 export interface Task {
   id: number; title: string; project_id: number | null;
   priority: Priority; status: TaskStatus;
   due_date: string | null; due_time: string | null; end_time: string | null;
   recurrence?: string | null; reminder_at?: string | null;
+  description?: string | null; parent_task_id?: number | null; tags?: Tag[];
 }
 export interface Project {
   id: number; name: string; slug: string; is_inbox: boolean;

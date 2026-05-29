@@ -5,7 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func, select
 
-from planner.db.models import InboxItem, Project, Task
+from planner.db.models import InboxItem, Project, Tag, Task, TaskTag
 
 
 async def _inbox_project_id(session) -> int | None:
@@ -20,6 +20,17 @@ async def create_task(session, *, title: str, project_id: int | None = None, **f
     session.add(task)
     await session.flush()
     return task
+
+
+async def set_task_tags(session, task_id: int, tag_ids: list[int]) -> None:
+    """Replace a task's tags with the given ids (ignoring ids that don't exist)."""
+    await session.execute(TaskTag.__table__.delete().where(TaskTag.task_id == task_id))
+    if tag_ids:
+        rows = await session.execute(select(Tag.id).where(Tag.id.in_(tag_ids)))
+        valid = [tid for (tid,) in rows]
+        for tid in valid:
+            session.add(TaskTag(task_id=task_id, tag_id=tid))
+    await session.flush()
 
 
 async def count_open_by_project(session) -> dict[int, int]:
@@ -64,8 +75,11 @@ async def list_tasks(
     project_id: int | None = None,
     project_ids: list[int] | None = None,
     on_date: date | None = None,
+    parent_task_id: int | None = None,
 ) -> list[Task]:
     stmt = select(Task).where(Task.status != "archived")
+    if parent_task_id is not None:
+        stmt = stmt.where(Task.parent_task_id == parent_task_id)
     if on_date is not None:
         stmt = stmt.where(Task.due_date == on_date)
     elif scope == "today":
