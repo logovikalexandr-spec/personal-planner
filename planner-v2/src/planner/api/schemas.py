@@ -38,9 +38,27 @@ class ProjectOut(BaseModel):
     is_inbox: bool
     parent_id: int | None = None
     color: str | None = None
+    icon: str | None = None
+    pinned: bool = False
+    order_index: int = 0
     open_count: int = 0
 
     model_config = {"from_attributes": True}
+
+
+class ProjectPatch(BaseModel):
+    name: str | None = None
+    parent_id: int | None = None
+    color: str | None = None
+    icon: str | None = None
+    pinned: bool | None = None
+    order_index: int | None = None
+
+
+class ProjectOrderItem(BaseModel):
+    id: int
+    parent_id: int | None = None
+    order_index: int
 
 
 class CountsOut(BaseModel):

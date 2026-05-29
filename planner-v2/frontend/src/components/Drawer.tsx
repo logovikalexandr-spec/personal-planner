@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { createProject, getCounts, getProjects } from "../api";
 import {
-  IcoAll, IcoDot, IcoInbox, IcoNext7, IcoPlus, IcoTodaySmall, IcoTomorrow, IcoWeekPlan,
+  createProject, deleteProject, getCounts, getProjects, patchProject, reorderProjects,
+} from "../api";
+import {
+  IcoAll, IcoInbox, IcoNext7, IcoPlus, IcoTodaySmall, IcoTomorrow, IcoWeekPlan,
 } from "./icons";
-import { ProjectSheet } from "./ProjectSheet";
+import { ProjectTree } from "./ProjectTree";
+import { ProjectMenu } from "./ProjectMenu";
+import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
+import { tg } from "../telegram";
 import type { ActiveList, Counts, Project, SmartKey } from "../types";
 
 const SMART: { key: SmartKey; title: string; Ico: () => JSX.Element }[] = [
@@ -25,11 +30,9 @@ function countFor(k: SmartKey, c: Counts | null): number {
   return 0;
 }
 
-function subtreeCount(p: Project, byParent: Map<number | null, Project[]>): number {
-  let n = p.open_count;
-  for (const ch of byParent.get(p.id) ?? []) n += subtreeCount(ch, byParent);
-  return n;
-}
+type SheetState =
+  | { mode: "create"; parentId: number | null }
+  | { mode: "edit"; project: Project };
 
 export function Drawer({
   active, name, closing, onSelect, onClose,
@@ -37,7 +40,8 @@ export function Drawer({
   const [counts, setCounts] = useState<Counts | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheet, setSheet] = useState<SheetState | null>(null);
+  const [menuFor, setMenuFor] = useState<Project | null>(null);
   const sx = useRef<number | null>(null);
   const sy = useRef<number | null>(null);
 
@@ -50,13 +54,7 @@ export function Drawer({
     loadProjects();
   }, []);
 
-  async function handleCreate(name: string, opts: { parent_id?: number | null; color?: string | null }) {
-    const created = await createProject(name, opts);
-    setSheetOpen(false);
-    if (created.parent_id != null) setExpanded((s) => new Set(s).add(created.parent_id!));
-    loadProjects();
-  }
-
+  // subtree open-count via parent map
   const byParent = new Map<number | null, Project[]>();
   for (const p of projects) {
     if (p.is_inbox) continue;
@@ -64,7 +62,12 @@ export function Drawer({
     if (!byParent.has(k)) byParent.set(k, []);
     byParent.get(k)!.push(p);
   }
-  const roots = byParent.get(null) ?? [];
+  function subtreeCount(id: number): number {
+    const self = projects.find((p) => p.id === id);
+    let n = self?.open_count ?? 0;
+    for (const ch of byParent.get(id) ?? []) n += subtreeCount(ch.id);
+    return n;
+  }
 
   function toggle(id: number) {
     setExpanded((s) => {
@@ -75,35 +78,51 @@ export function Drawer({
   }
 
   const isActiveSmart = (k: SmartKey) => active.kind === "smart" && active.key === k;
-  const isActiveProject = (id: number) => active.kind === "project" && active.id === id;
+  const activeProjectId = active.kind === "project" ? active.id : null;
 
-  function renderProject(p: Project, depth: number) {
-    const children = byParent.get(p.id) ?? [];
-    const cnt = subtreeCount(p, byParent);
-    return (
-      <div key={p.id}>
-        <div
-          className={`drawer-row ${isActiveProject(p.id) ? "active" : ""} ${depth > 0 ? "tree-child" : ""}`}
-          onClick={() => onSelect({ kind: "project", id: p.id, title: p.name })}
-        >
-          <span className="drawer-ico">
-            {p.color ? (
-              <span style={{ display: "block", width: 11, height: 11, borderRadius: "50%", background: p.color, margin: "0 auto" }} />
-            ) : (
-              <IcoDot />
-            )}
-          </span>
-          <span className="drawer-label">{p.name}</span>
-          {cnt > 0 && <span className="drawer-count">{cnt}</span>}
-          {children.length > 0 && (
-            <span className="drawer-exp" onClick={(e) => { e.stopPropagation(); toggle(p.id); }}>
-              {expanded.has(p.id) ? "▾" : "▸"}
-            </span>
-          )}
-        </div>
-        {expanded.has(p.id) && children.map((c) => renderProject(c, depth + 1))}
-      </div>
+  async function handleSubmit(value: ProjectFormValue) {
+    if (sheet?.mode === "edit") {
+      await patchProject(sheet.project.id, value);
+    } else {
+      const created = await createProject(value.name, {
+        parent_id: value.parent_id, color: value.color, icon: value.icon,
+      });
+      if (created.parent_id != null) setExpanded((s) => new Set(s).add(created.parent_id!));
+    }
+    setSheet(null);
+    loadProjects();
+  }
+
+  async function togglePin(p: Project) {
+    setMenuFor(null);
+    await patchProject(p.id, { pinned: !p.pinned });
+    loadProjects();
+  }
+
+  function requestDelete(p: Project) {
+    setMenuFor(null);
+    const doDelete = async () => { await deleteProject(p.id); loadProjects(); };
+    const w = tg() as { showConfirm?: (m: string, cb: (ok: boolean) => void) => void } | undefined;
+    if (w?.showConfirm) w.showConfirm(`Удалить «${p.name}»? Задачи уйдут во Входящие.`, (ok) => { if (ok) doDelete(); });
+    else doDelete();
+  }
+
+  async function handleReorder(items: { id: number; parent_id: number | null; order_index: number }[]) {
+    // optimistic: apply to local state immediately
+    const patchMap = new Map(items.map((i) => [i.id, i]));
+    setProjects((prev) =>
+      prev
+        .map((p) => {
+          const u = patchMap.get(p.id);
+          return u ? { ...p, parent_id: u.parent_id, order_index: u.order_index } : p;
+        })
+        .sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.order_index - b.order_index || a.name.localeCompare(b.name)),
     );
+    try {
+      await reorderProjects(items);
+    } finally {
+      loadProjects();
+    }
   }
 
   const drawer = (
@@ -143,8 +162,17 @@ export function Drawer({
 
         <div className="drawer-sep" />
         <div className="drawer-section">Проекты</div>
-        {roots.map((p) => renderProject(p, 0))}
-        <div className="drawer-row drawer-add" onClick={() => setSheetOpen(true)}>
+        <ProjectTree
+          projects={projects}
+          activeProjectId={activeProjectId}
+          expanded={expanded}
+          subtreeCount={subtreeCount}
+          onSelect={(p) => onSelect({ kind: "project", id: p.id, title: p.name })}
+          onToggle={toggle}
+          onLongPress={(p) => setMenuFor(p)}
+          onReorder={handleReorder}
+        />
+        <div className="drawer-row drawer-add" onClick={() => setSheet({ mode: "create", parentId: null })}>
           <span className="drawer-ico"><IcoPlus /></span>
           <span className="drawer-label">Проект</span>
         </div>
@@ -155,8 +183,25 @@ export function Drawer({
   return (
     <>
       {drawer}
-      {sheetOpen && (
-        <ProjectSheet projects={projects} onClose={() => setSheetOpen(false)} onCreate={handleCreate} />
+      {menuFor && (
+        <ProjectMenu
+          project={menuFor}
+          onClose={() => setMenuFor(null)}
+          onCreateSub={() => { const id = menuFor.id; setMenuFor(null); setSheet({ mode: "create", parentId: id }); }}
+          onEdit={() => { const p = menuFor; setMenuFor(null); setSheet({ mode: "edit", project: p }); }}
+          onTogglePin={() => togglePin(menuFor)}
+          onDelete={() => requestDelete(menuFor)}
+        />
+      )}
+      {sheet && (
+        <ProjectSheet
+          projects={projects}
+          mode={sheet.mode}
+          initial={sheet.mode === "edit" ? sheet.project : undefined}
+          defaultParentId={sheet.mode === "create" ? sheet.parentId : undefined}
+          onClose={() => setSheet(null)}
+          onSubmit={handleSubmit}
+        />
       )}
     </>
   );

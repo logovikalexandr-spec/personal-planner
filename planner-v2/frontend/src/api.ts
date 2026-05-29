@@ -12,12 +12,27 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return r.json() as Promise<T>;
 }
 
+async function reqVoid(path: string, init?: RequestInit): Promise<void> {
+  const r = await fetch(path, {
+    ...init,
+    headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initData(), ...(init?.headers ?? {}) },
+  });
+  if (!r.ok) throw new Error(`${path} -> ${r.status}`);
+}
+
+export type ProjectInput = { parent_id?: number | null; color?: string | null; icon?: string | null };
+
 export const getMe = () => req<{ id: number; first_name: string | null }>("/api/me");
 export const getProjects = () => req<Project[]>("/api/projects");
-export const createProject = (
-  name: string,
-  opts: { parent_id?: number | null; color?: string | null } = {},
-) => req<Project>("/api/projects", { method: "POST", body: JSON.stringify({ name, ...opts }) });
+export const createProject = (name: string, opts: ProjectInput = {}) =>
+  req<Project>("/api/projects", { method: "POST", body: JSON.stringify({ name, ...opts }) });
+export const patchProject = (
+  id: number,
+  patch: Partial<{ name: string; parent_id: number | null; color: string | null; icon: string | null; pinned: boolean; order_index: number }>,
+) => req<Project>(`/api/projects/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export const deleteProject = (id: number) => reqVoid(`/api/projects/${id}`, { method: "DELETE" });
+export const reorderProjects = (items: { id: number; parent_id: number | null; order_index: number }[]) =>
+  reqVoid("/api/projects/order", { method: "PUT", body: JSON.stringify(items) });
 export const getCounts = () => req<Counts>("/api/counts");
 export const getTasks = (scope = "all", projectId?: number, includeChildren = false) =>
   req<Task[]>(

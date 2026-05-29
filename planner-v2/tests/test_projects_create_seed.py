@@ -90,10 +90,16 @@ def test_post_project_requires_auth(client):
 
 # --------------------------------------------------------------------------- seed idempotency
 async def _run_seed(session):
-    for name, slug, children in CATEGORIES:
-        root = await _get_or_create(session, name=name, slug=slug, parent_id=None)
-        for child_name, child_slug in children:
-            await _get_or_create(session, name=child_name, slug=child_slug, parent_id=root.id)
+    for root_order, (name, slug, emoji, color, children) in enumerate(CATEGORIES):
+        root = await _get_or_create(
+            session, name=name, slug=slug, parent_id=None,
+            icon=emoji, color=color, order_index=root_order,
+        )
+        for child_order, (cn, cs, ce) in enumerate(children):
+            await _get_or_create(
+                session, name=cn, slug=cs, parent_id=root.id,
+                icon=ce, color=None, order_index=child_order,
+            )
     await session.commit()
 
 
@@ -107,6 +113,33 @@ async def test_seed_idempotent(db_session):
 
 
 @pytest.mark.asyncio
+async def test_seed_sets_emoji_and_color(db_session):
+    await _run_seed(db_session)
+    health = (
+        await db_session.execute(select(Project).where(Project.slug == "health"))
+    ).scalar_one()
+    assert health.icon == "💚"
+    assert health.color == "#4FB477"
+
+
+@pytest.mark.asyncio
+async def test_seed_preserves_user_edits(db_session):
+    await _run_seed(db_session)
+    health = (
+        await db_session.execute(select(Project).where(Project.slug == "health"))
+    ).scalar_one()
+    health.color = "#000000"
+    health.name = "Моё здоровье"
+    await db_session.commit()
+    await _run_seed(db_session)
+    health2 = (
+        await db_session.execute(select(Project).where(Project.slug == "health"))
+    ).scalar_one()
+    assert health2.color == "#000000"
+    assert health2.name == "Моё здоровье"
+
+
+@pytest.mark.asyncio
 async def test_seed_health_has_three_children(db_session):
     await _run_seed(db_session)
     health = (
@@ -116,3 +149,71 @@ async def test_seed_health_has_three_children(db_session):
         await db_session.execute(select(Project).where(Project.parent_id == health.id))
     ).scalars().all()
     assert len(children) == 3
+
+
+# --------------------------------------------------------------------------- patch / delete / reorder
+def _mk(client, name, **extra):
+    r = client.post("/api/projects", json={"name": name, **extra}, headers=HDR)
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_patch_rename_and_emoji_color(client):
+    p = _mk(client, "Финансы")
+    r = client.patch(
+        f"/api/projects/{p['id']}",
+        json={"name": "Деньги", "icon": "💰", "color": "#E0B341"},
+        headers=HDR,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["name"] == "Деньги"
+    assert body["icon"] == "💰"
+    assert body["color"] == "#E0B341"
+    assert body["slug"] == p["slug"]  # slug stays stable on rename
+
+
+def test_patch_pin(client):
+    p = _mk(client, "Курсы")
+    r = client.patch(f"/api/projects/{p['id']}", json={"pinned": True}, headers=HDR)
+    assert r.status_code == 200
+    assert r.json()["pinned"] is True
+
+
+def test_patch_reparent_to_root(client):
+    parent = _mk(client, "Здоровье")
+    child = _mk(client, "Спорт", parent_id=parent["id"])
+    r = client.patch(f"/api/projects/{child['id']}", json={"parent_id": None}, headers=HDR)
+    assert r.status_code == 200
+    assert r.json()["parent_id"] is None
+
+
+def test_patch_missing_404(client):
+    assert client.patch("/api/projects/99999", json={"name": "x"}, headers=HDR).status_code == 404
+
+
+def test_delete_reparents_children(client):
+    parent = _mk(client, "Здоровье")
+    child = _mk(client, "Спорт", parent_id=parent["id"])
+    r = client.delete(f"/api/projects/{parent['id']}", headers=HDR)
+    assert r.status_code == 204, r.text
+    projects = {p["id"]: p for p in client.get("/api/projects", headers=HDR).json()}
+    assert parent["id"] not in projects
+    assert projects[child["id"]]["parent_id"] is None  # reparented to root
+
+
+def test_reorder_updates_order(client):
+    a = _mk(client, "A")
+    b = _mk(client, "B")
+    r = client.put(
+        "/api/projects/order",
+        json=[
+            {"id": a["id"], "parent_id": None, "order_index": 5},
+            {"id": b["id"], "parent_id": None, "order_index": 1},
+        ],
+        headers=HDR,
+    )
+    assert r.status_code == 204, r.text
+    by = {p["id"]: p for p in client.get("/api/projects", headers=HDR).json()}
+    assert by[a["id"]]["order_index"] == 5
+    assert by[b["id"]]["order_index"] == 1

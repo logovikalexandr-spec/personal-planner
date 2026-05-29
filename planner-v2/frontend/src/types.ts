@@ -7,7 +7,9 @@ export interface Task {
 }
 export interface Project {
   id: number; name: string; slug: string; is_inbox: boolean;
-  parent_id: number | null; open_count: number; color?: string | null;
+  parent_id: number | null; open_count: number;
+  color?: string | null; icon?: string | null;
+  pinned: boolean; order_index: number;
 }
 export interface Counts { all: number; today: number; tomorrow: number; next7: number; inbox: number; }
 

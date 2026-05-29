@@ -1,11 +1,11 @@
 import type { Task } from "../types";
 
-export function TaskItem({ task, onToggle }: { task: Task; onToggle: (t: Task) => void }) {
+export function TaskItem({ task, onToggle, color }: { task: Task; onToggle: (t: Task) => void; color?: string | null }) {
   const done = task.status === "done";
   const prio =
     task.priority === "high" ? "prio-high" : task.priority === "medium" ? "prio-medium" : task.priority === "low" ? "prio-low" : "";
   return (
-    <div className={`task-row ${prio}`}>
+    <div className={`task-row ${prio}`} style={color ? { borderLeft: `3px solid ${color}`, paddingLeft: "calc(var(--s3) - 3px)" } : undefined}>
       <div className={`checkbox ${done ? "done" : ""}`} onClick={() => onToggle(task)} role="button" aria-label="done">
         {done ? "✓" : ""}
       </div>

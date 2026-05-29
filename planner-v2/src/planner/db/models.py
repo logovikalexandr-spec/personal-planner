@@ -18,6 +18,8 @@ class Project(Base):
     icon: Mapped[str | None] = mapped_column(String(32), default=None)
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("project.id"), default=None)
     is_inbox: Mapped[bool] = mapped_column(Boolean, default=False)
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

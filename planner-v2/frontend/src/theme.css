@@ -216,6 +216,27 @@ body {
 }
 select.input { appearance: none; -webkit-appearance: none; }
 
+.emoji-grid {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: var(--s2);
+  margin: var(--s2) 0;
+}
+.emoji-chip {
+  aspect-ratio: 1; border: none; border-radius: 10px; background: var(--surface-2);
+  font-size: 19px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.emoji-chip.active { outline: 2px solid var(--accent); }
+
+.menu-head {
+  display: flex; align-items: center; gap: var(--s3);
+  padding: var(--s2) var(--s2) var(--s3); border-bottom: 1px solid var(--border); margin-bottom: var(--s2);
+}
+.menu-item {
+  display: block; width: 100%; text-align: left; background: none; border: none;
+  color: var(--text); font-size: 16px; padding: 15px var(--s2); cursor: pointer; border-radius: 10px;
+}
+.menu-item:active { background: var(--surface-2); }
+.menu-item.danger { color: var(--danger, #E5564B); }
+
 .skeleton {
   background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%);
   background-size: 400% 100%; animation: shimmer 1.2s ease infinite;

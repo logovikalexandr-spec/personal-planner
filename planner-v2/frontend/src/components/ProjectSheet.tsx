@@ -3,37 +3,74 @@ import type { Project } from "../types";
 import { Sheet } from "./Sheet";
 
 const COLORS = ["#EE8A3C", "#E5564B", "#E0B341", "#4FB477", "#3C8EEE", "#9B6BE0", "#7C8794"];
+const EMOJIS = ["🎯", "💚", "💪", "🏋️", "🧘", "💰", "🧊", "🏛️", "🕉️", "🧠", "🎭", "📚", "⭐", "📦", "🔥", "📌", "🚀", "🏠", "💡", "📅"];
+
+export interface ProjectFormValue {
+  name: string;
+  parent_id: number | null;
+  color: string | null;
+  icon: string | null;
+}
 
 export function ProjectSheet({
-  projects, defaultParentId, onClose, onCreate,
+  projects, mode, initial, defaultParentId, onClose, onSubmit,
 }: {
   projects: Project[];
+  mode: "create" | "edit";
+  initial?: Project;
   defaultParentId?: number | null;
   onClose: () => void;
-  onCreate: (name: string, opts: { parent_id?: number | null; color?: string | null }) => void;
+  onSubmit: (value: ProjectFormValue) => void;
 }) {
-  const [name, setName] = useState("");
-  const [parentId, setParentId] = useState<number | null>(defaultParentId ?? null);
-  const [color, setColor] = useState<string | null>(null);
+  const [name, setName] = useState(initial?.name ?? "");
+  const [parentId, setParentId] = useState<number | null>(initial?.parent_id ?? defaultParentId ?? null);
+  const [color, setColor] = useState<string | null>(initial?.color ?? null);
+  const [icon, setIcon] = useState<string | null>(initial?.icon ?? null);
 
-  const parents = projects.filter((p) => !p.is_inbox);
+  // edit can't set itself or its own descendants as parent
+  const blocked = new Set<number>();
+  if (initial) {
+    blocked.add(initial.id);
+    const stack = [initial.id];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      for (const p of projects) if (p.parent_id === cur) { blocked.add(p.id); stack.push(p.id); }
+    }
+  }
+  const parents = projects.filter((p) => !p.is_inbox && !blocked.has(p.id));
 
   function submit() {
     const t = name.trim();
     if (!t) return;
-    onCreate(t, { parent_id: parentId, color });
+    onSubmit({ name: t, parent_id: parentId, color, icon });
   }
 
   return (
     <Sheet onClose={onClose}>
-      <input
-        className="input"
-        autoFocus
-        placeholder="Название проекта..."
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submit()}
-      />
+      <div className="row" style={{ gap: "var(--s2)", alignItems: "center" }}>
+        <span style={{ fontSize: 26, width: 34, textAlign: "center" }}>{icon ?? "🗂️"}</span>
+        <input
+          className="input"
+          autoFocus
+          placeholder="Название проекта..."
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          style={{ flex: 1 }}
+        />
+      </div>
+
+      <div className="emoji-grid">
+        {EMOJIS.map((e) => (
+          <button
+            key={e}
+            className={`emoji-chip ${icon === e ? "active" : ""}`}
+            onClick={() => setIcon(icon === e ? null : e)}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
 
       <div className="row" style={{ flexWrap: "wrap", gap: "var(--s2)" }}>
         {COLORS.map((c) => (
@@ -42,11 +79,7 @@ export function ProjectSheet({
             className="color-chip"
             aria-label={c}
             onClick={() => setColor(color === c ? null : c)}
-            style={{
-              background: c,
-              outline: color === c ? "2px solid var(--text)" : "none",
-              outlineOffset: 2,
-            }}
+            style={{ background: c, outline: color === c ? "2px solid var(--text)" : "none", outlineOffset: 2 }}
           />
         ))}
       </div>
@@ -62,7 +95,9 @@ export function ProjectSheet({
         ))}
       </select>
 
-      <button className="btn btn-block" onClick={submit}>Создать</button>
+      <button className="btn btn-block" onClick={submit}>
+        {mode === "edit" ? "Сохранить" : "Создать"}
+      </button>
     </Sheet>
   );
 }
