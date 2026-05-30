@@ -9,7 +9,7 @@ import { Lists } from "./screens/Lists";
 import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
 import { Tracking } from "./screens/Tracking";
-import { getCounts, getMe } from "./api";
+import { getCounts } from "./api";
 import type { ActiveList } from "./types";
 import { applyTelegramTheme } from "./telegram";
 
@@ -26,13 +26,11 @@ export default function App() {
   const [aiOpen, setAiOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
-  const [, setName] = useState("");
 
   function bump() { setReloadKey((k) => k + 1); }
 
   useEffect(() => {
     applyTelegramTheme();
-    getMe().then((m) => setName(m.first_name ?? "")).catch(() => {});
     getCounts().then((c) => setInboxCount(c.inbox)).catch(() => {});
   }, [reloadKey]);
 
