@@ -1,13 +1,13 @@
-import { IcoCalendar, IcoGoals, IcoProjects, IcoTasks, IcoToday } from "./icons";
+import { IcoCalendar, IcoGoals, IcoLists, IcoToday, IcoTracking } from "./icons";
 
-export type TabKey = "today" | "calendar" | "tasks" | "goals" | "projects";
+export type TabKey = "today" | "calendar" | "lists" | "goals" | "tracking";
 
 const TABS: { key: TabKey; label: string; Ico: (p: { active?: boolean }) => React.ReactElement }[] = [
   { key: "today", label: "Сегодня", Ico: IcoToday },
   { key: "calendar", label: "Календарь", Ico: IcoCalendar },
-  { key: "tasks", label: "Задачи", Ico: IcoTasks },
+  { key: "lists", label: "Списки", Ico: IcoLists },
   { key: "goals", label: "Цели", Ico: IcoGoals },
-  { key: "projects", label: "Проекты", Ico: IcoProjects },
+  { key: "tracking", label: "Трекинг", Ico: IcoTracking },
 ];
 
 export function BottomTabs({
