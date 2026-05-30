@@ -1,7 +1,7 @@
 :root {
-  --bg: var(--tg-theme-bg-color, #08080a);  /* наследуем фон Telegram (как в Ledger) */
-  --surface: #161619;       /* строки, карточки */
-  --surface-2: #1f1f23;     /* инпут, приподнятое, чипы */
+  --bg: #0F0F11;            /* Onyx — фиксируем холст (не наследуем tg-фон, §2 «не #000») */
+  --surface: #1A1B1F;       /* Smoke — строки, карточки */
+  --surface-2: #242529;     /* Slate — инпут, приподнятое, чипы */
   --text: #f4f4f5;
   --text-muted: #8a8b91;
   --accent: #ee8a3c;
@@ -36,7 +36,7 @@ body {
 
 .app { min-height: 100dvh; padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
 .screen { padding: var(--s5) var(--s4) var(--s6); }
-.screen h1 { font-size: 26px; font-weight: 700; margin: 0 0 var(--s2); letter-spacing: -0.4px; }
+.screen h1 { font-size: 22px; font-weight: 700; margin: 0 0 var(--s2); letter-spacing: -0.4px; }
 .screen-hero { margin-bottom: var(--s5); }
 .screen-hero .date { font-family: var(--font-mono); color: var(--text-muted); font-size: 14px; margin-top: 2px; }
 .section-label {
@@ -137,7 +137,7 @@ body {
 .tabbar button.active { color: var(--accent); }
 .tabbar svg { width: 24px; height: 24px; }
 .tab-badge {
-  position: absolute; top: 10px; left: 50%; transform: translateX(6px);
+  position: absolute; top: 10px; left: 50%; transform: translateX(8px);
   background: var(--accent); color: #fff; border-radius: 999px; font-family: var(--font-mono);
   font-size: 10px; font-weight: 700; padding: 1px 6px; min-width: 16px; text-align: center; line-height: 1.5;
 }
@@ -311,7 +311,16 @@ select.input { appearance: none; -webkit-appearance: none; }
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 .cal-block .bt { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cal-block .bm { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 1px; }
+.cal-block .bm {
+  font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
+  margin-top: 1px; display: flex; align-items: center; gap: 5px;
+  white-space: nowrap; overflow: hidden;
+}
+.cal-block .bm svg { width: 12px; height: 12px; flex: 0 0 auto; }
+.cal-block .pdot {
+  width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto;
+  margin-right: 6px; vertical-align: middle;
+}
 .cal-block.done { opacity: 0.5; }
 .cal-block.done .bt { text-decoration: line-through; }
 .cal-now { position: absolute; left: 50px; right: 0; height: 2px; background: var(--accent); z-index: 3; }
@@ -376,3 +385,46 @@ select.input { appearance: none; -webkit-appearance: none; }
   border-radius: var(--radius); height: 60px;
 }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+/* ── Wave 1 visual-spec: сквозные правила ─────────────────────────── */
+
+/* Today — единый скролл экрана, full-bleed таймлайн */
+.screen.today { padding-left: 0; padding-right: 0; }
+.today-pad { padding: 0 var(--s4); }
+.today-summary {
+  font-family: var(--font-mono); font-feature-settings: "tnum";
+  font-size: 13px; color: var(--text-muted); margin-top: var(--s1);
+}
+/* статический таймлайн в Today: без под-скролла, естественная высота */
+.daytimeline--static .cal-scroll,
+.daytimeline--static.cal-scroll { overflow: visible; flex: none; }
+
+/* cal-block тактильное нажатие + транзишн часа (§6) */
+.cal-block { transition: transform 140ms ease; }
+.cal-block:active { transform: scale(0.98); }
+.cal-hour { transition: background 120ms ease; }
+
+/* entry-card / FAB — SVG-глифы (§4) */
+.entry-card .chev { display: inline-flex; align-items: center; }
+.entry-card .chev svg { width: 18px; height: 18px; }
+.entry-card .lead svg { width: 24px; height: 24px; }
+.fab svg { width: 24px; height: 24px; }
+
+/* Lists — полноэкранный таб (scope .lists, не Drawer) */
+.screen.lists {
+  padding-left: 0; padding-right: 0;
+  padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + var(--s4));
+}
+.lists .screen-hero { padding: 0 var(--s4); }
+.lists .drawer-row { min-height: 52px; padding: 14px var(--s4); }
+.lists .drawer-row.active { background: var(--accent-soft); }
+.lists .drawer-row .drawer-ico { color: var(--text-muted); }   /* 1 акцент: неактивные = Steel */
+.lists .drawer-row.active .drawer-ico { color: var(--accent); }
+.lists .drawer-sep { margin: var(--s4); }                      /* §5 фикс: было --s3 */
+.lists .tree-btn { width: 44px; height: 44px; }                /* тач ≥44px */
+.lists-skeleton-row {
+  height: 52px; border-radius: var(--radius-sm);
+  margin: 0 var(--s4) var(--s2);
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%);
+  background-size: 400% 100%; animation: shimmer 1.2s ease infinite;
+}

@@ -61,3 +61,29 @@ export const IcoPlus = () => sv(<><path d="M12 5v14M5 12h14" /></>);
 export const IcoMore = () => sv(<><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" /></>);
 export const IcoSend = () => sv(<><path d="M12 19V5M6 11l6-6 6 6" /></>);
 export const IcoExpand = () => sv(<><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></>);
+
+/* ── Wave 1 nav-иконки (color-swap через stroke(active), constant strokeWidth 2) ── */
+export function IcoLists({ active }: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke={stroke(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 6h11M9 12h11M9 18h11" />
+      <circle cx="4.5" cy="6" r="1.3" fill={stroke(active)} stroke="none" />
+      <circle cx="4.5" cy="12" r="1.3" fill={stroke(active)} stroke="none" />
+      <circle cx="4.5" cy="18" r="1.3" fill={stroke(active)} stroke="none" />
+    </svg>
+  );
+}
+export function IcoTracking({ active }: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke={stroke(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4v15a1 1 0 0 0 1 1h15" />
+      <path d="M7.5 14.5l3.5-4 3 2.5 4.5-6" />
+    </svg>
+  );
+}
+
+/* ── Wave 1 chrome-глифы (через sv(), stroke 1.9, размер задаёт контекст) ── */
+export const IcoChevron = () => sv(<path d="M9 6l6 6-6 6" />);                       /* шеврон строк/entry-card (замена «›»/«▸») */
+export const IcoRepeatMicro = () => sv(<><path d="M4 9a8 8 0 0 1 14-3M20 15a8 8 0 0 1-14 3" /><path d="M18 3v3.5h-3.5M6 21v-3.5h3.5" /></>); /* таймлайн-мета 12px (замена 🔁) */
+export const IcoBellMicro = () => sv(<><path d="M18 9a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7" /><path d="M10.5 20a2 2 0 0 0 3 0" /></>); /* таймлайн-мета 12px (замена ⏰) */
+export const IcoPin = () => sv(<><path d="M9 4h6M10 4l-1 7-3 2v2h12v-2l-3-2-1-7M12 17v3" /></>); /* pin-маркер ~14px (замена 📌) */
