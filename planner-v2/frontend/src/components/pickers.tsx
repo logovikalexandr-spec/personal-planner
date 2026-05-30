@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { createTag, getTags } from "../api";
+import { createProject, createTag, getProjects, getTags } from "../api";
+import { flatten } from "../lib/projectTree";
 import type { Priority, Project, Tag } from "../types";
 import { Sheet } from "./Sheet";
+import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
 
 export const PRIORITY_COLOR: Record<Priority, string> = {
   high: "#E5564B",
@@ -16,6 +18,9 @@ const PRIORITY_LABEL: Record<Priority, string> = {
   none: "Без приоритета",
 };
 
+// микро-пауза перед закрытием шторки: подсветка строки + ✓ успевают проиграть (DESIGN §6)
+const SELECT_DELAY_MS = 140;
+
 export function Flag({ color, filled = true }: { color: string; filled?: boolean }) {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -26,61 +31,182 @@ export function Flag({ color, filled = true }: { color: string; filled?: boolean
 
 export function PriorityPicker({ value, onPick, onClose }: { value: Priority; onPick: (p: Priority) => void; onClose: () => void }) {
   const order: Priority[] = ["high", "medium", "low", "none"];
+  const [picked, setPicked] = useState<Priority | null>(null);
+
+  function choose(p: Priority) {
+    if (picked != null) return;
+    setPicked(p);
+    onPick(p);
+    window.setTimeout(onClose, SELECT_DELAY_MS);
+  }
+
   return (
     <Sheet onClose={onClose}>
-      {order.map((p) => (
-        <button
-          key={p}
-          className="menu-item"
-          style={{ display: "flex", alignItems: "center", gap: 12 }}
-          onClick={() => { onPick(p); onClose(); }}
-        >
-          <Flag color={PRIORITY_COLOR[p]} filled={p !== "none"} />
-          <span style={{ flex: 1, textAlign: "left" }}>{PRIORITY_LABEL[p]}</span>
-          {value === p && <span style={{ color: "var(--accent)" }}>✓</span>}
-        </button>
-      ))}
+      {order.map((p) => {
+        const sel = picked != null ? picked === p : value === p;
+        return (
+          <button
+            key={p}
+            className={`menu-item picker-row ${sel ? "selected" : ""}`}
+            style={{ display: "flex", alignItems: "center", gap: 12 }}
+            onClick={() => choose(p)}
+          >
+            <Flag color={PRIORITY_COLOR[p]} filled={p !== "none"} />
+            <span style={{ flex: 1, textAlign: "left" }}>{PRIORITY_LABEL[p]}</span>
+            {sel && <span className="picker-check">✓</span>}
+          </button>
+        );
+      })}
     </Sheet>
   );
 }
 
-export function ProjectPickerSheet({
-  projects, value, onPick, onClose,
-}: { projects: Project[]; value: number | null; onPick: (id: number | null) => void; onClose: () => void }) {
-  const byParent = new Map<number | null, Project[]>();
-  for (const p of projects) {
-    if (p.is_inbox) continue;
-    const k = p.parent_id;
-    if (!byParent.has(k)) byParent.set(k, []);
-    byParent.get(k)!.push(p);
+const ROW_PAD = 16;
+const ROW_INDENT = 16;
+const MAX_DEPTH = 3; // clamp: глубже не увеличиваем отступ, имя остаётся читаемым
+
+export interface ProjectPickerSheetProps {
+  value: number | null;
+  onPick: (id: number | null) => void;
+  onClose: () => void;
+  /**
+   * Контролируемый режим: если передан — picker не грузит сам, а отражает
+   * переданное состояние (используется в TaskComposer и harness).
+   * Если не передан — picker сам грузит проекты с локальным loading/error.
+   */
+  projects?: Project[];
+  loading?: boolean;
+  error?: boolean;
+  /** Колбэк после создания проекта из picker'а (рефетч/локальный апдейт у вызывающего). */
+  onProjectsChange?: (next: Project[]) => void;
+  /** Повтор загрузки в контролируемом режиме (кнопка «Повторить» в состоянии ошибки). */
+  onRetry?: () => void;
+}
+
+export function ProjectPickerSheet(props: ProjectPickerSheetProps) {
+  const controlled = props.projects !== undefined;
+
+  // неконтролируемый режим: собственный жизненный цикл загрузки
+  const [localProjects, setLocalProjects] = useState<Project[]>([]);
+  const [localLoading, setLocalLoading] = useState(!controlled);
+  const [localError, setLocalError] = useState(false);
+
+  function load() {
+    setLocalLoading(true);
+    setLocalError(false);
+    getProjects()
+      .then((ps) => { setLocalProjects(ps); setLocalLoading(false); })
+      .catch(() => { setLocalError(true); setLocalLoading(false); });
   }
-  const rows: { p: Project; depth: number }[] = [];
-  const walk = (parent: number | null, depth: number) => {
-    for (const p of byParent.get(parent) ?? []) { rows.push({ p, depth }); walk(p.id, depth + 1); }
-  };
-  walk(null, 0);
+
+  useEffect(() => {
+    if (!controlled) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const projects = controlled ? props.projects! : localProjects;
+  const loading = controlled ? !!props.loading : localLoading;
+  const error = controlled ? !!props.error : localError;
+
+  const { value, onPick, onClose, onProjectsChange, onRetry } = props;
+
+  const [picked, setPicked] = useState<number | null | undefined>(undefined); // undefined = ничего ещё не выбрано в этом сеансе
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const rows = flatten(projects);
+
+  function retry() {
+    if (controlled) onRetry?.();
+    else load();
+  }
+
+  function choose(id: number | null) {
+    if (picked !== undefined) return; // защита от двойного тапа во время паузы
+    setPicked(id);
+    onPick(id);
+    window.setTimeout(onClose, SELECT_DELAY_MS);
+  }
+
+  async function handleCreate(v: ProjectFormValue) {
+    const created = await createProject(v.name, { parent_id: v.parent_id, color: v.color, icon: v.icon });
+    const next = projects.some((p) => p.id === created.id) ? projects : [...projects, created];
+    if (controlled) onProjectsChange?.(next);
+    else setLocalProjects(next);
+    setCreateOpen(false);
+    choose(created.id); // выбрать только что созданный (decision A: убрать тупик пустого)
+  }
+
+  // строка выбора (общий рендер: Inbox + узлы дерева)
+  const isPicked = (id: number | null) => (picked !== undefined ? picked === id : value === id);
 
   return (
-    <Sheet onClose={onClose}>
-      <div className="menu-head"><span style={{ fontWeight: 600 }}>Проект</span></div>
-      <button className="menu-item" style={{ display: "flex", gap: 12 }} onClick={() => { onPick(null); onClose(); }}>
-        <span className="drawer-ico">📥</span>
-        <span style={{ flex: 1, textAlign: "left" }}>Входящие</span>
-        {value == null && <span style={{ color: "var(--accent)" }}>✓</span>}
-      </button>
-      {rows.map(({ p, depth }) => (
-        <button
-          key={p.id}
-          className="menu-item"
-          style={{ display: "flex", gap: 12, paddingLeft: 16 + depth * 20 }}
-          onClick={() => { onPick(p.id); onClose(); }}
-        >
-          <span>{p.icon ?? "•"}</span>
-          <span style={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
-          {value === p.id && <span style={{ color: "var(--accent)" }}>✓</span>}
-        </button>
-      ))}
-    </Sheet>
+    <>
+      <Sheet onClose={onClose}>
+        <div className="menu-head"><span style={{ fontWeight: 600 }}>Проект</span></div>
+
+        {loading ? (
+          <div className="picker-skeleton" aria-busy="true">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="skeleton picker-skel-row" />)}
+          </div>
+        ) : error ? (
+          <div className="picker-state">
+            <div className="muted">Не удалось загрузить проекты</div>
+            <button className="btn btn-ghost" onClick={retry}>Повторить</button>
+          </div>
+        ) : (
+          <>
+            <button
+              className={`menu-item picker-row ${isPicked(null) ? "selected" : ""}`}
+              style={{ display: "flex", gap: 12, alignItems: "center" }}
+              onClick={() => choose(null)}
+            >
+              <span className="drawer-ico">📥</span>
+              <span style={{ flex: 1, textAlign: "left" }}>Входящие</span>
+              {isPicked(null) && <span className="picker-check">✓</span>}
+            </button>
+
+            {rows.map(({ depth, ...p }) => {
+              const pad = ROW_PAD + Math.min(depth, MAX_DEPTH) * ROW_INDENT;
+              return (
+                <button
+                  key={p.id}
+                  className={`menu-item picker-row ${isPicked(p.id) ? "selected" : ""}`}
+                  style={{ display: "flex", gap: 12, alignItems: "center", paddingLeft: pad }}
+                  onClick={() => choose(p.id)}
+                >
+                  <span style={{ flex: "0 0 auto" }}>{p.icon ?? "•"}</span>
+                  <span style={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  {isPicked(p.id) && <span className="picker-check">✓</span>}
+                </button>
+              );
+            })}
+
+            {rows.length === 0 && (
+              <div className="picker-empty muted">Проектов пока нет — создайте первый.</div>
+            )}
+
+            <button
+              className="menu-item drawer-add picker-add"
+              style={{ display: "flex", gap: 12, alignItems: "center" }}
+              onClick={() => setCreateOpen(true)}
+            >
+              <span className="drawer-ico" style={{ color: "var(--text-muted)" }}>+</span>
+              <span style={{ flex: 1, textAlign: "left" }}>Новый проект</span>
+            </button>
+          </>
+        )}
+      </Sheet>
+
+      {createOpen && (
+        <ProjectSheet
+          projects={projects}
+          mode="create"
+          defaultParentId={null}
+          onClose={() => setCreateOpen(false)}
+          onSubmit={handleCreate}
+        />
+      )}
+    </>
   );
 }
 

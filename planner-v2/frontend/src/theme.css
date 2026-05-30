@@ -389,6 +389,30 @@ select.input { appearance: none; -webkit-appearance: none; }
 }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
 
+/* ── Project / priority picker ───────────────────────────────────── */
+.picker-row { transition: background-color 120ms ease, transform 120ms ease; }
+.picker-row:active { transform: scale(0.98); }
+/* выбор: подсветка строки + ✓ (микро-пауза ~140мс перед закрытием, DESIGN §6) */
+.picker-row.selected { background: var(--accent-soft); }
+.picker-row.selected .drawer-ico { color: var(--accent); }
+.picker-check {
+  color: var(--accent); font-weight: 600;
+  animation: picker-check-in 140ms ease both;
+}
+@keyframes picker-check-in {
+  from { opacity: 0; transform: scale(0.6); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.picker-add .drawer-ico { color: var(--text-muted); font-size: 18px; }
+.picker-add { color: var(--text-muted); }
+.picker-empty { padding: var(--s3) var(--s2) var(--s2); font-size: 14px; }
+.picker-state {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s3);
+  padding: var(--s6) var(--s4);
+}
+.picker-skeleton { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) 0; }
+.picker-skel-row { height: 44px; border-radius: 10px; }
+
 /* ── Wave 1 visual-spec: сквозные правила ─────────────────────────── */
 
 /* Today — единый скролл экрана, full-bleed таймлайн */

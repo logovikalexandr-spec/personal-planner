@@ -29,6 +29,8 @@ export function TaskComposer({
   onSaved: () => void;
 }) {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projLoading, setProjLoading] = useState(true);
+  const [projError, setProjError] = useState(false);
   const [picker, setPicker] = useState<Picker>(null);
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -45,7 +47,14 @@ export function TaskComposer({
   const [subtasks, setSubtasks] = useState<string[]>([]);
   const [subDraft, setSubDraft] = useState("");
 
-  useEffect(() => { getProjects().then(setProjects).catch(() => setProjects([])); }, []);
+  function loadProjects() {
+    setProjLoading(true);
+    setProjError(false);
+    getProjects()
+      .then((ps) => { setProjects(ps); setProjLoading(false); })
+      .catch(() => { setProjError(true); setProjLoading(false); });
+  }
+  useEffect(() => { loadProjects(); }, []);
 
   // blur the title before opening a picker so the keyboard drops and doesn't cover it
   function openPicker(p: Picker) {
@@ -154,7 +163,18 @@ export function TaskComposer({
       {composer}
       {picker === "date" && <DateSheet initial={date} onApply={setDate} onClose={() => setPicker(null)} />}
       {picker === "priority" && <PriorityPicker value={priority} onPick={setPriority} onClose={() => setPicker(null)} />}
-      {picker === "project" && <ProjectPickerSheet projects={projects} value={projectId} onPick={setProjectId} onClose={() => setPicker(null)} />}
+      {picker === "project" && (
+        <ProjectPickerSheet
+          projects={projects}
+          loading={projLoading}
+          error={projError}
+          value={projectId}
+          onPick={setProjectId}
+          onProjectsChange={setProjects}
+          onRetry={loadProjects}
+          onClose={() => setPicker(null)}
+        />
+      )}
       {picker === "tag" && <TagPickerSheet value={tagIds} onChange={setTagIds} onClose={() => setPicker(null)} />}
     </>
   );
