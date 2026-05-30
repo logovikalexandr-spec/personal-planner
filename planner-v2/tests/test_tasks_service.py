@@ -28,6 +28,21 @@ async def test_list_today(db_session):
 
 
 @pytest.mark.asyncio
+async def test_list_planned_returns_future_dated_open(db_session):
+    inbox = Project(name="Inbox", slug="inbox", is_inbox=True)
+    db_session.add(inbox)
+    await db_session.flush()
+    await svc.create_task(db_session, title="сегодня", due_date=date.today())
+    await svc.create_task(db_session, title="через 3 дня", due_date=date.today() + timedelta(days=3))
+    await svc.create_task(db_session, title="без даты")
+    planned = await svc.list_tasks(db_session, scope="planned")
+    titles = [t.title for t in planned]
+    assert "через 3 дня" in titles
+    assert "сегодня" in titles          # сегодня и будущее = запланированные
+    assert "без даты" not in titles     # без due_date не запланирована
+
+
+@pytest.mark.asyncio
 async def test_set_status_done(db_session):
     inbox = Project(name="Inbox", slug="inbox", is_inbox=True)
     db_session.add(inbox)
