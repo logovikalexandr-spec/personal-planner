@@ -6,33 +6,13 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Project } from "../types";
+import { childCountMap, flatten, type FlatProject } from "../lib/projectTree";
 import { IcoChevron, IcoDot, IcoMore, IcoPin } from "./icons";
 import { tg } from "../telegram";
 
 const INDENT = 22;
 
-export interface FlatProject extends Project {
-  depth: number;
-}
-
-function flatten(projects: Project[], expanded: Set<number>): FlatProject[] {
-  const byParent = new Map<number | null, Project[]>();
-  for (const p of projects) {
-    if (p.is_inbox) continue;
-    const k = p.parent_id;
-    if (!byParent.has(k)) byParent.set(k, []);
-    byParent.get(k)!.push(p);
-  }
-  const out: FlatProject[] = [];
-  const walk = (parent: number | null, depth: number) => {
-    for (const p of byParent.get(parent) ?? []) {
-      out.push({ ...p, depth });
-      if (expanded.has(p.id)) walk(p.id, depth + 1);
-    }
-  };
-  walk(null, 0);
-  return out;
-}
+export type { FlatProject };
 
 function arrayMoveLocal<T>(arr: T[], from: number, to: number): T[] {
   const copy = arr.slice();
@@ -131,16 +111,9 @@ export function ProjectTree({
     return () => document.removeEventListener("touchmove", block);
   }, [activeId]);
 
-  const flat = useMemo(() => flatten(projects, expanded), [projects, expanded]);
+  const flat = useMemo(() => flatten(projects, { expanded }), [projects, expanded]);
 
-  const childCount = useMemo(() => {
-    const m = new Map<number, number>();
-    for (const p of projects) {
-      if (p.is_inbox || p.parent_id == null) continue;
-      m.set(p.parent_id, (m.get(p.parent_id) ?? 0) + 1);
-    }
-    return m;
-  }, [projects]);
+  const childCount = useMemo(() => childCountMap(projects), [projects]);
 
   const ids = flat.map((i) => i.id);
 
