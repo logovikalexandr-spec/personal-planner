@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { BottomTabs, type TabKey } from "./components/BottomTabs";
-import { Drawer } from "./components/Drawer";
 import { Fab } from "./components/Fab";
 import { TaskComposer } from "./components/TaskComposer";
 import { Sheet } from "./components/Sheet";
@@ -10,9 +9,13 @@ import { Lists } from "./screens/Lists";
 import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
 import { Tracking } from "./screens/Tracking";
-import { getCounts, getMe } from "./api";
+import { getCounts } from "./api";
 import type { ActiveList } from "./types";
 import { applyTelegramTheme } from "./telegram";
+import { PickerHarness } from "./harness/PickerHarness";
+
+// dev behavior-proof: ?harness=picker рендерит harness вместо App (без сети/tg-auth)
+const HARNESS = typeof location !== "undefined" && location.search.includes("harness=picker");
 
 function localToday(): string {
   const d = new Date();
@@ -20,32 +23,23 @@ function localToday(): string {
 }
 
 export default function App() {
+  if (HARNESS) return <PickerHarness />;
+  return <AppMain />;
+}
+
+function AppMain() {
   const [tab, setTab] = useState<TabKey>("today");
-  const [viewing, setViewing] = useState<ActiveList | null>(null); // открытый список (из Lists, шторки или Inbox)
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerClosing, setDrawerClosing] = useState(false);
+  const [viewing, setViewing] = useState<ActiveList | null>(null); // открытый список из Lists / Inbox из Today
   const [addOpen, setAddOpen] = useState(false);
   const [addHour, setAddHour] = useState<number | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
-  const [name, setName] = useState("");
-  const touchX = useRef<number | null>(null);
-  const touchY = useRef<number | null>(null);
 
   function bump() { setReloadKey((k) => k + 1); }
-  function openDrawer() { setDrawerClosing(false); setDrawerOpen(true); }
-  function closeDrawer() {
-    setDrawerClosing(true);
-    window.setTimeout(() => { setDrawerOpen(false); setDrawerClosing(false); }, 220);
-  }
 
   useEffect(() => {
     applyTelegramTheme();
-    getMe().then((m) => setName(m.first_name ?? "")).catch(() => {});
-  }, []);
-
-  useEffect(() => {
     getCounts().then((c) => setInboxCount(c.inbox)).catch(() => {});
   }, [reloadKey]);
 
@@ -54,15 +48,9 @@ export default function App() {
     setViewing(null); // сброс открытого списка при смене таба
   }
 
-  // выбор списка/проекта в шторке → открыть ListView, закрыть шторку
-  function selectFromDrawer(a: ActiveList) {
-    setViewing(a);
-    closeDrawer();
-  }
-
   let screen: React.ReactNode;
   if (viewing) {
-    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} />;
+    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={() => setViewing(null)} onInboxChange={bump} />;
   } else if (tab === "today") {
     screen = (
       <Today
@@ -85,33 +73,9 @@ export default function App() {
   const showFab = (tab === "today" || tab === "lists" || tab === "calendar") && !viewing;
 
   return (
-    <div
-      className="app"
-      onTouchStart={(e) => { touchX.current = e.touches[0].clientX; touchY.current = e.touches[0].clientY; }}
-      onTouchEnd={(e) => {
-        const sx = touchX.current;
-        const sy = touchY.current;
-        touchX.current = null;
-        touchY.current = null;
-        if (sx === null || sy === null || drawerOpen || addOpen || aiOpen || addHour != null) return;
-        // edge-swipe: только от левого края (<24px), чтобы не конфликтовать со скроллом «Сегодня»
-        if (sx > 24) return;
-        const dx = e.changedTouches[0].clientX - sx;
-        const dy = Math.abs(e.changedTouches[0].clientY - sy);
-        if (dx > 50 && dx > dy * 1.5) openDrawer();
-      }}
-    >
+    <div className="app">
       {screen}
       {showFab && <Fab onAdd={() => setAddOpen(true)} onAi={() => setAiOpen(true)} />}
-      {drawerOpen && (
-        <Drawer
-          active={viewing ?? { kind: "smart", key: "all", title: "Все" }}
-          name={name}
-          closing={drawerClosing}
-          onSelect={selectFromDrawer}
-          onClose={closeDrawer}
-        />
-      )}
       {addOpen && (
         <TaskComposer
           initialDate={tab === "today" ? localToday() : null}
