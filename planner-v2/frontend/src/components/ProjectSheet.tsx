@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Project } from "../types";
 import { Sheet } from "./Sheet";
+import { canHaveChild } from "../lib/projectTree";
 
 const COLORS = ["#EE8A3C", "#E5564B", "#E0B341", "#4FB477", "#3C8EEE", "#9B6BE0", "#7C8794"];
 const EMOJIS = ["🎯", "💚", "💪", "🏋️", "🧘", "💰", "🧊", "🏛️", "🕉️", "🧠", "🎭", "📚", "⭐", "📦", "🔥", "📌", "🚀", "🏠", "💡", "📅"];
@@ -37,7 +38,11 @@ export function ProjectSheet({
       for (const p of projects) if (p.parent_id === cur) { blocked.add(p.id); stack.push(p.id); }
     }
   }
-  const parents = projects.filter((p) => !p.is_inbox && !blocked.has(p.id));
+  // лимит 3 уровня: родителем может быть только узел, у которого подпроект
+  // останется в пределах листа (depth ≤ 2). Узел уже на лимите — не родитель.
+  const parents = projects.filter(
+    (p) => !p.is_inbox && !blocked.has(p.id) && canHaveChild(p.id, projects),
+  );
 
   function submit() {
     const t = name.trim();

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createProject, deleteProject, getCounts, getProjects, patchProject, reorderProjects } from "../api";
-import { subtreeCountMap } from "../lib/projectTree";
+import { canHaveChild, subtreeCountMap } from "../lib/projectTree";
 import { IcoAll, IcoInbox, IcoNext7, IcoPlus, IcoTodaySmall, IcoTomorrow, IcoWeekPlan } from "./icons";
 import { ProjectTree } from "./ProjectTree";
 import { ProjectMenu } from "./ProjectMenu";
@@ -163,6 +163,7 @@ export function ProjectTreePanel({
       {menuFor && (
         <ProjectMenu
           project={menuFor}
+          canCreateSub={canHaveChild(menuFor.id, projects)}
           onClose={() => setMenuFor(null)}
           onCreateSub={() => { const id = menuFor.id; setMenuFor(null); setSheet({ mode: "create", parentId: id }); }}
           onEdit={() => { const p = menuFor; setMenuFor(null); setSheet({ mode: "edit", project: p }); }}

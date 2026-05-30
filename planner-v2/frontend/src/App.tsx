@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BottomTabs, type TabKey } from "./components/BottomTabs";
 import { Fab } from "./components/Fab";
 import { TaskComposer } from "./components/TaskComposer";
 import { Sheet } from "./components/Sheet";
 import { ListView } from "./components/ListView";
+import { Drawer } from "./components/Drawer";
 import { Today } from "./screens/Today";
 import { Lists } from "./screens/Lists";
 import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
 import { Tracking } from "./screens/Tracking";
-import { getCounts } from "./api";
+import { getCounts, getMe } from "./api";
 import type { ActiveList } from "./types";
 import { applyTelegramTheme } from "./telegram";
 import { PickerHarness } from "./harness/PickerHarness";
@@ -35,22 +36,65 @@ function AppMain() {
   const [aiOpen, setAiOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
+  const [userName, setUserName] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerClosing, setDrawerClosing] = useState(false);
 
   function bump() { setReloadKey((k) => k + 1); }
+
+  function openDrawer() { setDrawerClosing(false); setDrawerOpen(true); }
+  function closeDrawer() {
+    setDrawerClosing(true);
+    setTimeout(() => { setDrawerOpen(false); setDrawerClosing(false); }, 220);
+  }
 
   useEffect(() => {
     applyTelegramTheme();
     getCounts().then((c) => setInboxCount(c.inbox)).catch(() => {});
   }, [reloadKey]);
 
+  useEffect(() => {
+    getMe().then((m) => setUserName(m.first_name ?? "")).catch(() => {});
+  }, []);
+
   function onTabChange(k: TabKey) {
     setTab(k);
     setViewing(null); // сброс открытого списка при смене таба
   }
 
+  // выбор списка/проекта из Drawer: сменить активный список (Drawer закроется через onAfterSelect)
+  function selectFromDrawer(a: ActiveList) {
+    const same =
+      viewing &&
+      ((a.kind === "smart" && viewing.kind === "smart" && a.key === viewing.key) ||
+        (a.kind === "project" && viewing.kind === "project" && a.id === viewing.id));
+    if (!same) setViewing(a); // тот же = просто закрыть (no-op перезагрузки), закрытие делает Drawer
+  }
+
+  // edge-swipe Drawer: старт у ЛЕВОГО края (<=20px), |dx|>|dy|*1.5;
+  // выкл при открытых Sheet/composer/picker/viewing-sheet, на табе lists (дубль), во время drag (в Drawer).
+  const esx = useRef<number | null>(null);
+  const esy = useRef<number | null>(null);
+  const anyOverlay = addOpen || addHour != null || aiOpen || drawerOpen;
+  const edgeSwipeOff = anyOverlay || tab === "lists";
+  function onRootTouchStart(e: React.TouchEvent) {
+    if (edgeSwipeOff) { esx.current = null; esy.current = null; return; }
+    const t = e.touches[0];
+    if (t.clientX <= 20) { esx.current = t.clientX; esy.current = t.clientY; }
+    else { esx.current = null; esy.current = null; }
+  }
+  function onRootTouchEnd(e: React.TouchEvent) {
+    const x = esx.current, y = esy.current;
+    esx.current = null; esy.current = null;
+    if (x === null || y === null || edgeSwipeOff) return;
+    const dx = e.changedTouches[0].clientX - x;
+    const dy = Math.abs(e.changedTouches[0].clientY - y);
+    if (dx > 50 && Math.abs(dx) > dy * 1.5) openDrawer();
+  }
+
   let screen: React.ReactNode;
   if (viewing) {
-    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={() => setViewing(null)} onInboxChange={bump} />;
+    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} />;
   } else if (tab === "today") {
     screen = (
       <Today
@@ -72,9 +116,20 @@ function AppMain() {
 
   const showFab = (tab === "today" || tab === "lists" || tab === "calendar") && !viewing;
 
+  const drawerActive: ActiveList = viewing ?? { kind: "smart", key: "all", title: "Все" };
+
   return (
-    <div className="app">
+    <div className="app" onTouchStart={onRootTouchStart} onTouchEnd={onRootTouchEnd}>
       {screen}
+      {drawerOpen && (
+        <Drawer
+          active={drawerActive}
+          name={userName}
+          closing={drawerClosing}
+          onSelect={selectFromDrawer}
+          onClose={closeDrawer}
+        />
+      )}
       {showFab && <Fab onAdd={() => setAddOpen(true)} onAi={() => setAiOpen(true)} />}
       {addOpen && (
         <TaskComposer

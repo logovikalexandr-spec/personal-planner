@@ -82,6 +82,31 @@ export function subtreeCountMap(projects: Project[]): Map<number, number> {
 /** Лимит глубины дерева: категория(0) → субкатегория(1) → лист(2). */
 export const MAX_DEPTH = 3;
 
+/**
+ * Уровень узла по цепочке родителей (0 = корневая категория, 1 = субкатегория,
+ * 2 = лист). Считается из parent_id, без зависимости от текущего flatten.
+ */
+export function depthOf(id: number, projects: Project[]): number {
+  const byId = new Map(projects.map((p) => [p.id, p]));
+  let depth = 0;
+  let cur = byId.get(id);
+  let guard = 0;
+  while (cur && cur.parent_id != null && guard++ < 16) {
+    depth++;
+    cur = byId.get(cur.parent_id);
+  }
+  return depth;
+}
+
+/**
+ * Можно ли создать подпроект у этого узла без выхода за лимит из 3 уровней.
+ * Подпроект родителя с depth d будет иметь depth d+1; разрешаем, только если
+ * результат остаётся ≤ листа (depth 2), т.е. depth родителя < 2.
+ */
+export function canHaveChild(parentId: number, projects: Project[]): boolean {
+  return depthOf(parentId, projects) < MAX_DEPTH - 1;
+}
+
 /** Базовый отступ строки + шаг на уровень вложенности (px). */
 export const INDENT = 22;
 const BASE_PAD = 16;
