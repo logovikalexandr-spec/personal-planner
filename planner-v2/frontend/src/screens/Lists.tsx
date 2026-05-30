@@ -1,0 +1,172 @@
+import { useEffect, useRef, useState } from "react";
+import { createProject, deleteProject, getCounts, getProjects, patchProject, reorderProjects } from "../api";
+import { IcoAll, IcoInbox, IcoNext7, IcoPlus, IcoTodaySmall, IcoTomorrow, IcoWeekPlan } from "../components/icons";
+import { ProjectTree } from "../components/ProjectTree";
+import { ProjectMenu } from "../components/ProjectMenu";
+import { ProjectSheet, type ProjectFormValue } from "../components/ProjectSheet";
+import { tg } from "../telegram";
+import type { ActiveList, Counts, Project, SmartKey } from "../types";
+
+const SMART: { key: SmartKey; title: string; Ico: () => JSX.Element }[] = [
+  { key: "all", title: "Все", Ico: IcoAll },
+  { key: "today", title: "Сегодня", Ico: IcoTodaySmall },
+  { key: "tomorrow", title: "Завтра", Ico: IcoTomorrow },
+  { key: "next7", title: "Следующие 7 дней", Ico: IcoNext7 },
+  { key: "inbox", title: "Входящие", Ico: IcoInbox },
+  { key: "week", title: "План на неделю", Ico: IcoWeekPlan },
+];
+
+function countFor(k: SmartKey, c: Counts | null): number {
+  if (!c) return 0;
+  if (k === "all") return c.all;
+  if (k === "today") return c.today;
+  if (k === "tomorrow") return c.tomorrow;
+  if (k === "next7" || k === "week") return c.next7;
+  if (k === "inbox") return c.inbox;
+  return 0;
+}
+
+type SheetState =
+  | { mode: "create"; parentId: number | null }
+  | { mode: "edit"; project: Project };
+
+export function Lists({
+  active, onSelect,
+}: { active: ActiveList; onSelect: (a: ActiveList) => void }) {
+  const [counts, setCounts] = useState<Counts | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [sheet, setSheet] = useState<SheetState | null>(null);
+  const [menuFor, setMenuFor] = useState<Project | null>(null);
+  const didInitExpand = useRef(false);
+
+  function loadProjects() {
+    getProjects().then((ps) => {
+      setProjects(ps);
+      if (!didInitExpand.current) {
+        didInitExpand.current = true;
+        const parents = new Set<number>();
+        for (const p of ps) if (p.parent_id != null) parents.add(p.parent_id);
+        if (parents.size) setExpanded(parents);
+      }
+    }).catch(() => setProjects([]));
+  }
+  useEffect(() => {
+    getCounts().then(setCounts).catch(() => setCounts(null));
+    loadProjects();
+  }, []);
+
+  const byParent = new Map<number | null, Project[]>();
+  for (const p of projects) {
+    if (p.is_inbox) continue;
+    const k = p.parent_id;
+    if (!byParent.has(k)) byParent.set(k, []);
+    byParent.get(k)!.push(p);
+  }
+  function subtreeCount(id: number): number {
+    const self = projects.find((p) => p.id === id);
+    let n = self?.open_count ?? 0;
+    for (const ch of byParent.get(id) ?? []) n += subtreeCount(ch.id);
+    return n;
+  }
+  function toggle(id: number) {
+    setExpanded((s) => {
+      const n = new Set(s);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  }
+
+  const isActiveSmart = (k: SmartKey) => active.kind === "smart" && active.key === k;
+  const activeProjectId = active.kind === "project" ? active.id : null;
+
+  async function handleSubmit(value: ProjectFormValue) {
+    if (sheet?.mode === "edit") {
+      await patchProject(sheet.project.id, value);
+    } else {
+      const created = await createProject(value.name, { parent_id: value.parent_id, color: value.color, icon: value.icon });
+      if (created.parent_id != null) setExpanded((s) => new Set(s).add(created.parent_id!));
+    }
+    setSheet(null);
+    loadProjects();
+  }
+  async function togglePin(p: Project) {
+    setMenuFor(null);
+    await patchProject(p.id, { pinned: !p.pinned });
+    loadProjects();
+  }
+  function requestDelete(p: Project) {
+    setMenuFor(null);
+    const doDelete = async () => { await deleteProject(p.id); loadProjects(); };
+    const w = tg() as { showConfirm?: (m: string, cb: (ok: boolean) => void) => void } | undefined;
+    if (w?.showConfirm) w.showConfirm(`Удалить «${p.name}»? Задачи уйдут во Входящие.`, (ok) => { if (ok) doDelete(); });
+    else doDelete();
+  }
+  async function handleReorder(items: { id: number; parent_id: number | null; order_index: number }[]) {
+    const patchMap = new Map(items.map((i) => [i.id, i]));
+    setProjects((prev) =>
+      prev
+        .map((p) => { const u = patchMap.get(p.id); return u ? { ...p, parent_id: u.parent_id, order_index: u.order_index } : p; })
+        .sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.order_index - b.order_index || a.name.localeCompare(b.name)),
+    );
+    try { await reorderProjects(items); } finally { loadProjects(); }
+  }
+
+  return (
+    <div className="screen lists">
+      <div className="screen-hero"><h1>Списки</h1></div>
+
+      <div className="drawer-section">Смарт-списки</div>
+      {SMART.map(({ key, title, Ico }) => (
+        <div
+          key={key}
+          className={`drawer-row ${isActiveSmart(key) ? "active" : ""}`}
+          onClick={() => onSelect({ kind: "smart", key, title })}
+        >
+          <span className="drawer-ico"><Ico /></span>
+          <span className="drawer-label">{title}</span>
+          {countFor(key, counts) > 0 && <span className="drawer-count">{countFor(key, counts)}</span>}
+        </div>
+      ))}
+
+      <div className="drawer-sep" />
+      <div className="drawer-section">Проекты</div>
+      <ProjectTree
+        projects={projects}
+        activeProjectId={activeProjectId}
+        expanded={expanded}
+        subtreeCount={subtreeCount}
+        onSelect={(p) => onSelect({ kind: "project", id: p.id, title: p.name })}
+        onToggle={toggle}
+        onMenu={(p) => setMenuFor(p)}
+        onReorder={handleReorder}
+        onDragActiveChange={() => {}}
+      />
+      <div className="drawer-row drawer-add" onClick={() => setSheet({ mode: "create", parentId: null })}>
+        <span className="drawer-ico"><IcoPlus /></span>
+        <span className="drawer-label">Проект</span>
+      </div>
+
+      {menuFor && (
+        <ProjectMenu
+          project={menuFor}
+          onClose={() => setMenuFor(null)}
+          onCreateSub={() => { const id = menuFor.id; setMenuFor(null); setSheet({ mode: "create", parentId: id }); }}
+          onEdit={() => { const p = menuFor; setMenuFor(null); setSheet({ mode: "edit", project: p }); }}
+          onTogglePin={() => togglePin(menuFor)}
+          onDelete={() => requestDelete(menuFor)}
+        />
+      )}
+      {sheet && (
+        <ProjectSheet
+          projects={projects}
+          mode={sheet.mode}
+          initial={sheet.mode === "edit" ? sheet.project : undefined}
+          defaultParentId={sheet.mode === "create" ? sheet.parentId : undefined}
+          onClose={() => setSheet(null)}
+          onSubmit={handleSubmit}
+        />
+      )}
+    </div>
+  );
+}

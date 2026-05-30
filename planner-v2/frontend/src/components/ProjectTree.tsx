@@ -6,7 +6,7 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Project } from "../types";
-import { IcoDot, IcoMore } from "./icons";
+import { IcoChevron, IcoDot, IcoMore, IcoPin } from "./icons";
 import { tg } from "../telegram";
 
 const INDENT = 22;
@@ -84,11 +84,14 @@ function Row({
       onClick={onSelect}
     >
       <span className="drawer-ico"><Icon p={item} /></span>
-      <span className="drawer-label">{item.pinned ? "📌 " : ""}{item.name}</span>
+      <span className="drawer-label">
+        {item.pinned && <span className="tree-pin"><IcoPin /></span>}
+        {item.name}
+      </span>
       {count > 0 && <span className="drawer-count">{count}</span>}
       {hasChildren && (
         <button className="tree-btn" {...stopActivators} onClick={(e) => { stop(e); onToggle(); }}>
-          <span className={`tree-chev ${expanded ? "open" : ""}`}>▸</span>
+          <span className={`tree-chev ${expanded ? "open" : ""}`}><IcoChevron /></span>
         </button>
       )}
       <button className="tree-btn" {...stopActivators} onClick={(e) => { stop(e); onMenu(); }} aria-label="Меню">

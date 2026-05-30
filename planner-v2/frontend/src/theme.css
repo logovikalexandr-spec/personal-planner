@@ -256,10 +256,17 @@ select.input { appearance: none; -webkit-appearance: none; }
 }
 .tree-btn svg { width: 18px; height: 18px; }
 .tree-chev {
-  display: inline-block; color: var(--text-muted); font-size: 13px;
-  transition: transform 180ms ease;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: transform 150ms ease;
 }
+.tree-chev svg { width: 14px; height: 14px; }
 .tree-chev.open { transform: rotate(90deg); }
+.tree-pin {
+  display: inline-flex; align-items: center; vertical-align: middle;
+  color: var(--text-muted); margin-right: 5px;
+}
+.tree-pin svg { width: 14px; height: 14px; }
 .tree-row.lifted {
   background: var(--surface-2);
   border-radius: 12px;
