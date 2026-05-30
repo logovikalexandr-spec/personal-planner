@@ -1,0 +1,109 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { IcoBellMicro, IcoRepeatMicro } from "./icons";
+import type { Priority, Project, Task } from "../types";
+
+const HOUR_H = 56;
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+function parseMin(t: string | null): number | null {
+  if (!t) return null;
+  const [h, m] = t.split(":");
+  return Number(h) * 60 + Number(m);
+}
+function hhmm(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${`${h}`.padStart(2, "0")}:${`${m}`.padStart(2, "0")}`;
+}
+function resolveColor(projectId: number | null, byId: Map<number, Project>): string | null {
+  let cur = projectId != null ? byId.get(projectId) : undefined;
+  let g = 0;
+  while (cur && g++ < 8) {
+    if (cur.color) return cur.color;
+    cur = cur.parent_id != null ? byId.get(cur.parent_id) : undefined;
+  }
+  return null;
+}
+
+/** Единый маппинг приоритета → цвет канта (общий с TaskItem). */
+export function priorityColor(priority: Priority): string | null {
+  if (priority === "high") return "var(--danger)";
+  if (priority === "medium") return "var(--warning)";
+  if (priority === "low") return "var(--accent)";
+  return null;
+}
+
+export function DayTimeline({
+  tasks, byId, isToday, onTapHour, onToggle, autoScroll = true,
+}: {
+  tasks: Task[];
+  byId: Map<number, Project>;
+  isToday: boolean;
+  onTapHour: (hour: number) => void;
+  onToggle: (t: Task) => void;
+  autoScroll?: boolean;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
+
+  // Поминутный пересчёт линии «сейчас» (мгновенный, без transition — §6).
+  const [nowMin, setNowMin] = useState(() => new Date().getHours() * 60 + new Date().getMinutes());
+  useEffect(() => {
+    if (!isToday) return;
+    const id = window.setInterval(() => {
+      setNowMin(new Date().getHours() * 60 + new Date().getMinutes());
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [isToday]);
+
+  useEffect(() => {
+    if (!autoScroll) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const focusHour = isToday ? new Date().getHours() : 7;
+    el.scrollTop = Math.max(0, focusHour * HOUR_H - HOUR_H);
+  }, [autoScroll, isToday]);
+
+  return (
+    <div className={`cal-scroll ${autoScroll ? "" : "daytimeline--static"}`} ref={scrollRef} style={{ flex: autoScroll ? 1 : "none" }}>
+      <div className="cal-grid" style={{ height: HOURS.length * HOUR_H }}>
+        {HOURS.map((h) => (
+          <div key={h} className="cal-hour" style={{ height: HOUR_H }} onClick={() => onTapHour(h)}>
+            <span className="cal-hourlabel">{`${h}`.padStart(2, "0")}:00</span>
+          </div>
+        ))}
+
+        {isToday && <div className="cal-now" style={{ top: (nowMin / 60) * HOUR_H }} />}
+
+        {timed.map((t) => {
+          const start = parseMin(t.due_time)!;
+          const endRaw = parseMin(t.end_time);
+          const dur = endRaw && endRaw > start ? endRaw - start : 60;
+          const c = resolveColor(t.project_id, byId);
+          const prio = priorityColor(t.priority);
+          const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
+          return (
+            <div
+              key={t.id}
+              className={`cal-block ${t.status === "done" ? "done" : ""}`}
+              style={{
+                top: (start / 60) * HOUR_H + 1,
+                height: Math.max((dur / 60) * HOUR_H - 2, 22),
+                borderLeftColor: prio ?? c ?? "var(--accent)",
+                background: c ? `${c}22` : "var(--surface-2)",
+              }}
+              onClick={(e) => { e.stopPropagation(); onToggle(t); }}
+            >
+              <div className="bt">{proj?.icon ? `${proj.icon} ` : ""}{t.title}</div>
+              <div className="bm">
+                <span>{hhmm(start)}{endRaw && endRaw > start ? `–${hhmm(endRaw)}` : ""}</span>
+                {t.recurrence ? <IcoRepeatMicro /> : null}
+                {t.reminder_at ? <IcoBellMicro /> : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
