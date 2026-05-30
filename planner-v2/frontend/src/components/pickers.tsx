@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createProject, createTag, getProjects, getTags } from "../api";
-import { flatten } from "../lib/projectTree";
+import { flatten, indentFor } from "../lib/projectTree";
 import type { Priority, Project, Tag } from "../types";
 import { Sheet } from "./Sheet";
 import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
@@ -61,10 +61,6 @@ export function PriorityPicker({ value, onPick, onClose }: { value: Priority; on
     </Sheet>
   );
 }
-
-const ROW_PAD = 16;
-const ROW_INDENT = 16;
-const MAX_DEPTH = 3; // clamp: глубже не увеличиваем отступ, имя остаётся читаемым
 
 export interface ProjectPickerSheetProps {
   value: number | null;
@@ -167,7 +163,7 @@ export function ProjectPickerSheet(props: ProjectPickerSheetProps) {
             </button>
 
             {rows.map(({ depth, ...p }) => {
-              const pad = ROW_PAD + Math.min(depth, MAX_DEPTH) * ROW_INDENT;
+              const pad = indentFor(depth);
               return (
                 <button
                   key={p.id}

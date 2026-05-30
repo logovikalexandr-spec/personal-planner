@@ -6,11 +6,9 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Project } from "../types";
-import { childCountMap, flatten, type FlatProject } from "../lib/projectTree";
+import { childCountMap, flatten, indentFor, type FlatProject } from "../lib/projectTree";
 import { IcoChevron, IcoDot, IcoMore, IcoPin } from "./icons";
 import { tg } from "../telegram";
-
-const INDENT = 22;
 
 export type { FlatProject };
 
@@ -47,7 +45,7 @@ function Row({
   const style = {
     transform: isDragging && translate ? `${translate} scale(1.02)` : translate,
     transition,
-    paddingLeft: 16 + item.depth * INDENT,
+    paddingLeft: indentFor(item.depth),
     zIndex: isDragging ? 50 : undefined,
   };
 

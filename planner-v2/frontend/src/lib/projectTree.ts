@@ -50,3 +50,46 @@ export function childCountMap(projects: Project[]): Map<number, number> {
   }
   return m;
 }
+
+/**
+ * Сумма open_count узла и всех его потомков (бейдж счётчика на свёрнутой
+ * категории). Один источник для Drawer/Lists вместо локальных рекурсий.
+ */
+export function subtreeCountMap(projects: Project[]): Map<number, number> {
+  const byParent = new Map<number | null, Project[]>();
+  for (const p of projects) {
+    if (p.is_inbox) continue;
+    const k = p.parent_id;
+    if (!byParent.has(k)) byParent.set(k, []);
+    byParent.get(k)!.push(p);
+  }
+  const memo = new Map<number, number>();
+  const walk = (id: number, self: number): number => {
+    let n = self;
+    for (const ch of byParent.get(id) ?? []) {
+      n += walk(ch.id, ch.open_count ?? 0);
+    }
+    memo.set(id, n);
+    return n;
+  };
+  for (const p of projects) {
+    if (p.is_inbox || memo.has(p.id)) continue;
+    walk(p.id, p.open_count ?? 0);
+  }
+  return memo;
+}
+
+/** Лимит глубины дерева: категория(0) → субкатегория(1) → лист(2). */
+export const MAX_DEPTH = 3;
+
+/** Базовый отступ строки + шаг на уровень вложенности (px). */
+export const INDENT = 22;
+const BASE_PAD = 16;
+
+/**
+ * Отступ строки по глубине, с clamp `min(depth, MAX_DEPTH)` — имя остаётся
+ * читаемым на узком экране. Единый расчёт для дерева И picker'а.
+ */
+export function indentFor(depth: number): number {
+  return BASE_PAD + Math.min(depth, MAX_DEPTH) * INDENT;
+}
