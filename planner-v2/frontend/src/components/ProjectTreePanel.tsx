@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createProject, deleteProject, getCounts, getProjects, patchProject, reorderProjects } from "../api";
 import { canHaveChild, subtreeCountMap } from "../lib/projectTree";
 import { IcoAll, IcoInbox, IcoNext7, IcoPlus, IcoTodaySmall, IcoTomorrow, IcoWeekPlan } from "./icons";
-import { ProjectTree } from "./ProjectTree";
+import { ProjectTree, type TreeLoadState } from "./ProjectTree";
 import { ProjectMenu } from "./ProjectMenu";
 import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
 import { tg } from "../telegram";
@@ -55,21 +55,24 @@ export function ProjectTreePanel({
 }: ProjectTreePanelProps) {
   const [counts, setCounts] = useState<Counts | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [treeState, setTreeState] = useState<TreeLoadState>("loading");
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [sheet, setSheet] = useState<SheetState | null>(null);
   const [menuFor, setMenuFor] = useState<Project | null>(null);
   const didInitExpand = useRef(false);
 
   function loadProjects() {
+    setTreeState("loading");
     getProjects().then((ps) => {
       setProjects(ps);
+      setTreeState("ready");
       if (!didInitExpand.current) {
         didInitExpand.current = true;
         const parents = new Set<number>();
         for (const p of ps) if (p.parent_id != null) parents.add(p.parent_id);
         if (parents.size) setExpanded(parents);
       }
-    }).catch(() => setProjects([]));
+    }).catch(() => setTreeState("error"));
   }
   useEffect(() => {
     getCounts().then(setCounts).catch(() => setCounts(null));
@@ -154,6 +157,8 @@ export function ProjectTreePanel({
         onMenu={(p) => setMenuFor(p)}
         onReorder={handleReorder}
         onDragActiveChange={onDragActiveChange}
+        state={treeState}
+        onRetry={loadProjects}
       />
       <div className="drawer-row drawer-add" onClick={() => setSheet({ mode: "create", parentId: null })}>
         <span className="drawer-ico"><IcoPlus /></span>

@@ -35,7 +35,7 @@ export function ListView({
 }: { active: ActiveList; reloadKey: number; onMenu: () => void; onInboxChange: () => void }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [byId, setById] = useState<Map<number, Project>>(new Map());
-  const [err, setErr] = useState<string | null>(null);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
 
   const isInbox = active.kind === "smart" && active.key === "inbox";
 
@@ -45,11 +45,12 @@ export function ListView({
 
   async function load() {
     if (isInbox) return;
+    setStatus("loading");
     try {
       setTasks(await fetchFor(active));
-      setErr(null);
-    } catch (e) {
-      setErr(String(e));
+      setStatus("ready");
+    } catch {
+      setStatus("error");
     }
   }
 
@@ -71,16 +72,23 @@ export function ListView({
       </div>
       {isInbox ? (
         <Inbox onChange={onInboxChange} />
+      ) : status === "loading" ? (
+        <div className="list" aria-busy="true">
+          {[0, 1, 2, 3, 4].map((i) => <div key={i} className="skeleton" />)}
+        </div>
+      ) : status === "error" ? (
+        <Empty
+          text="Не удалось загрузить список."
+          action={<button className="btn btn-ghost" onClick={load}>Повторить</button>}
+        />
+      ) : tasks.length === 0 ? (
+        <Empty text="Пусто. Жми + чтобы добавить." />
       ) : (
-        <>
-          {err && <div className="card">Ошибка: {err}</div>}
-          {!err && tasks.length === 0 && <Empty text="Пусто. Жми + чтобы добавить." />}
-          <div className="list">
-            {tasks.map((t) => (
-              <TaskItem key={t.id} task={t} onToggle={toggle} color={resolveColor(t.project_id, byId)} />
-            ))}
-          </div>
-        </>
+        <div className="list">
+          {tasks.map((t) => (
+            <TaskItem key={t.id} task={t} onToggle={toggle} color={resolveColor(t.project_id, byId)} />
+          ))}
+        </div>
       )}
     </div>
   );

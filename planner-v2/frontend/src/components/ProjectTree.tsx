@@ -79,8 +79,11 @@ function Row({
   );
 }
 
+export type TreeLoadState = "loading" | "error" | "ready";
+
 export function ProjectTree({
   projects, activeProjectId, expanded, subtreeCount, onSelect, onToggle, onMenu, onReorder, onDragActiveChange,
+  state = "ready", onRetry,
 }: {
   projects: Project[];
   activeProjectId: number | null;
@@ -91,6 +94,10 @@ export function ProjectTree({
   onMenu: (p: Project) => void;
   onReorder: (items: { id: number; parent_id: number | null; order_index: number }[]) => void;
   onDragActiveChange?: (active: boolean) => void;
+  /** Состояние загрузки дерева — скелетон/ошибка отличимы от пустого (PATTERNS §Состояния). */
+  state?: TreeLoadState;
+  /** Повтор загрузки в состоянии ошибки. */
+  onRetry?: () => void;
 }) {
   const [activeId, setActiveId] = useState<number | null>(null);
 
@@ -143,6 +150,23 @@ export function ProjectTree({
     const siblings = moved.filter((i) => (i.parent_id ?? null) === parent);
     const payload = siblings.map((i, idx) => ({ id: i.id, parent_id: parent, order_index: idx }));
     onReorder(payload);
+  }
+
+  if (state === "loading") {
+    return (
+      <div aria-busy="true">
+        {[0, 1, 2].map((i) => <div key={i} className="lists-skeleton-row" />)}
+      </div>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <div className="tree-state">
+        <div className="muted">Не удалось загрузить проекты</div>
+        <button className="btn btn-ghost" onClick={() => onRetry?.()}>Повторить</button>
+      </div>
+    );
   }
 
   return (
