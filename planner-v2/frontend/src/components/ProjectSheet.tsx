@@ -21,12 +21,14 @@ export function ProjectSheet({
   initial?: Project;
   defaultParentId?: number | null;
   onClose: () => void;
-  onSubmit: (value: ProjectFormValue) => void;
+  onSubmit: (value: ProjectFormValue) => void | Promise<void>;
 }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [parentId, setParentId] = useState<number | null>(initial?.parent_id ?? defaultParentId ?? null);
   const [color, setColor] = useState<string | null>(initial?.color ?? null);
   const [icon, setIcon] = useState<string | null>(initial?.icon ?? null);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
   // edit can't set itself or its own descendants as parent
   const blocked = new Set<number>();
@@ -44,10 +46,18 @@ export function ProjectSheet({
     (p) => !p.is_inbox && !blocked.has(p.id) && canHaveChild(p.id, projects),
   );
 
-  function submit() {
+  async function submit() {
     const t = name.trim();
-    if (!t) return;
-    onSubmit({ name: t, parent_id: parentId, color, icon });
+    if (!t || saving) return;
+    setSaving(true);
+    setErr(null);
+    try {
+      await onSubmit({ name: t, parent_id: parentId, color, icon });
+      // успех: родитель размонтирует sheet (setSheet(null))
+    } catch {
+      setErr("Не удалось сохранить. Попробуй ещё раз.");
+      setSaving(false);
+    }
   }
 
   return (
@@ -100,8 +110,9 @@ export function ProjectSheet({
         ))}
       </select>
 
-      <button className="btn btn-block" onClick={submit}>
-        {mode === "edit" ? "Сохранить" : "Создать"}
+      {err && <div className="muted" style={{ color: "var(--danger)", fontSize: 14 }}>{err}</div>}
+      <button className="btn btn-block" onClick={submit} disabled={saving}>
+        {saving ? "Сохраняю…" : mode === "edit" ? "Сохранить" : "Создать"}
       </button>
     </Sheet>
   );

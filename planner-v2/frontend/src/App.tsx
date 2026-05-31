@@ -76,7 +76,7 @@ function AppMain() {
   const esx = useRef<number | null>(null);
   const esy = useRef<number | null>(null);
   const anyOverlay = addOpen || addHour != null || aiOpen || drawerOpen;
-  const edgeSwipeOff = anyOverlay || tab === "lists";
+  const edgeSwipeOff = anyOverlay || (tab === "lists" && !viewing);
   function onRootTouchStart(e: React.TouchEvent) {
     if (edgeSwipeOff) { esx.current = null; esy.current = null; return; }
     const t = e.touches[0];

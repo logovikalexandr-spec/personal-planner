@@ -412,6 +412,10 @@ select.input { appearance: none; -webkit-appearance: none; }
 }
 .picker-skeleton { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) 0; }
 .picker-skel-row { height: 44px; border-radius: 10px; }
+.tree-state {
+  display: flex; flex-direction: column; align-items: center; gap: var(--s3);
+  padding: var(--s6) var(--s4);
+}
 
 /* ── Wave 1 visual-spec: сквозные правила ─────────────────────────── */
 
