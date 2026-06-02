@@ -33,6 +33,9 @@ export default function App() {
 
 function AppMain() {
   const [tab, setTab] = useState<TabKey>("today");
+  // Перф: keep-alive экранов — таб монтируется при первом визите и остаётся (show/hide),
+  // переключение = без remount/refetch dnd-дерева. mount платится один раз, не каждый switch.
+  const [mountedTabs, setMountedTabs] = useState<Set<TabKey>>(() => new Set<TabKey>(["today"]));
   const [viewing, setViewing] = useState<ActiveList | null>(null); // открытый список из Lists / Inbox из Today
   const [addOpen, setAddOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -102,6 +105,7 @@ function AppMain() {
   function onTabChange(k: TabKey) {
     setTab(k);
     setViewing(null); // сброс открытого списка при смене таба
+    setMountedTabs((prev) => (prev.has(k) ? prev : new Set(prev).add(k)));
   }
 
   // выбор списка/проекта из Drawer: сменить активный список (Drawer закроется через onAfterSelect)
@@ -134,28 +138,30 @@ function AppMain() {
     if (dx > 50 && Math.abs(dx) > dy * 1.5) openDrawer();
   }
 
-  let screen: React.ReactNode;
-  if (viewing) {
-    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} onOpenTask={openTask} />;
-  } else if (tab === "today") {
-    screen = (
-      <Today
-        reloadKey={reloadKey}
-        inboxCount={inboxCount}
-        onInbox={openInbox}
-        onTapHour={tapHour}
-        onOpenTask={openTask}
-      />
-    );
-  } else if (tab === "calendar") {
-    screen = <Calendar />;
-  } else if (tab === "lists") {
-    screen = <Lists active={{ kind: "smart", key: "all", title: "Все" }} onSelect={setViewing} />;
-  } else if (tab === "goals") {
-    screen = <Goals />;
-  } else {
-    screen = <Tracking />;
-  }
+  // keep-alive: все посещённые табы остаются смонтированными, неактивные скрыты (hidden=display:none).
+  // Открытый список (viewing) показывается поверх — табы при этом скрыты, но НЕ размонтированы.
+  const tabHidden = (k: TabKey) => !!viewing || tab !== k;
+  const tabScreens = (
+    <>
+      <div className="screen-host" hidden={tabHidden("today")}>
+        {mountedTabs.has("today") && (
+          <Today reloadKey={reloadKey} inboxCount={inboxCount} onInbox={openInbox} onTapHour={tapHour} onOpenTask={openTask} />
+        )}
+      </div>
+      <div className="screen-host" hidden={tabHidden("calendar")}>
+        {mountedTabs.has("calendar") && <Calendar />}
+      </div>
+      <div className="screen-host" hidden={tabHidden("lists")}>
+        {mountedTabs.has("lists") && <Lists active={{ kind: "smart", key: "all", title: "Все" }} onSelect={setViewing} />}
+      </div>
+      <div className="screen-host" hidden={tabHidden("goals")}>
+        {mountedTabs.has("goals") && <Goals />}
+      </div>
+      <div className="screen-host" hidden={tabHidden("tracking")}>
+        {mountedTabs.has("tracking") && <Tracking />}
+      </div>
+    </>
+  );
 
   const showFab = (tab === "today" || tab === "lists" || tab === "calendar") && !viewing;
 
@@ -163,7 +169,10 @@ function AppMain() {
 
   return (
     <div className="app" onTouchStart={onRootTouchStart} onTouchEnd={onRootTouchEnd}>
-      {screen}
+      {viewing && (
+        <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} onOpenTask={openTask} />
+      )}
+      {tabScreens}
       {drawerOpen && (
         <Drawer
           active={drawerActive}

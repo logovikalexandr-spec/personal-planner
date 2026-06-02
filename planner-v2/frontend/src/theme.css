@@ -36,6 +36,8 @@ body {
 
 .app { min-height: 100dvh; padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
 .screen { padding: var(--s5) var(--s4) var(--s6); }
+/* keep-alive: хост таб-экрана. hidden = display:none (экран остаётся в DOM, без remount). */
+.screen-host[hidden] { display: none; }
 .screen h1 { font-size: 22px; font-weight: 700; margin: 0 0 var(--s2); letter-spacing: -0.4px; }
 .screen-hero { margin-bottom: var(--s5); }
 .screen-hero .date { font-family: var(--font-mono); color: var(--text-muted); font-size: 14px; margin-top: 2px; }
