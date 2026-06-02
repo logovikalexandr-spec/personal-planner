@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type SyntheticEvent } from "react";
+import { memo, useEffect, useMemo, useState, type SyntheticEvent } from "react";
 import {
   DndContext, MouseSensor, TouchSensor, closestCenter,
   useSensor, useSensors,
@@ -26,7 +26,7 @@ function Icon({ p }: { p: Project }) {
   return <IcoDot />;
 }
 
-function Row({
+const Row = memo(function Row({
   item, isActiveSelected, hasChildren, expanded, count, onSelect, onToggle, onMenu,
 }: {
   item: FlatProject;
@@ -34,9 +34,9 @@ function Row({
   hasChildren: boolean;
   expanded: boolean;
   count: number;
-  onSelect: () => void;
-  onToggle: () => void;
-  onMenu: () => void;
+  onSelect: (p: FlatProject) => void;
+  onToggle: (id: number) => void;
+  onMenu: (p: FlatProject) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
@@ -59,7 +59,7 @@ function Row({
       style={style}
       {...attributes}
       {...listeners}
-      onClick={onSelect}
+      onClick={() => onSelect(item)}
     >
       <span className="drawer-ico"><Icon p={item} /></span>
       <span className="drawer-label">
@@ -68,16 +68,16 @@ function Row({
       </span>
       {count > 0 && <span className="drawer-count">{count}</span>}
       {hasChildren && (
-        <button className="tree-btn" {...stopActivators} onClick={(e) => { stop(e); onToggle(); }}>
+        <button className="tree-btn" {...stopActivators} onClick={(e) => { stop(e); onToggle(item.id); }}>
           <span className={`tree-chev ${expanded ? "open" : ""}`}><IcoChevron /></span>
         </button>
       )}
-      <button className="tree-btn" {...stopActivators} onClick={(e) => { stop(e); onMenu(); }} aria-label="Меню">
+      <button className="tree-btn" {...stopActivators} onClick={(e) => { stop(e); onMenu(item); }} aria-label="Меню">
         <IcoMore />
       </button>
     </div>
   );
-}
+});
 
 export type TreeLoadState = "loading" | "error" | "ready";
 
@@ -187,9 +187,9 @@ export function ProjectTree({
             hasChildren={(childCount.get(item.id) ?? 0) > 0}
             expanded={expanded.has(item.id)}
             count={subtreeCount(item.id)}
-            onSelect={() => onSelect(item)}
-            onToggle={() => onToggle(item.id)}
-            onMenu={() => onMenu(item)}
+            onSelect={onSelect}
+            onToggle={onToggle}
+            onMenu={onMenu}
           />
         ))}
       </SortableContext>

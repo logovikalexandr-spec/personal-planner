@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { TaskItem } from "./TaskItem";
 import { BatchBar } from "./BatchBar";
 import { IcoChevron } from "./icons";
@@ -37,21 +37,26 @@ export function TaskListBody({
 
   const selectedTasks = useMemo(() => tasks.filter((t) => selected.has(t.id)), [tasks, selected]);
 
-  function enterSelect(t: Task) {
+  // Перф: стабильные колбэки строки — иначе memo(TaskItem) не сработает (новые ф-ии каждый рендер).
+  const enterSelect = useCallback((t: Task) => {
     setSelectMode(true);
     setSelected(new Set([t.id]));
-  }
+  }, []);
   function exitSelect() {
     setSelectMode(false);
     setSelected(new Set());
   }
-  function toggleSelect(t: Task) {
+  const toggleSelect = useCallback((t: Task) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
       return next;
     });
-  }
+  }, []);
+  const swipeComplete = useCallback((t: Task) => onComplete?.([t]), [onComplete]);
+  const swipeDate = useCallback((t: Task) => onDate?.([t]), [onDate]);
+  const swipeMove = useCallback((t: Task) => onMove?.([t]), [onMove]);
+  const swipeDelete = useCallback((t: Task) => onDelete?.([t]), [onDelete]);
   function selectAll() {
     setSelected(new Set(open.map((t) => t.id)));
   }
@@ -62,13 +67,6 @@ export function TaskListBody({
     fn(selectedTasks);
     exitSelect();
   }
-
-  const swipeProps = (t: Task) => ({
-    onSwipeComplete: onComplete ? () => onComplete([t]) : undefined,
-    onSwipeDate: onDate ? () => onDate([t]) : undefined,
-    onSwipeMove: onMove ? () => onMove([t]) : undefined,
-    onSwipeDelete: onDelete ? () => onDelete([t]) : undefined,
-  });
 
   return (
     <>
@@ -92,7 +90,10 @@ export function TaskListBody({
             selected={selected.has(t.id)}
             onLongPress={enterSelect}
             onSelectToggle={toggleSelect}
-            {...swipeProps(t)}
+            onSwipeComplete={onComplete ? swipeComplete : undefined}
+            onSwipeDate={onDate ? swipeDate : undefined}
+            onSwipeMove={onMove ? swipeMove : undefined}
+            onSwipeDelete={onDelete ? swipeDelete : undefined}
           />
         ))}
       </div>

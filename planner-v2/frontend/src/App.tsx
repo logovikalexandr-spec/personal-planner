@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomTabs, type TabKey } from "./components/BottomTabs";
 import { Fab } from "./components/Fab";
 import { TaskComposer } from "./components/TaskComposer";
@@ -13,7 +13,7 @@ import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
 import { Tracking } from "./screens/Tracking";
 import { createTag, createTask, getCounts, getMe, getProjects, getTags } from "./api";
-import type { ActiveList } from "./types";
+import type { ActiveList, Task } from "./types";
 import type { ParseResult } from "./lib/quickParse";
 import { applyTelegramTheme } from "./telegram";
 import { PickerHarness } from "./harness/PickerHarness";
@@ -78,6 +78,12 @@ function AppMain() {
     bump();
   }
 
+  // Перф: стабильные колбэки — чтобы memo(TaskItem)/экраны не ре-рендерились от каждого рендера App.
+  const openTask = useCallback((t: Task) => setOpenTaskId(t.id), []);
+  const openTaskById = useCallback((id: number) => setOpenTaskId(id), []);
+  const tapHour = useCallback((h: number) => setAddHour(h), []);
+  const openInbox = useCallback(() => setViewing({ kind: "smart", key: "inbox", title: "Входящие" }), []);
+
   function openDrawer() { setDrawerClosing(false); setDrawerOpen(true); }
   function closeDrawer() {
     setDrawerClosing(true);
@@ -130,15 +136,15 @@ function AppMain() {
 
   let screen: React.ReactNode;
   if (viewing) {
-    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} onOpenTask={(t) => setOpenTaskId(t.id)} />;
+    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} onOpenTask={openTask} />;
   } else if (tab === "today") {
     screen = (
       <Today
         reloadKey={reloadKey}
         inboxCount={inboxCount}
-        onInbox={() => setViewing({ kind: "smart", key: "inbox", title: "Входящие" })}
-        onTapHour={(h) => setAddHour(h)}
-        onOpenTask={(t) => setOpenTaskId(t.id)}
+        onInbox={openInbox}
+        onTapHour={tapHour}
+        onOpenTask={openTask}
       />
     );
   } else if (tab === "calendar") {
@@ -210,7 +216,7 @@ function AppMain() {
             taskId={openTaskId}
             onClose={() => setOpenTaskId(null)}
             onChanged={bump}
-            onOpenTask={(id) => setOpenTaskId(id)}
+            onOpenTask={openTaskById}
           />
         </div>
       )}

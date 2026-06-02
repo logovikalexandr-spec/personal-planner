@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import type { Task } from "../types";
 import { tg } from "../telegram";
 import { IcoCalendar2, IcoMove, IcoTrash, IcoCheck, IcoSelectCircle, IcoXCircle } from "./icons";
@@ -50,7 +50,7 @@ export interface TaskItemProps {
   onSelectToggle?: (t: Task) => void; // тап в режиме выбора
 }
 
-export function TaskItem({
+function TaskItemBase({
   task, onToggle, color, onOpen,
   onSwipeComplete, onSwipeDate, onSwipeMove, onSwipeDelete,
   selectMode = false, selected = false, onLongPress, onSelectToggle,
@@ -248,3 +248,8 @@ export function TaskItem({
     </div>
   );
 }
+
+// Перф: строка задачи — самый частый компонент. Без memo любой ре-рендер родителя
+// перерисовывает ВСЕ строки. memo пропускает рендер при неизменных пропсах
+// (нужны стабильные колбэки у родителей — useCallback в Today/TaskListBody/ListView).
+export const TaskItem = memo(TaskItemBase);

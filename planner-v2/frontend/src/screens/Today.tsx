@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DayTimeline } from "../components/DayTimeline";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
@@ -40,11 +40,12 @@ export function Today({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey]);
 
-  async function toggle(t: Task) {
+  const toggle = useCallback(async (t: Task) => {
     tg()?.HapticFeedback?.impactOccurred?.("light");
     await patchTask(t.id, { status: t.status === "done" ? "todo" : "done" });
     load();
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iso]);
 
   const untimed = useMemo(() => tasks.filter((t) => !t.due_time), [tasks]);
   const doneCount = useMemo(() => tasks.filter((t) => t.status === "done").length, [tasks]);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { IcoBellMicro, IcoRepeatMicro } from "./icons";
 import type { Priority, Project, Task } from "../types";
 
@@ -33,7 +33,7 @@ export function priorityColor(priority: Priority): string | null {
   return null;
 }
 
-export function DayTimeline({
+export const DayTimeline = memo(function DayTimeline({
   tasks, byId, isToday, onTapHour, onToggle, autoScroll = true,
 }: {
   tasks: Task[];
@@ -106,4 +106,4 @@ export function DayTimeline({
       </div>
     </div>
   );
-}
+});
