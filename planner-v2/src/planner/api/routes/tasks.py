@@ -6,16 +6,32 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from planner.api.auth import TelegramUser, require_owner
 from planner.api.deps import get_db
-from planner.api.schemas import TaskCreate, TaskOut, TaskPatch
+from planner.api.schemas import (
+    TaskCreate,
+    TaskDetailOut,
+    TaskOut,
+    TaskPatch,
+    TaskPatchResult,
+)
 from planner.db.models import Task
 from planner.services import tasks as svc
 
 router = APIRouter(prefix="/api/tasks")
 
+# Plain scalar fields a PATCH may set directly on the Task model.
 _TASK_FIELDS = (
-    "priority", "project_id", "due_date", "due_time", "end_time",
-    "description", "reminder_at", "recurrence", "parent_task_id",
+    "title", "priority", "project_id", "due_date", "due_time", "end_time",
+    "description", "reminder_at", "recurrence", "recurrence_json", "progress",
+    "pinned", "parent_task_id",
 )
+
+
+async def _build_detail(db: AsyncSession, task: Task) -> TaskDetailOut:
+    """Serialize a Task into TaskDetailOut, including its subtasks."""
+    subtasks = await svc.list_subtasks(db, task.id)
+    detail = TaskDetailOut.model_validate(task)
+    detail.subtasks = [TaskOut.model_validate(s) for s in subtasks]
+    return detail
 
 
 @router.get("", response_model=list[TaskOut])
@@ -37,6 +53,18 @@ async def list_tasks(
     )
 
 
+@router.get("/{task_id}", response_model=TaskDetailOut)
+async def get_task(
+    task_id: int,
+    _: Annotated[TelegramUser, Depends(require_owner)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    task = await db.get(Task, task_id)
+    if task is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "task not found")
+    return await _build_detail(db, task)
+
+
 @router.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
 async def create_task(
     payload: TaskCreate,
@@ -52,28 +80,46 @@ async def create_task(
     return t
 
 
-@router.patch("/{task_id}", response_model=TaskOut)
+@router.patch("/{task_id}", response_model=TaskPatchResult)
 async def patch_task(
     task_id: int,
     payload: TaskPatch,
     _: Annotated[TelegramUser, Depends(require_owner)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    if payload.status is not None:
-        try:
-            t = await svc.set_status(db, task_id, payload.status)
-        except ValueError as exc:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
-    else:
-        t = await db.get(Task, task_id)
-        if t is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "task not found")
+    t = await db.get(Task, task_id)
+    if t is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "task not found")
+
     fields = payload.model_dump(exclude_unset=True)
+
+    # Apply plain scalar fields first (recurrence_json may be needed for completion).
     for key in _TASK_FIELDS:
         if key in fields:
-            setattr(t, key, fields[key])
+            value = fields[key]
+            if key == "recurrence_json" and value is not None:
+                # store the validated dict (model_dump already gave us a dict)
+                setattr(t, key, value)
+            else:
+                setattr(t, key, value)
+
     if payload.tag_ids is not None:
         await svc.set_task_tags(db, task_id, payload.tag_ids)
+
+    next_task = None
+    if payload.status is not None:
+        if payload.status == "done" and t.recurrence_json:
+            # complete-with-recurrence: close current + generate next instance
+            _, next_task = await svc.complete_task(db, task_id)
+        else:
+            await svc.set_status(db, task_id, payload.status)
+
+    await db.flush()
     await db.commit()
-    await db.refresh(t, ["tags"])
-    return t
+    await db.refresh(t)
+
+    result = TaskPatchResult(task=await _build_detail(db, t))
+    if next_task is not None:
+        await db.refresh(next_task)
+        result.next_task = await _build_detail(db, next_task)
+    return result

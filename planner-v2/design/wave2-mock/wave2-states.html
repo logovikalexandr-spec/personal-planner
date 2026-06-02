@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planner v2 — Волна 2 · доп.состояния</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--onyx:#0F0F11;--smoke:#1A1B1F;--slate:#242529;--bone:#F4F4F5;--steel:#8A8B91;
+    --ember:#EE8A3C;--ember-soft:rgba(238,138,60,0.16);--red:#FF5C5C;--amber:#FFB02E;
+    --green:#6FCF97;--hair:rgba(255,255,255,0.07);}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0a0c;font-family:'Geist',system-ui,sans-serif;color:var(--bone);padding:40px 28px 60px;-webkit-font-smoothing:antialiased}
+  h1.page{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+  p.sub{color:var(--steel);font-size:14px;margin-bottom:32px;max-width:760px;line-height:1.5}
+  .board{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+  .col{display:flex;flex-direction:column;gap:10px}
+  .cap{font-size:12px;font-weight:600;color:var(--steel);letter-spacing:.04em;text-transform:uppercase;padding-left:4px}
+  .capn{font-size:12px;color:var(--steel);padding-left:4px;max-width:360px;line-height:1.4}
+  .phone{width:360px;height:760px;background:var(--onyx);border-radius:30px;border:1px solid var(--hair);overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .status{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font-size:13px;color:var(--steel);font-weight:600;flex-shrink:0}
+  .body{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  svg{display:block}
+  .tbar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;flex-shrink:0}
+  .tbar .ic{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--steel)}
+  .th{padding:10px 18px 4px}.th h2{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .th .d{color:var(--steel);font-size:14px;margin-top:2px;font-family:'Geist Mono',monospace}
+  .grp-l{font-size:12px;color:var(--steel);text-transform:uppercase;letter-spacing:.04em;padding:14px 18px 6px;font-weight:600}
+  /* sheet */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--smoke);border-radius:18px 18px 0 0;border-top:1px solid var(--hair);padding:0 0 18px;max-height:92%;display:flex;flex-direction:column}
+  .grip{height:46px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .grip::before{content:"";width:38px;height:4px;border-radius:2px;background:var(--slate)}
+  .sh-h{display:flex;align-items:center;padding:0 18px 10px}.sh-h .t{font-size:17px;font-weight:600}
+  .sh-h .dn{margin-left:auto;color:var(--ember);font-weight:600;font-size:15px}
+  /* mini calendar */
+  .cal{padding:2px 14px 6px}
+  .calhd{display:flex;align-items:center;padding:6px 6px 10px}.calhd .m{font-weight:600;font-size:16px}
+  .calhd .nav{margin-left:auto;display:flex;gap:14px;color:var(--steel)}
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--steel);font-family:'Geist Mono',monospace;padding-bottom:6px}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-family:'Geist Mono',monospace;border-radius:50%;color:var(--bone)}
+  .day.mut{color:#44454b}.day.today{color:var(--ember);font-weight:600}
+  .day.sel{background:var(--ember);color:#fff;font-weight:600}
+  .day.rng{background:var(--ember-soft);color:var(--ember);border-radius:0}
+  .srow{display:flex;align-items:center;gap:12px;padding:13px 18px;border-top:1px solid var(--hair)}
+  .srow .g{width:20px;height:20px;color:var(--steel)}.srow .l{font-size:15px}
+  .srow .v{margin-left:auto;font-size:15px;font-family:'Geist Mono',monospace}
+  .seg{display:flex;gap:6px;padding:4px;background:var(--slate);border-radius:11px;margin:12px 14px 4px}
+  .seg .s{flex:1;text-align:center;padding:9px;border-radius:8px;font-size:13px;color:var(--steel)}
+  .seg .s.on{background:var(--onyx);color:var(--bone);font-weight:600}
+  .tog{margin-left:auto;width:44px;height:26px;border-radius:13px;background:var(--ember);position:relative}
+  .tog::after{content:"";position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:3px;right:3px}
+  .tog.off{background:var(--slate)}.tog.off::after{right:auto;left:3px}
+  /* task rows + swipe */
+  .tlist{padding:8px 14px}
+  .task{background:var(--smoke);border-radius:12px;padding:13px 14px;display:flex;gap:12px;align-items:flex-start;margin-bottom:8px;position:relative;overflow:hidden}
+  .task .il{position:absolute;left:0;top:0;bottom:0;width:3px}
+  .task.p1 .il{background:var(--red)}.task.p3 .il{background:var(--ember)}
+  .task .cb2{width:21px;height:21px;border-radius:50%;border:2px solid var(--steel);flex-shrink:0;margin-top:1px}
+  .task.p1 .cb2{border-color:var(--red)}.task .cb2.on{background:var(--ember);border-color:var(--ember)}
+  .task .tt{font-size:15px;line-height:1.35}.task.dn .tt{color:var(--steel);text-decoration:line-through}
+  .task .mt{display:flex;gap:10px;margin-top:5px;font-family:'Geist Mono',monospace;font-size:12px;color:var(--steel);align-items:center}
+  .task .tg{font-family:'Geist',sans-serif;background:var(--slate);border-radius:999px;padding:1px 8px;font-size:11px}
+  /* swipe reveal */
+  .swwrap{position:relative;margin-bottom:8px;border-radius:12px;overflow:hidden}
+  .swact{position:absolute;top:0;bottom:0;display:flex;align-items:center}
+  .swact.r{right:0}.swact.l{left:0}
+  .swbtn{width:62px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#fff;font-size:11px}
+  .swbtn.date{background:#3A6EA5}.swbtn.move{background:var(--slate)}.swbtn.del{background:var(--red)}.swbtn.done{background:var(--ember)}
+  .task.shift-l{transform:translateX(-186px)}.task.shift-r{transform:translateX(80px)}
+  .task.shift-l,.task.shift-r{position:relative;margin:0;border-radius:12px}
+  /* won't do */
+  .task.wd .cb2{border-color:#5a5b61;background:transparent;position:relative}
+  .task.wd .cb2::after{content:"";position:absolute;inset:3px;border-left:2px solid #5a5b61;border-bottom:0;transform:rotate(45deg);width:8px;height:0;top:8px;left:5px;border-bottom:2px solid #5a5b61;border-left:0}
+  .wdx{width:21px;height:21px;border-radius:50%;border:2px solid #5a5b61;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;color:#5a5b61}
+  .task.wd .tt{color:var(--steel);text-decoration:line-through}
+  .secthd{display:flex;align-items:center;gap:8px;padding:14px 16px 6px;color:var(--steel);font-size:13px;font-weight:600}
+  .secthd .cnt{font-family:'Geist Mono',monospace}
+  /* detail subtasks */
+  .det{padding:4px 18px 10px}
+  .chk-title{display:flex;gap:13px;align-items:flex-start;padding:8px 0 14px}
+  .cb{width:22px;height:22px;border-radius:50%;border:2px solid var(--ember);flex-shrink:0;margin-top:3px}
+  .ttl{font-size:21px;font-weight:600;line-height:1.3}
+  .blk-h{display:flex;align-items:center;padding:14px 0 8px;border-top:1px solid var(--hair);margin-top:4px}
+  .blk-h .t{font-size:15px;font-weight:600}.blk-h .c{margin-left:auto;font-family:'Geist Mono',monospace;font-size:13px;color:var(--steel)}
+  .sub{display:flex;align-items:flex-start;gap:11px;padding:11px 0 11px 4px}
+  .sub .cb3{width:20px;height:20px;border-radius:50%;border:2px solid var(--steel);flex-shrink:0;margin-top:1px}
+  .sub.p2 .cb3{border-color:var(--amber)}.sub .cb3.on{background:var(--ember);border-color:var(--ember)}
+  .sub.dn .stt{color:var(--steel);text-decoration:line-through}
+  .sub .stt{font-size:15px}.sub .smt{font-family:'Geist Mono',monospace;font-size:12px;color:var(--steel);margin-top:3px}
+  .addrow{display:flex;align-items:center;gap:11px;padding:11px 0 4px 4px;color:var(--steel);font-size:15px}
+  .note-cli{background:rgba(255,255,255,.03);border:1px solid var(--hair);border-radius:10px;padding:11px 12px;margin-top:6px;font-size:12px;color:var(--steel);line-height:1.5}
+  .note-cli b{color:var(--bone)}
+  /* batch bar */
+  .batch{position:absolute;left:0;right:0;bottom:0;background:var(--smoke);border-top:1px solid var(--hair);display:flex;padding:12px 8px;gap:4px}
+  .bb{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--steel);font-size:11px}
+  .selhd{display:flex;align-items:center;padding:10px 18px;gap:12px}.selhd .n{font-weight:600;font-size:16px}
+  .selhd .x{margin-left:auto;color:var(--ember);font-size:15px}
+  .task.selb{outline:2px solid var(--ember);background:var(--ember-soft)}
+  .task .selck{margin-left:auto;color:var(--ember);align-self:center}
+</style>
+</head>
+<body>
+<h1 class="page">Планер v2 — Волна 2 · доп. состояния</h1>
+<p class="sub">Запрошенные экраны: Date/Duration-пикер · swipe-действия на строке · сабтаски (отличие от чеклиста) · Won't Do + секция Completed · batch-выбор. Те же токены DESIGN.md.</p>
+
+<div class="board">
+
+<!-- A. Date/Duration picker -->
+<div class="col">
+  <div class="cap">A · Date / Duration пикер</div>
+  <div class="capn">Мини-календарь, режим «дата» / «длительность», all-day тоггл, входы в Повтор/Напоминание.</div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>● ▂▄ 100</span></div>
+    <div class="body" style="justify-content:flex-end">
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grip"></div>
+        <div class="sh-h"><span class="t">Дата и время</span><span class="dn">Готово</span></div>
+        <div class="seg"><div class="s on">Дата</div><div class="s">Длительность</div></div>
+        <div class="cal">
+          <div class="calhd"><span class="m">Июнь 2026</span><span class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+          <div class="dow"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+          <div class="days">
+            <span class="day mut">26</span><span class="day mut">27</span><span class="day mut">28</span><span class="day mut">29</span><span class="day mut">30</span><span class="day mut">31</span><span class="day">1</span>
+            <span class="day today">2</span><span class="day">3</span><span class="day">4</span><span class="day sel">5</span><span class="day">6</span><span class="day">7</span><span class="day">8</span>
+            <span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day">12</span><span class="day">13</span><span class="day">14</span><span class="day">15</span>
+            <span class="day">16</span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20</span><span class="day">21</span><span class="day">22</span>
+          </div>
+        </div>
+        <div class="srow"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="l">Время</span><span class="v" style="color:var(--ember)">17:00</span></div>
+        <div class="srow"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg><span class="l">Весь день</span><span class="tog off"></span></div>
+        <div class="srow"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"/></svg><span class="l">Повтор</span><span class="v" style="color:var(--steel)">Нет ›</span></div>
+        <div class="srow"><svg class="g" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg><span class="l">Напоминание</span><span class="v" style="color:var(--ember)">за 30 мин ›</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- B. Swipe actions -->
+<div class="col">
+  <div class="cap">B · Swipe-действия (строка)</div>
+  <div class="capn">Свайп вправо = выполнить (ember). Свайп влево = Дата/Перенести/Удалить. Слоты кастомизируются в настройках.</div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>● ▂▄ 100</span></div>
+    <div class="body">
+      <div class="th"><h2>Сегодня</h2><div class="d">Вторник, 2 июня</div></div>
+      <div class="tlist">
+        <!-- swipe LEFT reveal -->
+        <div class="swwrap">
+          <div class="swact r"><div class="swbtn date"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>Дата</div><div class="swbtn move"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/></svg>В список</div><div class="swbtn del"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13"/></svg>Удалить</div></div>
+          <div class="task p1 shift-l"><div class="il"></div><div class="cb2"></div><div><div class="tt">Подготовить договор аренды</div><div class="mt"><span style="color:var(--red)">Просрочено</span><span class="tg">ZIMA</span></div></div></div>
+        </div>
+        <div style="text-align:center;color:var(--steel);font-size:11px;font-family:'Geist Mono',monospace;padding:2px 0 8px">↤ свайп влево</div>
+        <!-- swipe RIGHT reveal -->
+        <div class="swwrap">
+          <div class="swact l"><div class="swbtn done" style="width:80px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 6"/></svg>Готово</div></div>
+          <div class="task p3 shift-r"><div class="il"></div><div class="cb2"></div><div><div class="tt">Купить расходники</div><div class="mt"><span>14:00</span><span class="tg">Покупки</span></div></div></div>
+        </div>
+        <div style="text-align:center;color:var(--steel);font-size:11px;font-family:'Geist Mono',monospace;padding:2px 0 8px">свайп вправо ↦</div>
+        <div class="task"><div class="cb2"></div><div><div class="tt">Ответить Лизе по записи</div><div class="mt"><span>—</span></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- C. Subtasks in detail -->
+<div class="col">
+  <div class="cap">C · Сабтаски ≠ чеклист</div>
+  <div class="capn">Сабтаск = полная задача (своя дата/прио/чекбокс), НЕ двигает кольцо. Чеклист — лёгкий, двигает кольцо. Видно различие.</div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>● ▂▄ 100</span></div>
+    <div class="body">
+      <div class="tbar"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></div><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg></div></div>
+      <div class="det">
+        <div class="chk-title"><div class="cb"></div><div class="ttl">Запустить рекламу студии</div></div>
+        <div class="blk-h"><span class="t">Сабтаски</span><span class="c">1/3</span></div>
+        <div class="sub dn"><div class="cb3 on"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="margin:3px"><path d="M5 12l5 5L20 6"/></svg></div><div><div class="stt">Собрать креативы</div><div class="smt">Вчера · #дизайн</div></div></div>
+        <div class="sub p2"><div class="cb3"></div><div><div class="stt">Настроить кабинет Meta</div><div class="smt">Сегодня 16:00 · Средний</div></div></div>
+        <div class="sub"><div class="cb3"></div><div><div class="stt">Запустить кампанию</div><div class="smt">Завтра</div></div></div>
+        <div class="addrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Добавить сабтаск</div>
+        <div class="note-cli"><b>Различие:</b> сабтаск открывается как полноценная задача (дата, приоритет, свои сабтаски). Прогресс родителя двигает <b>только чеклист</b>, не сабтаски — как в TickTick.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- D. Won't Do + Completed section + batch -->
+<div class="col">
+  <div class="cap">D · Won't Do · Completed · batch</div>
+  <div class="capn">Свёрнутая секция «Выполнено и Won't Do». Long-press → режим выбора с нижней batch-панелью.</div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>● ▂▄ 100</span></div>
+    <div class="body">
+      <div class="selhd"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--steel)" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg><span class="n">Выбрано: 2</span><span class="x">Выбрать всё</span></div>
+      <div class="tlist" style="padding-top:0">
+        <div class="task p1 selb"><div class="il"></div><div class="cb2"></div><div style="flex:1"><div class="tt">Подготовить договор аренды</div><div class="mt"><span style="color:var(--red)">Просрочено</span></div></div><span class="selck"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" fill="var(--ember)" stroke="none"/><path d="M8 12l3 3 5-5" stroke="#fff" stroke-width="2.4"/></svg></span></div>
+        <div class="task selb"><div class="cb2"></div><div style="flex:1"><div class="tt">Купить расходники</div><div class="mt"><span>14:00</span></div></div><span class="selck"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" fill="var(--ember)" stroke="none"/><path d="M8 12l3 3 5-5" stroke="#fff" stroke-width="2.4"/></svg></span></div>
+        <div class="task"><div class="cb2"></div><div style="flex:1"><div class="tt">Ответить Лизе</div></div><span class="selck" style="color:var(--steel)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></span></div>
+
+        <div class="secthd"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg> Выполнено и Won't Do <span class="cnt">· 2</span></div>
+        <div class="task dn"><div class="cb2 on"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" style="margin:2px"><path d="M5 12l5 5L20 6"/></svg></div><div><div class="tt">Перенести встречу с мастером</div></div></div>
+        <div class="task wd"><div class="wdx"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M6 6l12 12M6 18L18 6"/></svg></div><div><div class="tt">Старая идея промо</div><div class="mt"><span>Won't Do</span></div></div></div>
+      </div>
+      <div class="batch">
+        <div class="bb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>Дата</div>
+        <div class="bb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4z"/></svg>В список</div>
+        <div class="bb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2v6l4-2"/></svg>Приоритет</div>
+        <div class="bb"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12l5 5L20 6"/></svg>Готово</div>
+        <div class="bb" style="color:var(--red)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13"/></svg>Удалить</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

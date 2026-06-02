@@ -24,8 +24,8 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
 }
 
 export function Today({
-  reloadKey, inboxCount, onInbox, onTapHour,
-}: { reloadKey: number; inboxCount: number; onInbox: () => void; onTapHour: (hour: number) => void }) {
+  reloadKey, inboxCount, onInbox, onTapHour, onOpenTask,
+}: { reloadKey: number; inboxCount: number; onInbox: () => void; onTapHour: (hour: number) => void; onOpenTask?: (t: Task) => void }) {
   const iso = localToday();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [byId, setById] = useState<Map<number, Project>>(new Map());
@@ -75,7 +75,7 @@ export function Today({
           <div className="section-label">Без времени</div>
           <div className="list">
             {untimed.map((t) => (
-              <TaskItem key={t.id} task={t} onToggle={toggle} color={resolveColor(t.project_id, byId)} />
+              <TaskItem key={t.id} task={t} onToggle={toggle} onOpen={onOpenTask} color={resolveColor(t.project_id, byId)} />
             ))}
           </div>
         </div>

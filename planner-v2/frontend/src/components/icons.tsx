@@ -87,3 +87,27 @@ export const IcoChevron = () => sv(<path d="M9 6l6 6-6 6" />);                  
 export const IcoRepeatMicro = () => sv(<><path d="M4 9a8 8 0 0 1 14-3M20 15a8 8 0 0 1-14 3" /><path d="M18 3v3.5h-3.5M6 21v-3.5h3.5" /></>); /* таймлайн-мета 12px (замена 🔁) */
 export const IcoBellMicro = () => sv(<><path d="M18 9a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7" /><path d="M10.5 20a2 2 0 0 0 3 0" /></>); /* таймлайн-мета 12px (замена ⏰) */
 export const IcoPin = () => sv(<><path d="M9 4h6M10 4l-1 7-3 2v2h12v-2l-3-2-1-7M12 17v3" /></>); /* pin-маркер ~14px (замена 📌) */
+
+/* ── Wave 2 — TaskDetail chrome-глифы (через sv(), размер задаёт контекст) ── */
+export const IcoBack = () => sv(<path d="M15 18l-6-6 6-6" />);                          /* стрелка назад top-bar */
+export const IcoClose = () => sv(<><path d="M18 6L6 18M6 6l12 12" /></>);                /* крест (закрыть/отмена) */
+export const IcoCalendar2 = () => sv(<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M3 10h18M8 2v4M16 2v4" /></>); /* дата-строка детали */
+export const IcoClock = () => sv(<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>); /* время */
+export const IcoList2 = () => sv(<><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7" /></>);  /* список/проект-строка */
+export const IcoRepeat = () => sv(<><path d="M4 9a8 8 0 0 1 14-3l3 3M20 15a8 8 0 0 1-14 3l-3-3" /><path d="M21 3v6h-6M3 21v-6h6" /></>); /* повтор-строка детали */
+export const IcoBell = () => sv(<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>); /* напоминания-строка */
+export const IcoTag = () => sv(<><path d="M20.6 13.8L12 22l-8.6-8.2A5.5 5.5 0 0 1 12 5a5.5 5.5 0 0 1 8.6 8.8z" /><circle cx="15.5" cy="9" r="1.3" /></>); /* теги-строка */
+export const IcoTrash = () => sv(<><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3" /></>); /* удалить */
+export const IcoXCircle = () => sv(<><path d="M5 5l14 14M5 19L19 5" /></>);              /* Won't Do (overflow-бар) */
+export const IcoCheck = () => sv(<path d="M5 12l5 5L20 6" />);                            /* галочка (чеклист done) */
+
+/* ── Wave 2 F2 — свайп-действия / batch / multi-select ── */
+export const IcoMove = () => sv(<><path d="M3 7l9-4 9 4-9 4-9-4z" /><path d="M3 7v10l9 4 9-4V7" /></>); /* «В список» (свайп/batch) */
+export const IcoFlag = () => sv(<><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></>);             /* приоритет (batch) */
+export const IcoSelectCircle = ({ on }: { on?: boolean }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke={on ? "var(--accent)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {on
+      ? <><circle cx="12" cy="12" r="9" fill="var(--accent)" stroke="none" /><path d="M8 12l3 3 5-5" stroke="#fff" strokeWidth="2.4" /></>
+      : <circle cx="12" cy="12" r="9" />}
+  </svg>
+);  /* кружок выбора строки в режиме multi-select (заливка = выбрано) */

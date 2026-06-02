@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { BottomTabs, type TabKey } from "./components/BottomTabs";
 import { Fab } from "./components/Fab";
 import { TaskComposer } from "./components/TaskComposer";
+import { TaskDetail } from "./components/TaskDetail";
+import { QuickAddBar } from "./components/QuickAddBar";
 import { Sheet } from "./components/Sheet";
 import { ListView } from "./components/ListView";
 import { Drawer } from "./components/Drawer";
@@ -10,8 +12,9 @@ import { Lists } from "./screens/Lists";
 import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
 import { Tracking } from "./screens/Tracking";
-import { getCounts, getMe } from "./api";
+import { createTag, createTask, getCounts, getMe, getProjects, getTags } from "./api";
 import type { ActiveList } from "./types";
+import type { ParseResult } from "./lib/quickParse";
 import { applyTelegramTheme } from "./telegram";
 import { PickerHarness } from "./harness/PickerHarness";
 
@@ -32,6 +35,7 @@ function AppMain() {
   const [tab, setTab] = useState<TabKey>("today");
   const [viewing, setViewing] = useState<ActiveList | null>(null); // открытый список из Lists / Inbox из Today
   const [addOpen, setAddOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
   const [addHour, setAddHour] = useState<number | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -39,8 +43,40 @@ function AppMain() {
   const [userName, setUserName] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerClosing, setDrawerClosing] = useState(false);
+  const [openTaskId, setOpenTaskId] = useState<number | null>(null); // открытая TaskDetail (Волна 2)
 
   function bump() { setReloadKey((k) => k + 1); }
+
+  // Волна 2: быстрый ввод из QuickAddBar — резолвим имя проекта/тегов в id, создаём задачу.
+  async function quickAdd(p: ParseResult) {
+    const title = (p.title || p.source).trim();
+    if (!title) return;
+    let project_id: number | null = null;
+    if (p.projectName) {
+      const ps = await getProjects().catch(() => []);
+      const m = ps.find((x) => x.name.toLowerCase() === p.projectName!.toLowerCase());
+      project_id = m ? m.id : null;
+    }
+    let tag_ids: number[] | undefined;
+    if (p.tagNames.length) {
+      const existing = await getTags().catch(() => []);
+      const ids: number[] = [];
+      for (const name of p.tagNames) {
+        const hit = existing.find((t) => t.name.toLowerCase() === name.toLowerCase());
+        if (hit) ids.push(hit.id);
+        else { const created = await createTag(name).catch(() => null); if (created) ids.push(created.id); }
+      }
+      tag_ids = ids.length ? ids : undefined;
+    }
+    await createTask(title, {
+      due_date: p.due_date ?? null,
+      due_time: p.due_time ?? null,
+      priority: p.priority ?? "none",
+      project_id,
+      tag_ids,
+    });
+    bump();
+  }
 
   function openDrawer() { setDrawerClosing(false); setDrawerOpen(true); }
   function closeDrawer() {
@@ -75,7 +111,7 @@ function AppMain() {
   // выкл при открытых Sheet/composer/picker/viewing-sheet, на табе lists (дубль), во время drag (в Drawer).
   const esx = useRef<number | null>(null);
   const esy = useRef<number | null>(null);
-  const anyOverlay = addOpen || addHour != null || aiOpen || drawerOpen;
+  const anyOverlay = addOpen || quickOpen || addHour != null || aiOpen || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "lists" && !viewing);
   function onRootTouchStart(e: React.TouchEvent) {
     if (edgeSwipeOff) { esx.current = null; esy.current = null; return; }
@@ -94,7 +130,7 @@ function AppMain() {
 
   let screen: React.ReactNode;
   if (viewing) {
-    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} />;
+    screen = <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} onOpenTask={(t) => setOpenTaskId(t.id)} />;
   } else if (tab === "today") {
     screen = (
       <Today
@@ -102,6 +138,7 @@ function AppMain() {
         inboxCount={inboxCount}
         onInbox={() => setViewing({ kind: "smart", key: "inbox", title: "Входящие" })}
         onTapHour={(h) => setAddHour(h)}
+        onOpenTask={(t) => setOpenTaskId(t.id)}
       />
     );
   } else if (tab === "calendar") {
@@ -130,7 +167,19 @@ function AppMain() {
           onClose={closeDrawer}
         />
       )}
-      {showFab && <Fab onAdd={() => setAddOpen(true)} onAi={() => setAiOpen(true)} />}
+      {showFab && <Fab onAdd={() => setQuickOpen(true)} onAi={() => setAiOpen(true)} />}
+      {quickOpen && (
+        <>
+          <div className="qa-scrim" onClick={() => setQuickOpen(false)} />
+          <div className="qa-overlay">
+            <div className="qa-overlay-head">
+              <span className="t">Быстрая задача</span>
+              <button className="qa-expand" onClick={() => { setQuickOpen(false); setAddOpen(true); }}>Развернуть</button>
+            </div>
+            <QuickAddBar autoFocus onAdd={(p) => { quickAdd(p); }} />
+          </div>
+        </>
+      )}
       {addOpen && (
         <TaskComposer
           initialDate={tab === "today" ? localToday() : null}
@@ -155,6 +204,16 @@ function AppMain() {
         </Sheet>
       )}
       <BottomTabs active={tab} onChange={onTabChange} inboxCount={inboxCount} />
+      {openTaskId != null && (
+        <div className="detail-overlay">
+          <TaskDetail
+            taskId={openTaskId}
+            onClose={() => setOpenTaskId(null)}
+            onChanged={bump}
+            onOpenTask={(id) => setOpenTaskId(id)}
+          />
+        </div>
+      )}
     </div>
   );
 }

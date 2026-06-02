@@ -3,7 +3,17 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
-from planner.api.routes import counts, health, inbox, me, projects, tags, tasks
+from planner.api.routes import (
+    checkitems,
+    counts,
+    health,
+    inbox,
+    me,
+    projects,
+    reminders,
+    tags,
+    tasks,
+)
 
 
 def create_app() -> FastAPI:
@@ -12,6 +22,8 @@ def create_app() -> FastAPI:
     app.include_router(me.router)
     app.include_router(projects.router)
     app.include_router(tasks.router)
+    app.include_router(checkitems.router)
+    app.include_router(reminders.router)
     app.include_router(tags.router)
     app.include_router(inbox.router)
     app.include_router(counts.router)

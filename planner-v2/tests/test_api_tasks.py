@@ -66,8 +66,10 @@ def test_patch_task_time(client):
     tid = client.post("/api/tasks", json={"title": "x", "due_date": "2026-05-29"}, headers=HDR).json()["id"]
     r = client.patch(f"/api/tasks/{tid}", json={"due_time": "10:00:00", "end_time": "11:00:00"}, headers=HDR)
     assert r.status_code == 200, r.text
-    assert r.json()["due_time"] == "10:00:00"
-    assert r.json()["end_time"] == "11:00:00"
+    body = r.json()
+    assert body["task"]["due_time"] == "10:00:00"
+    assert body["task"]["end_time"] == "11:00:00"
+    assert body["next_task"] is None
 
 
 def test_create_task_full_fields(client):

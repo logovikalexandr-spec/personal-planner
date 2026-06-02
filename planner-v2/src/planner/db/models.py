@@ -37,14 +37,61 @@ class Task(Base):
     end_time: Mapped[time | None] = mapped_column(Time, default=None)
     reminder_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     recurrence: Mapped[str | None] = mapped_column(String(100), default=None)
+    recurrence_json: Mapped[dict | None] = mapped_column(JSON, default=None)
+    # status ∈ todo | in_progress | done | wont_do | archived
     status: Mapped[str] = mapped_column(String(15), default="todo")
     done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
     source: Mapped[str] = mapped_column(String(10), default="manual")
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     parent_task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id"), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     tags: Mapped[list[Tag]] = relationship(secondary="task_tag", lazy="selectin")
+    checkitems: Mapped[list[CheckItem]] = relationship(
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="CheckItem.order_index",
+        lazy="selectin",
+    )
+    reminders: Mapped[list[Reminder]] = relationship(
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="Reminder.id",
+        lazy="selectin",
+    )
+
+
+class CheckItem(Base):
+    __tablename__ = "check_item"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(500))
+    done: Mapped[bool] = mapped_column(Boolean, default=False)
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    task: Mapped[Task] = relationship(back_populates="checkitems")
+
+
+class Reminder(Base):
+    __tablename__ = "reminder"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+    )
+    # kind ∈ relative | absolute
+    kind: Mapped[str] = mapped_column(String(10))
+    offset_minutes: Mapped[int | None] = mapped_column(Integer, default=None)
+    at_time: Mapped[time | None] = mapped_column(Time, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    task: Mapped[Task] = relationship(back_populates="reminders")
 
 
 class Tag(Base):

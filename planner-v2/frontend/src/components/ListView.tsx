@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Empty } from "./Empty";
-import { TaskItem } from "./TaskItem";
+import { TaskListBody } from "./TaskListBody";
+import { DateSheet, type DateValue } from "./DateSheet";
+import { PriorityPicker, ProjectPickerSheet } from "./pickers";
 import { Inbox } from "../screens/Inbox";
-import { getProjects, getTasks, patchTask } from "../api";
-import type { ActiveList, Project, Task } from "../types";
+import { deleteTask, getProjects, getTasks, patchTask } from "../api";
+import type { ActiveList, Priority, Project, Task } from "../types";
+import { tg } from "../telegram";
 import { IcoMenu } from "./icons";
 
 function resolveColor(projectId: number | null, byId: Map<number, Project>): string | null {
@@ -30,12 +33,16 @@ async function fetchFor(a: ActiveList): Promise<Task[]> {
   return getTasks("all");
 }
 
+type BatchPicker = "date" | "project" | "priority" | null;
+
 export function ListView({
-  active, reloadKey, onMenu, onInboxChange,
-}: { active: ActiveList; reloadKey: number; onMenu: () => void; onInboxChange: () => void }) {
+  active, reloadKey, onMenu, onInboxChange, onOpenTask,
+}: { active: ActiveList; reloadKey: number; onMenu: () => void; onInboxChange: () => void; onOpenTask?: (t: Task) => void }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [byId, setById] = useState<Map<number, Project>>(new Map());
   const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
+  const [picker, setPicker] = useState<BatchPicker>(null);
+  const [pickTargets, setPickTargets] = useState<Task[]>([]); // на кого применить выбор из picker'а
 
   const isInbox = active.kind === "smart" && active.key === "inbox";
 
@@ -64,6 +71,37 @@ export function ListView({
     await load();
   }
 
+  // ── F2 действия (свайп = одна, batch = набор) ──
+  async function doComplete(ts: Task[]) {
+    tg()?.HapticFeedback?.impactOccurred?.("light");
+    await Promise.all(ts.map((t) => patchTask(t.id, { status: "done" })));
+    await load();
+  }
+  async function doDelete(ts: Task[]) {
+    await Promise.all(ts.map((t) => deleteTask(t.id)));
+    await load();
+  }
+  function openPickerFor(p: BatchPicker, ts: Task[]) {
+    setPickTargets(ts);
+    setPicker(p);
+  }
+  async function applyDate(v: DateValue) {
+    await Promise.all(pickTargets.map((t) =>
+      patchTask(t.id, { due_date: v.due_date, due_time: v.due_time, end_time: v.end_time })));
+    setPicker(null);
+    await load();
+  }
+  async function applyProject(id: number | null) {
+    await Promise.all(pickTargets.map((t) => patchTask(t.id, { project_id: id })));
+    setPicker(null);
+    await load();
+  }
+  async function applyPriority(p: Priority) {
+    await Promise.all(pickTargets.map((t) => patchTask(t.id, { priority: p })));
+    setPicker(null);
+    await load();
+  }
+
   return (
     <div className="screen">
       <div className="row" style={{ gap: 4, marginBottom: "var(--s3)" }}>
@@ -84,11 +122,31 @@ export function ListView({
       ) : tasks.length === 0 ? (
         <Empty text="Пусто. Жми + чтобы добавить." />
       ) : (
-        <div className="list">
-          {tasks.map((t) => (
-            <TaskItem key={t.id} task={t} onToggle={toggle} color={resolveColor(t.project_id, byId)} />
-          ))}
-        </div>
+        <TaskListBody
+          tasks={tasks}
+          colorOf={(t) => resolveColor(t.project_id, byId)}
+          onOpen={onOpenTask}
+          onToggle={toggle}
+          onComplete={doComplete}
+          onDelete={doDelete}
+          onDate={(ts) => openPickerFor("date", ts)}
+          onMove={(ts) => openPickerFor("project", ts)}
+          onPriority={(ts) => openPickerFor("priority", ts)}
+        />
+      )}
+
+      {picker === "date" && (
+        <DateSheet
+          initial={{ due_date: null, due_time: null, end_time: null, reminder_at: null, recurrence: null }}
+          onApply={applyDate}
+          onClose={() => setPicker(null)}
+        />
+      )}
+      {picker === "project" && (
+        <ProjectPickerSheet value={null} onPick={applyProject} onClose={() => setPicker(null)} />
+      )}
+      {picker === "priority" && (
+        <PriorityPicker value="none" onPick={applyPriority} onClose={() => setPicker(null)} />
       )}
     </div>
   );

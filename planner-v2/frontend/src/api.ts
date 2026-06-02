@@ -1,5 +1,8 @@
 import { tg } from "./telegram";
-import type { Counts, InboxItem, Priority, Project, Tag, Task } from "./types";
+import type {
+  CheckItem, Counts, InboxItem, Priority, Project, RecurrenceJson,
+  Reminder, ReminderInput, Tag, Task, TaskDetail,
+} from "./types";
 
 function initData(): string { return tg()?.initData ?? ""; }
 
@@ -58,10 +61,41 @@ export interface TaskInput {
 
 export const createTask = (title: string, opts: TaskInput = {}) =>
   req<Task>("/api/tasks", { method: "POST", body: JSON.stringify({ title, ...opts }) });
-export const patchTask = (
+
+// Волна 2 §2: PATCH принимает любое подмножество, включая структурный повтор / pinned / progress / title.
+export type TaskPatchInput = Partial<
+  { status: string; title: string; pinned: boolean; progress: number; recurrence_json: RecurrenceJson | null } & TaskInput
+>;
+export const patchTask = (id: number, patch: TaskPatchInput) =>
+  req<Task>(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+
+// Волна 2 §2: GET /tasks/{id} → TaskDetail (checkitems + reminders + subtasks + progress).
+export const getTaskDetail = (id: number) => req<TaskDetail>(`/api/tasks/${id}`);
+
+// Волна 2 §2: при status:'done' + recurrence_json сервис генерирует следующий экземпляр → {task, next_task?}.
+export const completeTask = (id: number) =>
+  req<{ task: Task; next_task?: Task | null }>(`/api/tasks/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: "done" }),
+  });
+
+export const deleteTask = (id: number) => reqVoid(`/api/tasks/${id}`, { method: "DELETE" });
+
+// Волна 2 §2: CheckItems CRUD.
+export const createCheckItem = (taskId: number, title: string) =>
+  req<CheckItem>(`/api/tasks/${taskId}/checkitems`, { method: "POST", body: JSON.stringify({ title }) });
+export const patchCheckItem = (
   id: number,
-  patch: Partial<{ status: string } & TaskInput>,
-) => req<Task>(`/api/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+  patch: Partial<{ title: string; done: boolean; order_index: number }>,
+) => req<CheckItem>(`/api/checkitems/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export const deleteCheckItem = (id: number) => reqVoid(`/api/checkitems/${id}`, { method: "DELETE" });
+
+// Волна 2 §2: PUT заменяет весь набор напоминаний задачи, возвращает Reminder[].
+export const putReminders = (taskId: number, reminders: ReminderInput[]) =>
+  req<Reminder[]>(`/api/tasks/${taskId}/reminders`, {
+    method: "PUT",
+    body: JSON.stringify({ reminders }),
+  });
 
 export const getTags = () => req<Tag[]>("/api/tags");
 export const createTag = (name: string, color?: string | null) =>

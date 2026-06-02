@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import { createTask, getProjects } from "../api";
-import type { Priority, Project } from "../types";
+import { useEffect, useMemo, useState } from "react";
+import { createTag, createTask, getProjects, getTags } from "../api";
+import type { Priority, Project, Tag } from "../types";
 import { Sheet } from "./Sheet";
 import { DateSheet, type DateValue } from "./DateSheet";
 import { Flag, PRIORITY_COLOR, PriorityPicker, ProjectPickerSheet, TagPickerSheet } from "./pickers";
 import { IcoExpand, IcoMore, IcoSend } from "./icons";
+import { quickParse } from "../lib/quickParse";
 
 type Picker = "date" | "priority" | "project" | "tag" | null;
 
@@ -44,8 +45,15 @@ export function TaskComposer({
     reminder_at: null, recurrence: null,
   });
   const [tagIds, setTagIds] = useState<number[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
   const [subtasks, setSubtasks] = useState<string[]>([]);
   const [subDraft, setSubDraft] = useState("");
+
+  useEffect(() => { getTags().then(setAllTags).catch(() => {}); }, []);
+
+  // Волна 2 F2: live NL-парсинг title. Показываем что распознано; применяем на save
+  // (только поля, которые пользователь не задал вручную). Мокап wave2.html #2.
+  const parsed = useMemo(() => quickParse(title), [title]);
 
   function loadProjects() {
     setProjLoading(true);
@@ -65,20 +73,48 @@ export function TaskComposer({
   const proj = projectId != null ? projects.find((p) => p.id === projectId) : undefined;
   const ds = dateSummary(date);
 
+  // распознанный из NL ~проект → id (по имени, без регистра)
+  function parsedProjectId(): number | null {
+    if (!parsed.projectName) return null;
+    const hit = projects.find((p) => p.name.toLowerCase() === parsed.projectName!.toLowerCase());
+    return hit ? hit.id : null;
+  }
+  // распознанные #теги → id (создаём недостающие)
+  async function parsedTagIds(): Promise<number[]> {
+    if (parsed.tagNames.length === 0) return [];
+    const ids: number[] = [];
+    let known = allTags;
+    for (const n of parsed.tagNames) {
+      let hit = known.find((t) => t.name.toLowerCase() === n.toLowerCase());
+      if (!hit) { try { hit = await createTag(n); known = [...known, hit]; } catch { /* skip */ } }
+      if (hit) ids.push(hit.id);
+    }
+    setAllTags(known);
+    return ids;
+  }
+
   async function save() {
-    const t = title.trim();
-    if (!t || saving) return;
+    if (saving) return;
+    // применяем NL-парсинг: cleaned title + поля, которые пользователь не задал вручную
+    const cleanTitle = (parsed.title || title).trim();
+    if (!cleanTitle) return;
     setSaving(true);
     try {
-      const created = await createTask(t, {
-        project_id: projectId, priority,
-        due_date: date.due_date, due_time: date.due_time, end_time: date.end_time,
+      const nlProj = projectId == null ? parsedProjectId() : null;
+      const nlTags = await parsedTagIds();
+      const mergedTagIds = Array.from(new Set([...tagIds, ...nlTags]));
+      const created = await createTask(cleanTitle, {
+        project_id: projectId ?? nlProj,
+        priority: priority !== "none" ? priority : (parsed.priority ?? "none"),
+        due_date: date.due_date ?? parsed.due_date ?? null,
+        due_time: date.due_time ?? parsed.due_time ?? null,
+        end_time: date.end_time,
         reminder_at: date.reminder_at, recurrence: date.recurrence,
         description: description.trim() || null,
-        tag_ids: tagIds.length ? tagIds : undefined,
+        tag_ids: mergedTagIds.length ? mergedTagIds : undefined,
       });
       for (const st of subtasks) {
-        if (st.trim()) await createTask(st.trim(), { parent_task_id: created.id, project_id: projectId });
+        if (st.trim()) await createTask(st.trim(), { parent_task_id: created.id, project_id: projectId ?? nlProj });
       }
       onSaved();
       onClose();
@@ -104,6 +140,20 @@ export function TaskComposer({
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && !expanded && save()}
       />
+
+      {parsed.tokens.length > 0 && (
+        <div className="qa-recognized">
+          {parsed.tokens.map((tok, i) => (
+            <span
+              key={i}
+              className="qa-rec-chip"
+              style={tok.kind === "project" ? { color: "#6FCF97", background: "rgba(111,207,151,0.16)", borderColor: "transparent" } : undefined}
+            >
+              {tok.label}
+            </span>
+          ))}
+        </div>
+      )}
 
       {expanded && (
         <>
