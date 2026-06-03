@@ -24,6 +24,10 @@ function hhmm(min: number): string {
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
+function snap15(min: number): number {
+  return Math.round(min / STEP_MIN) * STEP_MIN;
+}
+const PX_PER_MIN = HOUR_H / 60; // непрерывный перевод пикселей в минуты (плавный драг)
 function haptic(style: "light" | "medium" = "light") {
   tg()?.HapticFeedback?.impactOccurred?.(style);
 }
@@ -170,8 +174,9 @@ export const DayTimeline = memo(function DayTimeline({
     const d = dragRef.current;
     if (!d) return;
     e.preventDefault();
-    const deltaMin = Math.round((e.clientY - d.originY) / STEP_PX) * STEP_MIN;
-    if (deltaMin !== 0) movedRef.current = true;
+    // непрерывный сдвиг (без снапа) → блок плавно следует за пальцем, не дёргается
+    const deltaMin = (e.clientY - d.originY) / PX_PER_MIN;
+    if (Math.abs(deltaMin) >= 1) movedRef.current = true;
     if (d.edge === "top") {
       const s = clamp(d.baseStart + deltaMin, offsetMin, d.baseEnd - STEP_MIN);
       setDrag({ id: d.task.id, startMin: s, endMin: d.baseEnd });
@@ -193,9 +198,25 @@ export const DayTimeline = memo(function DayTimeline({
     pickedRef.current = false;
     if (!d) return;
     setDrag((cur) => {
-      if (cur && movedRef.current && (cur.startMin !== d.baseStart || cur.endMin !== d.baseEnd)) {
-        haptic("light");
-        onResize?.(d.task, { due_time: `${hhmm(cur.startMin)}:00`, end_time: `${hhmm(cur.endMin)}:00` });
+      if (cur && movedRef.current) {
+        // снап к 15 мин ТОЛЬКО на отпускании; move сохраняет длительность
+        let s: number;
+        let en: number;
+        if (d.edge === "move") {
+          const dur = d.baseEnd - d.baseStart;
+          s = clamp(snap15(cur.startMin), offsetMin, DAY_END - dur);
+          en = s + dur;
+        } else if (d.edge === "top") {
+          s = clamp(snap15(cur.startMin), offsetMin, d.baseEnd - STEP_MIN);
+          en = d.baseEnd;
+        } else {
+          s = d.baseStart;
+          en = clamp(snap15(cur.endMin), d.baseStart + STEP_MIN, DAY_END);
+        }
+        if (s !== d.baseStart || en !== d.baseEnd) {
+          haptic("light");
+          onResize?.(d.task, { due_time: `${hhmm(s)}:00`, end_time: `${hhmm(en)}:00` });
+        }
       }
       return null;
     });
@@ -223,6 +244,9 @@ export const DayTimeline = memo(function DayTimeline({
           const start = live ? live.startMin : baseStart;
           const end = live ? live.endMin : baseEnd;
           const dur = end - start;
+          // позиция следует за пальцем плавно, а время в подписи показываем снапнутым к 15 мин
+          const labelStart = live ? snap15(start) : start;
+          const labelEnd = live ? snap15(end) : end;
           const c = resolveColor(t.project_id, byId);
           const prio = priorityColor(t.priority); // кант строго по приоритету; none → нет цвета
           const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
@@ -271,7 +295,7 @@ export const DayTimeline = memo(function DayTimeline({
               >
                 <div className="bt">{proj?.icon ? `${proj.icon} ` : ""}{t.title}</div>
                 <div className="bm">
-                  <span>{hhmm(start)}–{hhmm(end)}</span>
+                  <span>{hhmm(labelStart)}–{hhmm(labelEnd)}</span>
                   {t.recurrence ? <IcoRepeatMicro /> : null}
                   {t.reminder_at ? <IcoBellMicro /> : null}
                 </div>
