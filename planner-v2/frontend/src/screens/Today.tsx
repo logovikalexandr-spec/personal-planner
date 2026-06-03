@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DayTimeline } from "../components/DayTimeline";
+import { DayTimeline, priorityColor } from "../components/DayTimeline";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
-import { getDayTasks, getProjects, patchTask } from "../api";
+import { QuickAddBar } from "../components/QuickAddBar";
+import { IcoBack, IcoChevron, IcoInbox } from "../components/icons";
+import { getDayTasks, getProjects, getTasks, patchTask } from "../api";
 import { tg } from "../telegram";
+import type { ParseResult } from "../lib/quickParse";
 import type { Project, Task } from "../types";
 
 const FMT = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
@@ -22,63 +25,199 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
   return null;
 }
 
+type LoadState = "loading" | "error" | "ready";
+
 export function Today({
-  reloadKey, onTapHour, onOpenTask,
-}: { reloadKey: number; onTapHour: (hour: number) => void; onOpenTask?: (t: Task) => void }) {
+  reloadKey, onTapHour, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount,
+}: {
+  reloadKey: number;
+  onTapHour: (hour: number) => void;
+  onOpenTask?: (t: Task) => void;
+  view: "timeline" | "tasks";
+  onViewChange: (v: "timeline" | "tasks") => void;
+  onOpenInbox: () => void;
+  onQuickAdd: (p: ParseResult) => void;
+  inboxCount: number;
+}) {
   const iso = localToday();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [overdue, setOverdue] = useState<Task[]>([]);
   const [byId, setById] = useState<Map<number, Project>>(new Map());
+  const [state, setState] = useState<LoadState>("loading");
+  const [showDone, setShowDone] = useState(false);
 
-  async function load() {
-    const [ts, ps] = await Promise.all([getDayTasks(iso), getProjects()]);
-    setTasks(ts);
-    setById(new Map(ps.map((p) => [p.id, p])));
-  }
+  const load = useCallback(async () => {
+    setState("loading");
+    try {
+      const [ts, ps, ov] = await Promise.all([getDayTasks(iso), getProjects(), getTasks("overdue")]);
+      setTasks(ts);
+      setById(new Map(ps.map((p) => [p.id, p])));
+      setOverdue(ov);
+      setState("ready");
+    } catch {
+      setState("error");
+    }
+  }, [iso]);
+
   useEffect(() => {
     load().catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reloadKey]);
+  }, [reloadKey, load]);
 
   const toggle = useCallback(async (t: Task) => {
     tg()?.HapticFeedback?.impactOccurred?.("light");
     await patchTask(t.id, { status: t.status === "done" ? "todo" : "done" });
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iso]);
+  }, [load]);
 
-  const untimed = useMemo(() => tasks.filter((t) => !t.due_time), [tasks]);
-  const doneCount = useMemo(() => tasks.filter((t) => t.status === "done").length, [tasks]);
+  const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
+  // all-day = с датой на сегодня, но без времени; открытые (не done/wont_do)
+  const allday = useMemo(
+    () => tasks.filter((t) => !t.due_time && t.status !== "done" && t.status !== "wont_do"),
+    [tasks],
+  );
+  const closed = useMemo(
+    () => tasks.filter((t) => t.status === "done" || t.status === "wont_do"),
+    [tasks],
+  );
 
+  const jumpNow = useCallback(() => {
+    document.getElementById("today-now")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, []);
+
+  const renderList = (items: Task[]) => (
+    <div className="list">
+      {items.map((t) => (
+        <TaskItem key={t.id} task={t} onToggle={toggle} onOpen={onOpenTask} color={resolveColor(t.project_id, byId)} />
+      ))}
+    </div>
+  );
+
+  const skeleton = (
+    <div className="today-pad" aria-busy="true" style={{ marginTop: "var(--s4)" }}>
+      {[0, 1, 2].map((i) => <div key={i} className="lists-skeleton-row" />)}
+    </div>
+  );
+  const errorBlock = (
+    <div className="today-pad" style={{ marginTop: "var(--s4)" }}>
+      <div className="card" style={{ textAlign: "center" }}>
+        <div className="muted">Не удалось загрузить</div>
+        <button className="btn btn-ghost" style={{ marginTop: "var(--s3)" }} onClick={() => load()}>Повторить</button>
+      </div>
+    </div>
+  );
+
+  // ── вид «Таймлайн» (главный) ────────────────────────────────────────────
+  if (view === "timeline") {
+    return (
+      <div className="screen today">
+        <div className="today-head">
+          <div className="screen-hero today-pad today-hero-row">
+            <div>
+              <h1>Сегодня</h1>
+              <div className="date today-date" style={{ textTransform: "capitalize" }}>{FMT.format(new Date())}</div>
+              {tasks.length > 0 && (
+                <div className="today-summary">{tasks.length} задач · {closed.length} закрыто</div>
+              )}
+            </div>
+            <button className="cal-today" onClick={jumpNow}>Сегодня</button>
+          </div>
+          {allday.length > 0 && (
+            <div className="cal-allday today-pad">
+              {allday.map((t) => (
+                <button
+                  key={t.id}
+                  className="cal-chip"
+                  style={{ borderLeftColor: priorityColor(t.priority) ?? "transparent" }}
+                  onClick={() => onOpenTask?.(t)}
+                >
+                  {t.title}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {state === "loading" ? skeleton
+          : state === "error" ? errorBlock
+          : timed.length === 0 && allday.length === 0 && closed.length === 0 ? (
+            <div className="today-pad" style={{ marginTop: "var(--s5)" }}>
+              <Empty text="План на день пуст. Тап по часу или + добавит задачу." />
+            </div>
+          ) : (
+            <DayTimeline
+              tasks={timed}
+              byId={byId}
+              isToday
+              autoScroll={false}
+              onTapHour={onTapHour}
+              onToggle={toggle}
+              onOpen={onOpenTask}
+              nowAnchorId="today-now"
+            />
+          )}
+      </div>
+    );
+  }
+
+  // ── вид «Задачи» (гибрид-список) ────────────────────────────────────────
+  const nothing = overdue.length === 0 && allday.length === 0 && closed.length === 0;
   return (
     <div className="screen today">
       <div className="today-head">
-        <div className="screen-hero today-pad">
-          <h1>Сегодня</h1>
-          <div className="date today-date" style={{ textTransform: "capitalize" }}>{FMT.format(new Date())}</div>
-          {tasks.length > 0 && (
-            <div className="today-summary">{tasks.length} задач · {doneCount} закрыто</div>
-          )}
+        <div className="today-pad">
+          <button className="today-back" onClick={() => onViewChange("timeline")}>
+            <IcoBack /><span>Таймлайн</span>
+          </button>
+          <h1 style={{ marginTop: "var(--s2)" }}>Сегодня</h1>
         </div>
       </div>
 
-      <DayTimeline tasks={tasks} byId={byId} isToday autoScroll={false} onTapHour={onTapHour} onToggle={toggle} onOpen={onOpenTask} />
+      {state === "loading" ? skeleton
+        : state === "error" ? errorBlock
+        : (
+          <div className="today-pad today-tasks">
+            <button className="entry-card" onClick={onOpenInbox}>
+              <span className="lead"><IcoInbox /></span>
+              <span className="grow">Входящие</span>
+              {inboxCount > 0 && <span className="count">{inboxCount}</span>}
+              <span className="chev"><IcoChevron /></span>
+            </button>
 
-      {untimed.length > 0 ? (
-        <div className="today-pad">
-          <div className="section-label">Без времени</div>
-          <div className="list">
-            {untimed.map((t) => (
-              <TaskItem key={t.id} task={t} onToggle={toggle} onOpen={onOpenTask} color={resolveColor(t.project_id, byId)} />
-            ))}
+            <div className="today-qa">
+              <QuickAddBar onAdd={onQuickAdd} placeholder="Новая задача на сегодня…" />
+            </div>
+
+            {overdue.length > 0 && (
+              <>
+                <div className="section-label section-overdue">Просрочено · {overdue.length}</div>
+                {renderList(overdue)}
+              </>
+            )}
+
+            {allday.length > 0 && (
+              <>
+                <div className="section-label">Без времени</div>
+                {renderList(allday)}
+              </>
+            )}
+
+            {closed.length > 0 && (
+              <>
+                <button className="section-label section-toggle" onClick={() => setShowDone((v) => !v)}>
+                  <span>Закрыто · {closed.length}</span>
+                  <span className={`tree-chev ${showDone ? "open" : ""}`}><IcoChevron /></span>
+                </button>
+                {showDone && renderList(closed)}
+              </>
+            )}
+
+            {nothing && (
+              <div style={{ marginTop: "var(--s4)" }}>
+                <Empty text="На сегодня задач нет. Добавь через + или быстрый ввод выше." />
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
-        tasks.length === 0 && (
-          <div className="today-pad">
-            <Empty text="План на день пуст. Тап по часу или + добавит задачу." />
-          </div>
-        )
-      )}
+        )}
     </div>
   );
 }

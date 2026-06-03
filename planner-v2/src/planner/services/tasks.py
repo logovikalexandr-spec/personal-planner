@@ -97,6 +97,12 @@ async def list_tasks(
         stmt = stmt.where(
             Task.due_date.is_not(None), Task.due_date >= date.today(), Task.status != "done"
         )
+    elif scope == "overdue":
+        stmt = stmt.where(
+            Task.due_date.is_not(None),
+            Task.due_date < date.today(),
+            Task.status.in_(("todo", "in_progress")),
+        )
     elif scope == "inbox":
         inbox_id = await _inbox_project_id(session)
         stmt = stmt.where(Task.project_id == inbox_id)

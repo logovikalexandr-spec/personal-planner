@@ -34,7 +34,7 @@ export function priorityColor(priority: Priority): string | null {
 }
 
 export const DayTimeline = memo(function DayTimeline({
-  tasks, byId, isToday, onTapHour, onToggle, onOpen, autoScroll = true,
+  tasks, byId, isToday, onTapHour, onToggle, onOpen, autoScroll = true, nowAnchorId,
 }: {
   tasks: Task[];
   byId: Map<number, Project>;
@@ -43,6 +43,8 @@ export const DayTimeline = memo(function DayTimeline({
   onToggle: (t: Task) => void;
   onOpen?: (t: Task) => void;
   autoScroll?: boolean;
+  /** id на now-линии — якорь для прыжок-скролла «Сегодня» (Today timeline). */
+  nowAnchorId?: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
@@ -90,7 +92,7 @@ export const DayTimeline = memo(function DayTimeline({
         ))}
 
         {isToday && nowMin >= offsetMin && (
-          <div className="cal-now" style={{ top: ((nowMin - offsetMin) / 60) * HOUR_H }} />
+          <div id={nowAnchorId} className="cal-now" style={{ top: ((nowMin - offsetMin) / 60) * HOUR_H }} />
         )}
 
         {timed.map((t) => {
@@ -98,7 +100,7 @@ export const DayTimeline = memo(function DayTimeline({
           const endRaw = parseMin(t.end_time);
           const dur = endRaw && endRaw > start ? endRaw - start : 60;
           const c = resolveColor(t.project_id, byId);
-          const prio = priorityColor(t.priority);
+          const prio = priorityColor(t.priority); // кант строго по приоритету; none → нет цвета
           const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
           return (
             <div
@@ -107,7 +109,7 @@ export const DayTimeline = memo(function DayTimeline({
               style={{
                 top: ((start - offsetMin) / 60) * HOUR_H + 1,
                 height: Math.max((dur / 60) * HOUR_H - 2, 22),
-                borderLeftColor: prio ?? c ?? "var(--accent)",
+                borderLeftColor: prio ?? "transparent",
                 background: c ? `${c}22` : "var(--surface-2)",
               }}
               onClick={(e) => { e.stopPropagation(); onOpen?.(t); }}

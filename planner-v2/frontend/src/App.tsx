@@ -4,7 +4,6 @@ import { Fab } from "./components/Fab";
 import { TaskComposer } from "./components/TaskComposer";
 import { TaskDetail } from "./components/TaskDetail";
 import { QuickAddBar } from "./components/QuickAddBar";
-import { Sheet } from "./components/Sheet";
 import { ListView } from "./components/ListView";
 import { Drawer } from "./components/Drawer";
 import { Today } from "./screens/Today";
@@ -40,7 +39,7 @@ function AppMain() {
   const [addOpen, setAddOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [addHour, setAddHour] = useState<number | null>(null);
-  const [aiOpen, setAiOpen] = useState(false);
+  const [todayView, setTodayView] = useState<"timeline" | "tasks">("timeline"); // вид внутри таба «Сегодня»
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
   const [userName, setUserName] = useState("");
@@ -121,7 +120,7 @@ function AppMain() {
   // выкл при открытых Sheet/composer/picker/viewing-sheet, на табе lists (дубль), во время drag (в Drawer).
   const esx = useRef<number | null>(null);
   const esy = useRef<number | null>(null);
-  const anyOverlay = addOpen || quickOpen || addHour != null || aiOpen || drawerOpen || openTaskId != null;
+  const anyOverlay = addOpen || quickOpen || addHour != null || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "lists" && !viewing);
   function onRootTouchStart(e: React.TouchEvent) {
     if (edgeSwipeOff) { esx.current = null; esy.current = null; return; }
@@ -145,7 +144,16 @@ function AppMain() {
     <>
       <div className="screen-host" hidden={tabHidden("today")}>
         {mountedTabs.has("today") && (
-          <Today reloadKey={reloadKey} onTapHour={tapHour} onOpenTask={openTask} />
+          <Today
+            reloadKey={reloadKey}
+            onTapHour={tapHour}
+            onOpenTask={openTask}
+            view={todayView}
+            onViewChange={setTodayView}
+            onOpenInbox={openInbox}
+            onQuickAdd={quickAdd}
+            inboxCount={inboxCount}
+          />
         )}
       </div>
       <div className="screen-host" hidden={tabHidden("calendar")}>
@@ -182,7 +190,16 @@ function AppMain() {
           onClose={closeDrawer}
         />
       )}
-      {showFab && <Fab onAdd={() => setQuickOpen(true)} onAi={() => setAiOpen(true)} />}
+      {showFab && (
+        <Fab
+          onAdd={() => setQuickOpen(true)}
+          secondary={
+            tab === "today" && todayView === "timeline"
+              ? { label: "Задачи", onClick: () => setTodayView("tasks") }
+              : undefined
+          }
+        />
+      )}
       {quickOpen && (
         <>
           <div className="qa-scrim" onClick={() => setQuickOpen(false)} />
@@ -210,13 +227,6 @@ function AppMain() {
           onClose={() => setAddHour(null)}
           onSaved={() => { setAddHour(null); bump(); }}
         />
-      )}
-      {aiOpen && (
-        <Sheet onClose={() => setAiOpen(false)}>
-          <h1 style={{ fontSize: 20 }}>AI-копайлот</h1>
-          <div className="muted">Скоро: разговорный помощник со знанием всего планнера.</div>
-          <button className="btn btn-block" onClick={() => setAiOpen(false)}>Ок</button>
-        </Sheet>
       )}
       <BottomTabs active={tab} onChange={onTabChange} inboxCount={inboxCount} />
       {openTaskId != null && (

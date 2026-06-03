@@ -104,7 +104,8 @@ body {
 .fab:active { transform: scale(0.94); }
 .fab-secondary {
   left: var(--s4); right: auto; background: var(--surface-2); color: var(--accent);
-  border: 1px solid var(--border); width: 50px; height: 50px; font-size: 22px;
+  border: 1px solid var(--border); width: auto; height: var(--fab);
+  padding: 0 20px; font-size: 14px; font-weight: 600; border-radius: 999px;
 }
 
 /* bottom sheet (add task) */
@@ -445,6 +446,27 @@ select.input { appearance: none; -webkit-appearance: none; }
   font-family: var(--font-mono); font-feature-settings: "tnum";
   font-size: 13px; color: var(--text-muted); margin-top: var(--s1);
 }
+/* шапка Today: заголовок-блок слева + чип «Сегодня» (прыжок к now) справа */
+.today-hero-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s3); }
+/* all-day чипы закреплены в sticky-шапке */
+.today-head .cal-allday.today-pad { padding: var(--s2) var(--s4) var(--s3); }
+/* Today вид «Задачи» */
+.today-back {
+  appearance: none; border: none; background: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--accent); font-size: 14px; font-weight: 600; padding: 2px 0;
+}
+.today-back svg { width: 18px; height: 18px; }
+.today-tasks { padding-bottom: calc(var(--tab-h) + var(--fab) + var(--s6)); }
+.today-qa { margin: var(--s3) 0 var(--s2); }
+.section-overdue { color: var(--danger); }
+.section-toggle {
+  appearance: none; border: none; background: none; cursor: pointer; width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.section-toggle .tree-chev { color: var(--text-muted); transition: transform 140ms ease; }
+.section-toggle .tree-chev.open { transform: rotate(90deg); }
+.section-toggle .tree-chev svg { width: 16px; height: 16px; display: block; }
 /* статический таймлайн в Today: без под-скролла, естественная высота */
 .daytimeline--static .cal-scroll,
 .daytimeline--static.cal-scroll { overflow: visible; flex: none; }

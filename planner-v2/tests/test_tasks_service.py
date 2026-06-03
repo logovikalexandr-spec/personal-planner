@@ -43,6 +43,28 @@ async def test_list_planned_returns_future_dated_open(db_session):
 
 
 @pytest.mark.asyncio
+async def test_list_overdue_returns_past_dated_open(db_session):
+    inbox = Project(name="Inbox", slug="inbox", is_inbox=True)
+    db_session.add(inbox)
+    await db_session.flush()
+    await svc.create_task(db_session, title="вчера", due_date=date.today() - timedelta(days=1))
+    await svc.create_task(db_session, title="неделю назад", due_date=date.today() - timedelta(days=7))
+    await svc.create_task(db_session, title="сегодня", due_date=date.today())
+    await svc.create_task(db_session, title="без даты")
+    done_past = await svc.create_task(
+        db_session, title="вчера закрытая", due_date=date.today() - timedelta(days=1)
+    )
+    await svc.set_status(db_session, done_past.id, "done")
+    overdue = await svc.list_tasks(db_session, scope="overdue")
+    titles = [t.title for t in overdue]
+    assert "вчера" in titles
+    assert "неделю назад" in titles
+    assert "сегодня" not in titles          # сегодня не просрочено
+    assert "без даты" not in titles          # без due_date не просрочено
+    assert "вчера закрытая" not in titles    # done не просрочено
+
+
+@pytest.mark.asyncio
 async def test_set_status_done(db_session):
     inbox = Project(name="Inbox", slug="inbox", is_inbox=True)
     db_session.add(inbox)

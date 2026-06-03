@@ -58,13 +58,15 @@ function TaskItemBase({
   const done = task.status === "done";
   const wontDo = task.status === "wont_do";
   const isOverdue = !done && !wontDo && isOverdueDate(task.due_date);
-  // Единый источник канта: приоритет важнее цвета проекта (визуал-спека §4, решение CEO #4).
+  // Кант СТРОГО по приоритету (визуал-спека §3): high/medium/low дают полосу,
+  // none — нет полосы. Цвет проекта больше НЕ красит кант (ушёл в тинт фона).
   const prio =
     task.priority === "high" ? "prio-high"
     : task.priority === "medium" ? "prio-medium"
     : task.priority === "low" ? "prio-low"
     : "";
-  const showProjectKant = prio === "" && !!color && !wontDo;
+  // Фон строки = тинт цвета проекта (~13% alpha). Закрытые/wont_do приглушены, тинт не нужен.
+  const tintBg = color && !done && !wontDo ? `${color}22` : undefined;
 
   const swipeEnabled = !selectMode && (!!onSwipeComplete || !!onSwipeDate || !!onSwipeMove || !!onSwipeDelete);
 
@@ -211,7 +213,7 @@ function TaskItemBase({
         style={{
           transform: `translateX(${dx}px)`,
           transition: dragging.current ? "none" : "transform 180ms cubic-bezier(0.22,1,0.36,1)",
-          ...(showProjectKant ? { borderLeft: `3px solid ${color}`, paddingLeft: "calc(var(--s4) - 3px)" } : {}),
+          ...(tintBg ? { background: tintBg } : {}),
         }}
         onTouchStart={swipeEnabled || onLongPress ? onTouchStart : undefined}
         onTouchMove={swipeEnabled || onLongPress ? onTouchMove : undefined}
