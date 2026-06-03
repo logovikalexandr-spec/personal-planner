@@ -147,13 +147,12 @@ export function Today({
           )}
         </div>
 
+        {timed.length === 0 && allday.length === 0 && closed.length === 0 && state === "ready" && (
+          <div className="today-empty-hint">План на день пуст. Тап по часу или + добавит задачу.</div>
+        )}
         {state === "loading" ? skeleton
           : state === "error" ? errorBlock
-          : timed.length === 0 && allday.length === 0 && closed.length === 0 ? (
-            <div className="today-pad" style={{ marginTop: "var(--s5)" }}>
-              <Empty text="План на день пуст. Тап по часу или + добавит задачу." />
-            </div>
-          ) : (
+          : (
             <DayTimeline
               tasks={timed}
               byId={byId}
