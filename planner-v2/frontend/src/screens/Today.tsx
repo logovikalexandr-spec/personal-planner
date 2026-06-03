@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DayTimeline, priorityColor } from "../components/DayTimeline";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
@@ -45,17 +45,19 @@ export function Today({
   const [byId, setById] = useState<Map<number, Project>>(new Map());
   const [state, setState] = useState<LoadState>("loading");
   const [showDone, setShowDone] = useState(false);
+  const firstRef = useRef(true); // скелетон/ошибку показываем только на первой загрузке, рефетчи — без мигания
 
   const load = useCallback(async () => {
-    setState("loading");
+    if (firstRef.current) setState("loading");
     try {
       const [ts, ps, ov] = await Promise.all([getDayTasks(iso), getProjects(), getTasks("overdue")]);
       setTasks(ts);
       setById(new Map(ps.map((p) => [p.id, p])));
       setOverdue(ov);
+      firstRef.current = false;
       setState("ready");
     } catch {
-      setState("error");
+      if (firstRef.current) setState("error");
     }
   }, [iso]);
 
@@ -69,10 +71,12 @@ export function Today({
     load();
   }, [load]);
 
-  // ресайз блока за края (шаг 15 мин) → патч времени + перезагрузка
+  // ресайз/перенос блока: оптимистично меняем время локально (мгновенно, без рефетча
+  // и мигания скелетоном) → патч в фоне; при ошибке тихо ресинкаем.
   const resize = useCallback((t: Task, patch: { due_time: string; end_time: string }) => {
     tg()?.HapticFeedback?.impactOccurred?.("light");
-    patchTask(t.id, patch).then(load).catch(() => {});
+    setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, due_time: patch.due_time, end_time: patch.end_time } : x)));
+    patchTask(t.id, patch).catch(() => load());
   }, [load]);
 
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
