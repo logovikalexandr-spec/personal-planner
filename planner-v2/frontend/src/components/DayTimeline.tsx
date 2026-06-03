@@ -8,8 +8,8 @@ const START_HOUR = 5; // таймлайн начинается с 05:00 (ноч�
 const STEP_MIN = 15;            // шаг по времени
 const STEP_PX = HOUR_H / 4;     // 56/4 = 14px = 15 минут
 const DAY_END = 24 * 60;
-const LONGPRESS_MS = 250;       // удержание тела блока → «поднять» для переноса
-const CANCEL_PX = 8;            // сдвиг до long-press = это скролл, отменяем подъём
+const LONGPRESS_MS = 220;       // удержание тела блока → «поднять» для переноса
+const CANCEL_PX = 12;           // сдвиг до long-press = это скролл, отменяем подъём (tolerance как у dnd-kit)
 
 function parseMin(t: string | null): number | null {
   if (!t) return null;
@@ -111,6 +111,23 @@ export const DayTimeline = memo(function DayTimeline({
     if (lpRef.current != null) { window.clearTimeout(lpRef.current); lpRef.current = null; }
   }
 
+  // Глушим нативный скролл на время жеста (как ProjectTree на шторке): non-passive
+  // touchmove с preventDefault — иначе iOS WebView начинает скролл и срывает перенос.
+  const blockerRef = useRef<((e: TouchEvent) => void) | null>(null);
+  function startBlocking() {
+    if (blockerRef.current) return;
+    const fn = (e: TouchEvent) => e.preventDefault();
+    blockerRef.current = fn;
+    document.addEventListener("touchmove", fn, { passive: false });
+  }
+  function stopBlocking() {
+    if (blockerRef.current) {
+      document.removeEventListener("touchmove", blockerRef.current);
+      blockerRef.current = null;
+    }
+  }
+  useEffect(() => () => stopBlocking(), []);
+
   // ── края: ресайз сразу по нажатию (без long-press) ──
   function onEdgeDown(e: React.PointerEvent, t: Task, edge: "top" | "bottom", baseStart: number, baseEnd: number) {
     if (!onResize) return;
@@ -119,6 +136,7 @@ export const DayTimeline = memo(function DayTimeline({
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
     pickedRef.current = false;
     movedRef.current = false;
+    startBlocking();
     dragRef.current = { task: t, edge, originY: e.clientY, baseStart, baseEnd };
     setDrag({ id: t.id, startMin: baseStart, endMin: baseEnd });
   }
@@ -136,6 +154,7 @@ export const DayTimeline = memo(function DayTimeline({
       pickedRef.current = true;
       haptic("medium");
       el.setPointerCapture?.(pid);
+      startBlocking();
       dragRef.current = { task: t, edge: "move", originY: downRef.current!.y, baseStart, baseEnd };
       setDrag({ id: t.id, startMin: baseStart, endMin: baseEnd });
     }, LONGPRESS_MS);
@@ -168,6 +187,7 @@ export const DayTimeline = memo(function DayTimeline({
 
   function onDragUp() {
     clearLp();
+    stopBlocking();
     const d = dragRef.current;
     dragRef.current = null;
     pickedRef.current = false;

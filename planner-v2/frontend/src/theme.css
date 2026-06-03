@@ -25,6 +25,8 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
+/* запрет двойного-тапа/пинч-зума (вместе с user-scalable=no в viewport) */
+html { touch-action: manipulation; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -32,6 +34,12 @@ body {
   font-size: 16px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
+  /* запрет выделения/копирования текста и iOS-callout вне полей ввода */
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+/* текст выделяется только в полях ввода */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
 }
 
 .app { min-height: 100dvh; padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
