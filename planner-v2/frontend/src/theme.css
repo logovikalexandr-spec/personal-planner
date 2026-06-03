@@ -318,7 +318,17 @@ select.input { appearance: none; -webkit-appearance: none; }
   border-radius: 10px; padding: 5px 9px; cursor: pointer;
   background: var(--surface-2); border-left: 3px solid var(--accent);
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  display: flex; align-items: flex-start; gap: 7px;
 }
+.cal-block-main { flex: 1 1 auto; min-width: 0; }
+.cal-cb {
+  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-muted);
+  flex: 0 0 auto; margin-top: 1px; display: inline-flex; align-items: center;
+  justify-content: center; color: #fff; cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.cal-cb.done { background: var(--accent); border-color: var(--accent); }
+.cal-cb svg { width: 11px; height: 11px; }
 .cal-block .bt { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-block .bm {
   font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
@@ -427,10 +437,10 @@ select.input { appearance: none; -webkit-appearance: none; }
 .today-head {
   position: sticky; top: 0; z-index: 4;
   background: var(--bg);
-  padding-top: var(--s5); padding-bottom: var(--s3);
+  padding-top: var(--s4); padding-bottom: var(--s2);
   border-bottom: 1px solid var(--border);
 }
-.today-head .screen-hero { margin-bottom: var(--s3); }
+.today-head .screen-hero { margin-bottom: 0; }
 .today-summary {
   font-family: var(--font-mono); font-feature-settings: "tnum";
   font-size: 13px; color: var(--text-muted); margin-top: var(--s1);

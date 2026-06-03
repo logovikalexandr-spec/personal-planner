@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DayTimeline } from "../components/DayTimeline";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
-import { IcoChevron, IcoInbox } from "../components/icons";
 import { getDayTasks, getProjects, patchTask } from "../api";
 import { tg } from "../telegram";
 import type { Project, Task } from "../types";
@@ -24,8 +23,8 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
 }
 
 export function Today({
-  reloadKey, inboxCount, onInbox, onTapHour, onOpenTask,
-}: { reloadKey: number; inboxCount: number; onInbox: () => void; onTapHour: (hour: number) => void; onOpenTask?: (t: Task) => void }) {
+  reloadKey, onTapHour, onOpenTask,
+}: { reloadKey: number; onTapHour: (hour: number) => void; onOpenTask?: (t: Task) => void }) {
   const iso = localToday();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [byId, setById] = useState<Map<number, Project>>(new Map());
@@ -60,18 +59,9 @@ export function Today({
             <div className="today-summary">{tasks.length} задач · {doneCount} закрыто</div>
           )}
         </div>
-
-        <div className="today-pad">
-          <div className="entry-card" onClick={onInbox}>
-            <span className="lead"><IcoInbox /></span>
-            <span className="grow">Разобрать Inbox</span>
-            {inboxCount > 0 && <span className="count">{inboxCount}</span>}
-            <span className="chev"><IcoChevron /></span>
-          </div>
-        </div>
       </div>
 
-      <DayTimeline tasks={tasks} byId={byId} isToday autoScroll={false} onTapHour={onTapHour} onToggle={toggle} />
+      <DayTimeline tasks={tasks} byId={byId} isToday autoScroll={false} onTapHour={onTapHour} onToggle={toggle} onOpen={onOpenTask} />
 
       {untimed.length > 0 ? (
         <div className="today-pad">

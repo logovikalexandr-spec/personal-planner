@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { IcoBellMicro, IcoRepeatMicro } from "./icons";
+import { IcoBellMicro, IcoRepeatMicro, IcoCheck } from "./icons";
 import type { Priority, Project, Task } from "../types";
 
 const HOUR_H = 56;
@@ -34,13 +34,14 @@ export function priorityColor(priority: Priority): string | null {
 }
 
 export const DayTimeline = memo(function DayTimeline({
-  tasks, byId, isToday, onTapHour, onToggle, autoScroll = true,
+  tasks, byId, isToday, onTapHour, onToggle, onOpen, autoScroll = true,
 }: {
   tasks: Task[];
   byId: Map<number, Project>;
   isToday: boolean;
   onTapHour: (hour: number) => void;
   onToggle: (t: Task) => void;
+  onOpen?: (t: Task) => void;
   autoScroll?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -109,13 +110,23 @@ export const DayTimeline = memo(function DayTimeline({
                 borderLeftColor: prio ?? c ?? "var(--accent)",
                 background: c ? `${c}22` : "var(--surface-2)",
               }}
-              onClick={(e) => { e.stopPropagation(); onToggle(t); }}
+              onClick={(e) => { e.stopPropagation(); onOpen?.(t); }}
             >
-              <div className="bt">{proj?.icon ? `${proj.icon} ` : ""}{t.title}</div>
-              <div className="bm">
-                <span>{hhmm(start)}{endRaw && endRaw > start ? `–${hhmm(endRaw)}` : ""}</span>
-                {t.recurrence ? <IcoRepeatMicro /> : null}
-                {t.reminder_at ? <IcoBellMicro /> : null}
+              <div
+                className={`cal-cb ${t.status === "done" ? "done" : ""}`}
+                onClick={(e) => { e.stopPropagation(); onToggle(t); }}
+                role="button"
+                aria-label="done"
+              >
+                {t.status === "done" ? <IcoCheck /> : null}
+              </div>
+              <div className="cal-block-main">
+                <div className="bt">{proj?.icon ? `${proj.icon} ` : ""}{t.title}</div>
+                <div className="bm">
+                  <span>{hhmm(start)}{endRaw && endRaw > start ? `–${hhmm(endRaw)}` : ""}</span>
+                  {t.recurrence ? <IcoRepeatMicro /> : null}
+                  {t.reminder_at ? <IcoBellMicro /> : null}
+                </div>
               </div>
             </div>
           );

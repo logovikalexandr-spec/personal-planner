@@ -145,7 +145,7 @@ function AppMain() {
     <>
       <div className="screen-host" hidden={tabHidden("today")}>
         {mountedTabs.has("today") && (
-          <Today reloadKey={reloadKey} inboxCount={inboxCount} onInbox={openInbox} onTapHour={tapHour} onOpenTask={openTask} />
+          <Today reloadKey={reloadKey} onTapHour={tapHour} onOpenTask={openTask} />
         )}
       </div>
       <div className="screen-host" hidden={tabHidden("calendar")}>
