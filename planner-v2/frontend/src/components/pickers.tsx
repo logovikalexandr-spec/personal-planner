@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createProject, createTag, getProjects, getTags } from "../api";
-import { flatten, indentFor } from "../lib/projectTree";
+import { childCountMap, flatten, indentFor, subtreeCountMap } from "../lib/projectTree";
 import type { Priority, Project, Tag } from "../types";
 import { Sheet } from "./Sheet";
+import { IcoChevron } from "./icons";
 import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
 
 // DESIGN.md §2 / PATTERNS.md «Приоритет»: high=Signal Red, medium=Amber, low=Ember, none=Steel (без синего, 1 акцент)
@@ -110,7 +111,36 @@ export function ProjectPickerSheet(props: ProjectPickerSheetProps) {
   const [picked, setPicked] = useState<number | null | undefined>(undefined); // undefined = ничего ещё не выбрано в этом сеансе
   const [createOpen, setCreateOpen] = useState(false);
 
-  const rows = flatten(projects);
+  // Сворачиваемое дерево (как в «Списках»): по умолчанию свёрнуто, авто-раскрываем
+  // путь к текущему выбранному проекту, чтобы он был виден при открытии.
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (didInit.current || projects.length === 0) return;
+    didInit.current = true;
+    if (value != null) {
+      const byId = new Map(projects.map((p) => [p.id, p]));
+      const anc = new Set<number>();
+      let cur = byId.get(value);
+      let g = 0;
+      while (cur && cur.parent_id != null && g++ < 16) {
+        anc.add(cur.parent_id);
+        cur = byId.get(cur.parent_id);
+      }
+      if (anc.size) setExpanded(anc);
+    }
+  }, [projects, value]);
+
+  const toggle = (id: number) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const childCount = useMemo(() => childCountMap(projects), [projects]);
+  const subtreeCount = useMemo(() => subtreeCountMap(projects), [projects]);
+  const rows = flatten(projects, { expanded });
 
   function retry() {
     if (controlled) onRetry?.();
@@ -164,6 +194,9 @@ export function ProjectPickerSheet(props: ProjectPickerSheetProps) {
 
             {rows.map(({ depth, ...p }) => {
               const pad = indentFor(depth);
+              const hasChildren = (childCount.get(p.id) ?? 0) > 0;
+              const cnt = subtreeCount.get(p.id) ?? 0;
+              const open = expanded.has(p.id);
               return (
                 <button
                   key={p.id}
@@ -173,6 +206,17 @@ export function ProjectPickerSheet(props: ProjectPickerSheetProps) {
                 >
                   <span style={{ flex: "0 0 auto" }}>{p.icon ?? "•"}</span>
                   <span style={{ flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                  {cnt > 0 && <span className="drawer-count">{cnt}</span>}
+                  {hasChildren && (
+                    <span
+                      role="button"
+                      className="tree-btn"
+                      aria-label={open ? "Свернуть" : "Раскрыть"}
+                      onClick={(e) => { e.stopPropagation(); toggle(p.id); }}
+                    >
+                      <span className={`tree-chev ${open ? "open" : ""}`}><IcoChevron /></span>
+                    </span>
+                  )}
                   {isPicked(p.id) && <span className="picker-check">✓</span>}
                 </button>
               );
