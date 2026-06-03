@@ -339,6 +339,28 @@ select.input { appearance: none; -webkit-appearance: none; }
 .cal-block .bm svg { width: 12px; height: 12px; flex: 0 0 auto; }
 .cal-block.done { opacity: 0.5; }
 .cal-block.done .bt { text-decoration: line-through; }
+/* блок таймлайна: без выделения/копирования текста при зажатии (перенос/ресайз) */
+.cal-block {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.cal-block-main { cursor: grab; }
+.cal-block.resizing .cal-block-main { cursor: grabbing; }
+
+/* ресайз-хэндлы блока за края (шаг 15 мин) */
+.cal-resize {
+  position: absolute; left: 0; right: 0; height: 13px; z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  cursor: ns-resize; touch-action: none;
+}
+.cal-resize.top { top: 0; }
+.cal-resize.bottom { bottom: 0; }
+.cal-resize-grip {
+  width: 26px; height: 3px; border-radius: 999px;
+  background: var(--text-muted); opacity: 0.4; transition: opacity 120ms ease, background 120ms ease;
+}
+.cal-block.resizing { z-index: 6; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.cal-block.resizing .cal-resize-grip { opacity: 0.95; background: var(--accent); }
+
 .cal-now { position: absolute; left: 50px; right: 0; height: 2px; background: var(--accent); z-index: 3; }
 .cal-now::before {
   content: ""; position: absolute; left: 0; top: -3px; width: 8px; height: 8px;

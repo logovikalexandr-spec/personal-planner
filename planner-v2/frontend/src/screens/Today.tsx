@@ -69,6 +69,12 @@ export function Today({
     load();
   }, [load]);
 
+  // ресайз блока за края (шаг 15 мин) → патч времени + перезагрузка
+  const resize = useCallback((t: Task, patch: { due_time: string; end_time: string }) => {
+    tg()?.HapticFeedback?.impactOccurred?.("light");
+    patchTask(t.id, patch).then(load).catch(() => {});
+  }, [load]);
+
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
   // all-day = с датой на сегодня, но без времени; открытые (не done/wont_do)
   const allday = useMemo(
@@ -152,6 +158,7 @@ export function Today({
               onTapHour={onTapHour}
               onToggle={toggle}
               onOpen={onOpenTask}
+              onResize={resize}
               nowAnchorId="today-now"
             />
           )}
