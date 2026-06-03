@@ -421,9 +421,16 @@ select.input { appearance: none; -webkit-appearance: none; }
 
 /* ── Wave 1 visual-spec: сквозные правила ─────────────────────────── */
 
-/* Today — единый скролл экрана, full-bleed таймлайн */
-.screen.today { padding-left: 0; padding-right: 0; }
+/* Today — full-bleed таймлайн; шапка закреплена, таймлайн скроллится под ней */
+.screen.today { padding: 0 0 var(--s6); }
 .today-pad { padding: 0 var(--s4); }
+.today-head {
+  position: sticky; top: 0; z-index: 4;
+  background: var(--bg);
+  padding-top: var(--s5); padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--border);
+}
+.today-head .screen-hero { margin-bottom: var(--s3); }
 .today-summary {
   font-family: var(--font-mono); font-feature-settings: "tnum";
   font-size: 13px; color: var(--text-muted); margin-top: var(--s1);

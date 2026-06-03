@@ -52,20 +52,22 @@ export function Today({
 
   return (
     <div className="screen today">
-      <div className="screen-hero today-pad">
-        <h1>Сегодня</h1>
-        <div className="date today-date" style={{ textTransform: "capitalize" }}>{FMT.format(new Date())}</div>
-        {tasks.length > 0 && (
-          <div className="today-summary">{tasks.length} задач · {doneCount} закрыто</div>
-        )}
-      </div>
+      <div className="today-head">
+        <div className="screen-hero today-pad">
+          <h1>Сегодня</h1>
+          <div className="date today-date" style={{ textTransform: "capitalize" }}>{FMT.format(new Date())}</div>
+          {tasks.length > 0 && (
+            <div className="today-summary">{tasks.length} задач · {doneCount} закрыто</div>
+          )}
+        </div>
 
-      <div className="today-pad">
-        <div className="entry-card" onClick={onInbox}>
-          <span className="lead"><IcoInbox /></span>
-          <span className="grow">Разобрать Inbox</span>
-          {inboxCount > 0 && <span className="count">{inboxCount}</span>}
-          <span className="chev"><IcoChevron /></span>
+        <div className="today-pad">
+          <div className="entry-card" onClick={onInbox}>
+            <span className="lead"><IcoInbox /></span>
+            <span className="grow">Разобрать Inbox</span>
+            {inboxCount > 0 && <span className="count">{inboxCount}</span>}
+            <span className="chev"><IcoChevron /></span>
+          </div>
         </div>
       </div>
 

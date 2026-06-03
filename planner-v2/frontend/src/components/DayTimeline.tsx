@@ -3,7 +3,7 @@ import { IcoBellMicro, IcoRepeatMicro } from "./icons";
 import type { Priority, Project, Task } from "../types";
 
 const HOUR_H = 56;
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const START_HOUR = 5; // таймлайн начинается с 05:00 (ночь 00–04 скрыта, если на неё нет задач)
 
 function parseMin(t: string | null): number | null {
   if (!t) return null;
@@ -46,6 +46,21 @@ export const DayTimeline = memo(function DayTimeline({
   const scrollRef = useRef<HTMLDivElement>(null);
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
 
+  // Начало сетки: 05:00, но растягиваем раньше, если есть задача до 05:00 (edge — задача не теряется).
+  const startHour = useMemo(() => {
+    let min = START_HOUR;
+    for (const t of timed) {
+      const m = parseMin(t.due_time);
+      if (m != null) min = Math.min(min, Math.floor(m / 60));
+    }
+    return min;
+  }, [timed]);
+  const HOURS = useMemo(
+    () => Array.from({ length: 24 - startHour }, (_, i) => startHour + i),
+    [startHour],
+  );
+  const offsetMin = startHour * 60;
+
   // Поминутный пересчёт линии «сейчас» (мгновенный, без transition — §6).
   const [nowMin, setNowMin] = useState(() => new Date().getHours() * 60 + new Date().getMinutes());
   useEffect(() => {
@@ -60,9 +75,9 @@ export const DayTimeline = memo(function DayTimeline({
     if (!autoScroll) return;
     const el = scrollRef.current;
     if (!el) return;
-    const focusHour = isToday ? new Date().getHours() : 7;
-    el.scrollTop = Math.max(0, focusHour * HOUR_H - HOUR_H);
-  }, [autoScroll, isToday]);
+    const focusHour = isToday ? new Date().getHours() : 9;
+    el.scrollTop = Math.max(0, (focusHour - startHour) * HOUR_H - HOUR_H);
+  }, [autoScroll, isToday, startHour]);
 
   return (
     <div className={`cal-scroll ${autoScroll ? "" : "daytimeline--static"}`} ref={scrollRef} style={{ flex: autoScroll ? 1 : "none" }}>
@@ -73,7 +88,9 @@ export const DayTimeline = memo(function DayTimeline({
           </div>
         ))}
 
-        {isToday && <div className="cal-now" style={{ top: (nowMin / 60) * HOUR_H }} />}
+        {isToday && nowMin >= offsetMin && (
+          <div className="cal-now" style={{ top: ((nowMin - offsetMin) / 60) * HOUR_H }} />
+        )}
 
         {timed.map((t) => {
           const start = parseMin(t.due_time)!;
@@ -87,7 +104,7 @@ export const DayTimeline = memo(function DayTimeline({
               key={t.id}
               className={`cal-block ${t.status === "done" ? "done" : ""}`}
               style={{
-                top: (start / 60) * HOUR_H + 1,
+                top: ((start - offsetMin) / 60) * HOUR_H + 1,
                 height: Math.max((dur / 60) * HOUR_H - 2, 22),
                 borderLeftColor: prio ?? c ?? "var(--accent)",
                 background: c ? `${c}22` : "var(--surface-2)",
