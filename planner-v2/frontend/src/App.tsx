@@ -122,6 +122,19 @@ function AppMain() {
   const esy = useRef<number | null>(null);
   const anyOverlay = addOpen || quickOpen || addHour != null || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "lists" && !viewing);
+
+  // Блокируем скролл фона при открытом оверлее: фиксируем body на текущей позиции —
+  // иначе autoFocus инпута в bottom-sheet утаскивает фон вверх («экран улетает»).
+  useEffect(() => {
+    if (!anyOverlay) return;
+    const y = window.scrollY;
+    const b = document.body.style;
+    b.position = "fixed"; b.top = `-${y}px`; b.left = "0"; b.right = "0"; b.width = "100%";
+    return () => {
+      b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.width = "";
+      window.scrollTo(0, y);
+    };
+  }, [anyOverlay]);
   function onRootTouchStart(e: React.TouchEvent) {
     if (edgeSwipeOff) { esx.current = null; esy.current = null; return; }
     const t = e.touches[0];
