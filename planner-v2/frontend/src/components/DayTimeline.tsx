@@ -129,6 +129,8 @@ export const DayTimeline = memo(function DayTimeline({
 
   // Жесты: drag = живое состояние перетаскиваемого блока; refs хранят базу/режим.
   const [drag, setDrag] = useState<Drag | null>(null);
+  // активный (зажатый) блок: только у него видны грипы и работает ресайз краёв.
+  const [activeId, setActiveId] = useState<number | null>(null);
   const dragRef = useRef<{ task: Task; edge: Edge; originY: number; baseStart: number; baseEnd: number } | null>(null);
   const lpRef = useRef<number | null>(null);     // таймер long-press (move)
   const downRef = useRef<{ x: number; y: number } | null>(null);
@@ -156,9 +158,10 @@ export const DayTimeline = memo(function DayTimeline({
   }
   useEffect(() => () => stopBlocking(), []);
 
-  // ── края: ресайз сразу по нажатию (без long-press) ──
+  // ── края: ресайз только у АКТИВНОГО (зажатого) блока ──
   function onEdgeDown(e: React.PointerEvent, t: Task, edge: "top" | "bottom", baseStart: number, baseEnd: number) {
     if (!onResize) return;
+    if (activeId !== t.id) return;   // не активен → грипа нет, тап у края = открыть (событие всплывёт)
     e.stopPropagation();
     e.preventDefault();
     (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
@@ -183,6 +186,7 @@ export const DayTimeline = memo(function DayTimeline({
       haptic("medium");
       el.setPointerCapture?.(pid);
       startBlocking();
+      setActiveId(t.id);   // зажали → активируем карточку (грипы + ресайз краёв)
       dragRef.current = { task: t, edge: "move", originY: downRef.current!.y, baseStart, baseEnd };
       setDrag({ id: t.id, startMin: baseStart, endMin: baseEnd });
     }, LONGPRESS_MS);
@@ -262,6 +266,7 @@ export const DayTimeline = memo(function DayTimeline({
     if (!onCreateDraft) return;
     // тап по существующему блоку/черновику — это «открыть», не «создать» (E1)
     if ((e.target as HTMLElement).closest(".cal-block,.cal-draft")) return;
+    setActiveId(null);   // тронули пустую сетку → снимаем активность с блока
     // НЕ stopPropagation/preventDefault и НЕ startBlocking здесь — иначе убьём нативный скролл.
     const m = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
     createRef.current = { startMin: m, originY: e.clientY, armed: false, moved: false };
@@ -381,7 +386,7 @@ export const DayTimeline = memo(function DayTimeline({
           return (
             <div
               key={t.id}
-              className={`cal-block ${done ? "done" : ""} ${live ? "resizing" : ""}`}
+              className={`cal-block ${done ? "done" : ""} ${live ? "resizing" : ""} ${activeId === t.id ? "active" : ""}`}
               style={{
                 top: ((start - offsetMin) / 60) * HOUR_H + 1,
                 height: Math.max((dur / 60) * HOUR_H - 2, 22),
@@ -392,10 +397,11 @@ export const DayTimeline = memo(function DayTimeline({
               onClick={(e) => {
                 e.stopPropagation();
                 if (pickedRef.current || movedRef.current) return; // подъём/перенос — не открывать
+                setActiveId(null);   // короткий тап — открыть деталь, снять активность
                 onOpen?.(t);
               }}
             >
-              {enabled && (
+              {enabled && activeId === t.id && (
                 <div
                   className="cal-resize top"
                   onPointerDown={(e) => onEdgeDown(e, t, "top", baseStart, baseEnd)}
@@ -428,7 +434,7 @@ export const DayTimeline = memo(function DayTimeline({
                   {t.reminder_at ? <IcoBellMicro /> : null}
                 </div>
               </div>
-              {enabled && (
+              {enabled && activeId === t.id && (
                 <div
                   className="cal-resize bottom"
                   onPointerDown={(e) => onEdgeDown(e, t, "bottom", baseStart, baseEnd)}
