@@ -27,6 +27,16 @@ const PRIORITY_LABEL: Record<Priority, string> = {
 };
 const WD_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
+// Подтверждение: нативный Telegram showConfirm (window.confirm в WebView не работает),
+// фолбэк на window.confirm для обычного браузера/харнесса.
+function confirmDelete(message: string): Promise<boolean> {
+  const t = tg() as unknown as { showConfirm?: (m: string, cb: (ok: boolean) => void) => void } | undefined;
+  if (t?.showConfirm) {
+    return new Promise((resolve) => t.showConfirm!(message, (ok) => resolve(!!ok)));
+  }
+  return Promise.resolve(typeof window !== "undefined" ? window.confirm(message) : true);
+}
+
 function prioClass(p: Priority): string {
   return p === "high" ? "prio-high" : p === "medium" ? "prio-medium" : p === "low" ? "prio-low" : "";
 }
@@ -179,7 +189,9 @@ export function TaskDetail({
   }
   async function remove() {
     if (!task) return;
-    if (typeof window !== "undefined" && !window.confirm("Удалить задачу?")) return;
+    // window.confirm в Telegram WebView не работает (no-op/false) → нативный showConfirm, фолбэк для браузера.
+    const ok = await confirmDelete("Удалить задачу?");
+    if (!ok) return;
     await deleteTask(task.id);
     onChanged();
     onClose();
