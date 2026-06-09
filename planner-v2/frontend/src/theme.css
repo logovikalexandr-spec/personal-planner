@@ -366,6 +366,9 @@ select.input { appearance: none; -webkit-appearance: none; }
   background: linear-gradient(transparent, var(--onyx) 45%);
 }
 .cal-accessory button { min-height: 44px; background: var(--accent); color: #1a1209; border: 0; border-radius: 12px; padding: 0 22px; font-size: 15px; font-weight: 600; }
+/* пока открыт инлайн-черновик — прячем таб-бар и FAB, чтобы не налезали на «Готово» над клавиатурой */
+body.inline-draft .tabbar,
+body.inline-draft .fab { display: none; }
 @keyframes cal-pulse { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
 .cal-block.created { animation: cal-pulse 200ms ease; }
 .cal-block-main { flex: 1 1 auto; min-width: 0; }

@@ -144,7 +144,12 @@ export function Today({
 
   // NB: scroll-lock (body position:fixed) для инлайн-черновика УБРАН — черновик в потоке
   // таймлайна, а не оверлей; фиксация body рвала экран («колдоёбит» на тап). autoFocus-инпут
-  // браузер сам скроллит в видимую зону + scrollIntoView в DayTimeline-черновике.
+  // браузер сам скроллит в видимую зону.
+  // Пока черновик открыт — прячем таб-бар и FAB (иначе налезают на «Готово» над клавиатурой).
+  useEffect(() => {
+    document.body.classList.toggle("inline-draft", !!draft);
+    return () => document.body.classList.remove("inline-draft");
+  }, [!!draft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // E9: смена таба с открытым черновиком (Today не размонтируется — keep-alive в App).
   // Скрыли экран → непустой draft авто-коммитим (как тап-вне), пустой отбрасываем.
