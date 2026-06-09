@@ -244,8 +244,15 @@ export const DayTimeline = memo(function DayTimeline({
     });
   }
 
-  // ── создание на пустой сетке: тап (move<CANCEL_PX) = блок 1ч, протяжка = диапазон ──
-  const createRef = useRef<{ startMin: number; originY: number; moved: boolean } | null>(null);
+  // ── создание на пустой сетке ──
+  // КЛЮЧЕВОЕ: обычный драг по сетке = нативный СКРОЛЛ (не перехватываем!).
+  // Тап (быстро вниз-вверх без сдвига) = блок 1ч. Удержание (long-press) → потом протяжка = диапазон.
+  // Так скролл таймлайна не ломается, а создание-диапазон — осознанный жест (как перенос блока).
+  const createRef = useRef<{ startMin: number; originY: number; armed: boolean; moved: boolean } | null>(null);
+  const createLpRef = useRef<number | null>(null);
+  function clearCreateLp() {
+    if (createLpRef.current != null) { window.clearTimeout(createLpRef.current); createLpRef.current = null; }
+  }
   function gridTop(): number {
     return gridRef.current?.getBoundingClientRect().top ?? 0;
   }
@@ -253,28 +260,43 @@ export const DayTimeline = memo(function DayTimeline({
     if (!onCreateDraft) return;
     // тап по существующему блоку/черновику — это «открыть», не «создать» (E1)
     if ((e.target as HTMLElement).closest(".cal-block,.cal-draft")) return;
-    e.stopPropagation();
+    // НЕ stopPropagation/preventDefault и НЕ startBlocking здесь — иначе убьём нативный скролл.
     const m = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
-    createRef.current = { startMin: m, originY: e.clientY, moved: false };
+    createRef.current = { startMin: m, originY: e.clientY, armed: false, moved: false };
+    clearCreateLp();
+    createLpRef.current = window.setTimeout(() => {
+      const c = createRef.current;
+      if (!c) return;
+      c.armed = true;              // взвели: жест теперь наш, дальше протяжка задаёт длину
+      haptic("medium");
+      startBlocking();             // только теперь глушим нативный скролл
+      setDrag({ id: DRAFT_ID, startMin: c.startMin, endMin: c.startMin + 60 });
+    }, LONGPRESS_MS);
   }
   function onHourMove(e: React.PointerEvent) {
     const c = createRef.current;
     if (!c) return;
-    if (c.moved || Math.abs(e.clientY - c.originY) > CANCEL_PX) {
-      c.moved = true;
-      const cur = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
-      // live-превью через тот же drag-стейт (id=DRAFT_ID), снап в подписи как у остальных
-      setDrag({ id: DRAFT_ID, startMin: Math.min(c.startMin, cur), endMin: Math.max(c.startMin, cur) });
+    if (!c.armed) {
+      // до взвода сдвиг = это скролл → отдаём нативу, отменяем создание
+      if (Math.abs(e.clientY - c.originY) > CANCEL_PX) { clearCreateLp(); createRef.current = null; }
+      return;
     }
+    c.moved = true;
+    const cur = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
+    setDrag({ id: DRAFT_ID, startMin: Math.min(c.startMin, cur), endMin: Math.max(c.startMin, cur) });
   }
   function onHourUp() {
+    clearCreateLp();
     const c = createRef.current;
     createRef.current = null;
-    if (!c) return;
+    if (!c) return;                // скролл — создание было отменено
     const liveEnd = drag?.endMin;
+    const wasArmed = c.armed;
     setDrag(null);
+    stopBlocking();
     if (!onCreateDraft) return;
-    const range = c.moved
+    // armed+протяжка → диапазон; быстрый тап ИЛИ удержание без драга → 1ч
+    const range = wasArmed && c.moved
       ? normalizeRange(c.startMin, liveEnd ?? c.startMin)
       : defaultRange(c.startMin);
     const startClamped = clamp(range.startMin, offsetMin, DAY_END - STEP_MIN);
@@ -428,7 +450,6 @@ export const DayTimeline = memo(function DayTimeline({
                 // авто-коммит при потере фокуса = «тап-вне» (E12): пусто→отмена, текст→SAVING.
                 // commitDraft анти-дубль (игнор из saving) делает blur+Enter+«Готово» идемпотентными.
                 onBlur={() => onDraftCommit?.()}
-                ref={(el) => { if (el && draft.state === "editing") el.scrollIntoView({ block: "center" }); }}
               />
               {draft.state === "error" ? (
                 <span className="cal-draft-err">

@@ -142,18 +142,9 @@ export function Today({
   // так что отдельный перевод в editing не нужен.
   const retryDraft = commitDraft;
 
-  // scroll-lock фона на время открытого черновика (как anyOverlay в App):
-  // иначе autoFocus инпута утаскивает фон вверх в iOS WebView.
-  useEffect(() => {
-    if (!draft) return;
-    const y = window.scrollY;
-    const b = document.body.style;
-    b.position = "fixed"; b.top = `-${y}px`; b.left = "0"; b.right = "0"; b.width = "100%";
-    return () => {
-      b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.width = "";
-      window.scrollTo(0, y);
-    };
-  }, [!!draft]); // eslint-disable-line react-hooks/exhaustive-deps
+  // NB: scroll-lock (body position:fixed) для инлайн-черновика УБРАН — черновик в потоке
+  // таймлайна, а не оверлей; фиксация body рвала экран («колдоёбит» на тап). autoFocus-инпут
+  // браузер сам скроллит в видимую зону + scrollIntoView в DayTimeline-черновике.
 
   // E9: смена таба с открытым черновиком (Today не размонтируется — keep-alive в App).
   // Скрыли экран → непустой draft авто-коммитим (как тап-вне), пустой отбрасываем.
