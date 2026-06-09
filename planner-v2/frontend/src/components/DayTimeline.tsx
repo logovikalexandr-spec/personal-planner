@@ -2,32 +2,15 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { IcoBellMicro, IcoRepeatMicro, IcoCheck } from "./icons";
 import { tg } from "../telegram";
 import type { Priority, Project, Task } from "../types";
+import {
+  HOUR_H, STEP_MIN, PX_PER_MIN, DAY_END,
+  parseMin, hhmm, clamp, snap15, layoutColumns,
+} from "../lib/timelineLayout";
 
-const HOUR_H = 56;
 const START_HOUR = 5; // таймлайн начинается с 05:00 (ночь 00–04 скрыта, если на неё нет задач)
-const STEP_MIN = 15;            // шаг по времени
-const STEP_PX = HOUR_H / 4;     // 56/4 = 14px = 15 минут
-const DAY_END = 24 * 60;
 const LONGPRESS_MS = 220;       // удержание тела блока → «поднять» для переноса
 const CANCEL_PX = 12;           // сдвиг до long-press = это скролл, отменяем подъём (tolerance как у dnd-kit)
 
-function parseMin(t: string | null): number | null {
-  if (!t) return null;
-  const [h, m] = t.split(":");
-  return Number(h) * 60 + Number(m);
-}
-function hhmm(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return `${`${h}`.padStart(2, "0")}:${`${m}`.padStart(2, "0")}`;
-}
-function clamp(v: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, v));
-}
-function snap15(min: number): number {
-  return Math.round(min / STEP_MIN) * STEP_MIN;
-}
-const PX_PER_MIN = HOUR_H / 60; // непрерывный перевод пикселей в минуты (плавный драг)
 function haptic(style: "light" | "medium" = "light") {
   tg()?.HapticFeedback?.impactOccurred?.(style);
 }
@@ -84,6 +67,25 @@ export const DayTimeline = memo(function DayTimeline({
     [startHour],
   );
   const offsetMin = startHour * 60;
+
+  // Раскладка пересекающихся блоков по колонкам (Apple-стиль).
+  const cols = useMemo(() => layoutColumns(
+    timed.map((t) => {
+      const s = parseMin(t.due_time)!;
+      const e = parseMin(t.end_time);
+      return { id: t.id, startMin: s, endMin: e && e > s ? e : s + 60 };
+    }),
+  ), [timed]);
+  const GUTTER = 4; // px между колонками
+  const LANE_LEFT = 56;
+  const LANE_RIGHT = 8;
+  function laneStyle(colIndex: number, colCount: number): React.CSSProperties {
+    return {
+      left: `calc(${LANE_LEFT}px + (100% - ${LANE_LEFT + LANE_RIGHT}px) * ${colIndex / colCount} + ${colIndex ? GUTTER : 0}px)`,
+      width: `calc((100% - ${LANE_LEFT + LANE_RIGHT}px) * ${1 / colCount} - ${colCount > 1 ? GUTTER : 0}px)`,
+      right: "auto",
+    };
+  }
 
   // Поминутный пересчёт линии «сейчас» (мгновенный, без transition — §6).
   const [nowMin, setNowMin] = useState(() => new Date().getHours() * 60 + new Date().getMinutes());
@@ -251,6 +253,7 @@ export const DayTimeline = memo(function DayTimeline({
           const prio = priorityColor(t.priority); // кант строго по приоритету; none → нет цвета
           const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
           const enabled = !!onResize && !done;
+          const lay = cols.get(t.id) ?? { colIndex: 0, colCount: 1 };
           return (
             <div
               key={t.id}
@@ -260,6 +263,7 @@ export const DayTimeline = memo(function DayTimeline({
                 height: Math.max((dur / 60) * HOUR_H - 2, 22),
                 borderLeftColor: prio ?? "transparent",
                 background: c ? `${c}22` : "var(--surface-2)",
+                ...laneStyle(lay.colIndex, lay.colCount),
               }}
               onClick={(e) => {
                 e.stopPropagation();
