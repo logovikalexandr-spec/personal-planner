@@ -38,7 +38,6 @@ function AppMain() {
   const [viewing, setViewing] = useState<ActiveList | null>(null); // открытый список из Lists / Inbox из Today
   const [addOpen, setAddOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
-  const [addHour, setAddHour] = useState<number | null>(null);
   const [todayView, setTodayView] = useState<"timeline" | "tasks">("timeline"); // вид внутри таба «Сегодня»
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
@@ -83,7 +82,6 @@ function AppMain() {
   // Перф: стабильные колбэки — чтобы memo(TaskItem)/экраны не ре-рендерились от каждого рендера App.
   const openTask = useCallback((t: Task) => setOpenTaskId(t.id), []);
   const openTaskById = useCallback((id: number) => setOpenTaskId(id), []);
-  const tapHour = useCallback((h: number) => setAddHour(h), []);
   const openInbox = useCallback(() => setViewing({ kind: "smart", key: "inbox", title: "Входящие" }), []);
 
   function openDrawer() { setDrawerClosing(false); setDrawerOpen(true); }
@@ -120,7 +118,7 @@ function AppMain() {
   // выкл при открытых Sheet/composer/picker/viewing-sheet, на табе lists (дубль), во время drag (в Drawer).
   const esx = useRef<number | null>(null);
   const esy = useRef<number | null>(null);
-  const anyOverlay = addOpen || quickOpen || addHour != null || drawerOpen || openTaskId != null;
+  const anyOverlay = addOpen || quickOpen || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "lists" && !viewing);
 
   // Блокируем скролл фона при открытом оверлее: фиксируем body на текущей позиции —
@@ -159,7 +157,6 @@ function AppMain() {
         {mountedTabs.has("today") && (
           <Today
             reloadKey={reloadKey}
-            onTapHour={tapHour}
             onOpenTask={openTask}
             view={todayView}
             onViewChange={setTodayView}
@@ -230,15 +227,6 @@ function AppMain() {
           initialDate={tab === "today" ? localToday() : null}
           onClose={() => setAddOpen(false)}
           onSaved={bump}
-        />
-      )}
-      {addHour != null && (
-        <TaskComposer
-          initialDate={localToday()}
-          initialTime={`${`${addHour}`.padStart(2, "0")}:00:00`}
-          initialEnd={`${`${Math.min(addHour + 1, 23)}`.padStart(2, "0")}:00:00`}
-          onClose={() => setAddHour(null)}
-          onSaved={() => { setAddHour(null); bump(); }}
         />
       )}
       <BottomTabs active={tab} onChange={onTabChange} inboxCount={inboxCount} />
