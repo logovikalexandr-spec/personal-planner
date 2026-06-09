@@ -133,16 +133,26 @@ export function Today({
           </div>
           {allday.length > 0 && (
             <div className="cal-allday today-pad">
-              {allday.map((t) => (
-                <button
-                  key={t.id}
-                  className="cal-chip"
-                  style={{ borderLeftColor: priorityColor(t.priority) ?? "transparent" }}
-                  onClick={() => onOpenTask?.(t)}
-                >
-                  {t.title}
-                </button>
-              ))}
+              <span className="cal-allday-label">весь<br />день</span>
+              <div className="cal-allday-chips">
+                {allday.map((t) => {
+                  const c = resolveColor(t.project_id, byId);
+                  return (
+                    <button
+                      key={t.id}
+                      className="cal-chip"
+                      style={{
+                        background: c ? `${c}22` : "var(--surface)",
+                        color: c ?? "var(--text)",
+                        borderLeftColor: priorityColor(t.priority) ?? "transparent",
+                      }}
+                      onClick={() => onOpenTask?.(t)}
+                    >
+                      {t.title}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
