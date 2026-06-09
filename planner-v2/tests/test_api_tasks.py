@@ -40,6 +40,24 @@ def test_task_requires_auth(client):
     assert client.get("/api/tasks").status_code == 401
 
 
+def test_delete_task(client):
+    tid = client.post("/api/tasks", json={"title": "удалить меня"}, headers=HDR).json()["id"]
+    r = client.delete(f"/api/tasks/{tid}", headers=HDR)
+    assert r.status_code == 204, r.text
+    lst = client.get("/api/tasks?scope=all", headers=HDR).json()
+    assert all(t["id"] != tid for t in lst)
+    assert client.delete(f"/api/tasks/{tid}", headers=HDR).status_code == 404
+
+
+def test_delete_task_with_subtask(client):
+    parent = client.post("/api/tasks", json={"title": "родитель"}, headers=HDR).json()["id"]
+    child = client.post("/api/tasks", json={"title": "сабтаск"}, headers=HDR).json()["id"]
+    assert client.patch(f"/api/tasks/{child}", json={"parent_task_id": parent}, headers=HDR).status_code == 200
+    assert client.delete(f"/api/tasks/{parent}", headers=HDR).status_code == 204
+    ids = {t["id"] for t in client.get("/api/tasks?scope=all", headers=HDR).json()}
+    assert parent not in ids and child not in ids
+
+
 def test_create_timed_task_with_end_time(client):
     r = client.post(
         "/api/tasks",

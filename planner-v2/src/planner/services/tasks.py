@@ -438,6 +438,25 @@ async def update_checkitem(
     return item
 
 
+async def delete_task(session, task_id: int) -> bool:
+    """Удалить задачу. Сабтаски (parent_task_id) удаляются вместе с родителем;
+    теги (secondary) снимаются явно; checkitems/reminders уходят ORM-каскадом.
+    Возвращает False, если задачи нет."""
+    task = await session.get(Task, task_id)
+    if task is None:
+        return False
+    children = (
+        await session.execute(select(Task).where(Task.parent_task_id == task_id))
+    ).scalars().all()
+    ids = [task_id, *[c.id for c in children]]
+    await session.execute(TaskTag.__table__.delete().where(TaskTag.task_id.in_(ids)))
+    for child in children:
+        await session.delete(child)
+    await session.delete(task)
+    await session.flush()
+    return True
+
+
 async def delete_checkitem(session, checkitem_id: int) -> None:
     item = await session.get(CheckItem, checkitem_id)
     if item is None:

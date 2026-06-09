@@ -123,3 +123,15 @@ async def patch_task(
         await db.refresh(next_task)
         result.next_task = await _build_detail(db, next_task)
     return result
+
+
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(
+    task_id: int,
+    _: Annotated[TelegramUser, Depends(require_owner)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    ok = await svc.delete_task(db, task_id)
+    if not ok:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "task not found")
+    await db.commit()
