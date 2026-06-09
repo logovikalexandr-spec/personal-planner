@@ -136,6 +136,7 @@ export const DayTimeline = memo(function DayTimeline({
   const downRef = useRef<{ x: number; y: number } | null>(null);
   const pickedRef = useRef(false);               // тело поднято (move активен)
   const movedRef = useRef(false);                // был реальный сдвиг → коммит + подавить тап
+  const suppressClickRef = useRef(false);        // long-press взвёл активность → не открывать деталь на отпускании
 
   function clearLp() {
     if (lpRef.current != null) { window.clearTimeout(lpRef.current); lpRef.current = null; }
@@ -177,12 +178,14 @@ export const DayTimeline = memo(function DayTimeline({
     if (!onResize) return;
     pickedRef.current = false;
     movedRef.current = false;
+    suppressClickRef.current = false;
     downRef.current = { x: e.clientX, y: e.clientY };
     const pid = e.pointerId;
     const el = e.currentTarget as Element;
     clearLp();
     lpRef.current = window.setTimeout(() => {
       pickedRef.current = true;
+      suppressClickRef.current = true;   // взвели long-press → подавить открытие на отпускании
       haptic("medium");
       el.setPointerCapture?.(pid);
       startBlocking();
@@ -397,6 +400,7 @@ export const DayTimeline = memo(function DayTimeline({
               onClick={(e) => {
                 e.stopPropagation();
                 if (pickedRef.current || movedRef.current) return; // подъём/перенос — не открывать
+                if (suppressClickRef.current) { suppressClickRef.current = false; return; } // отпускание long-press — не открывать
                 setActiveId(null);   // короткий тап — открыть деталь, снять активность
                 onOpen?.(t);
               }}
