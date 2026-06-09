@@ -157,6 +157,7 @@ function AppMain() {
         {mountedTabs.has("today") && (
           <Today
             reloadKey={reloadKey}
+            hidden={tabHidden("today")}
             onOpenTask={openTask}
             view={todayView}
             onViewChange={setTodayView}

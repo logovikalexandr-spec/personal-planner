@@ -31,9 +31,11 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
 type LoadState = "loading" | "error" | "ready";
 
 export function Today({
-  reloadKey, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount,
+  reloadKey, hidden = false, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount,
 }: {
   reloadKey: number;
+  /** Экран скрыт (keep-alive: App рендерит через .screen-host[hidden]). Сигнал для авто-коммита черновика (E9). */
+  hidden?: boolean;
   onOpenTask?: (t: Task) => void;
   view: "timeline" | "tasks";
   onViewChange: (v: "timeline" | "tasks") => void;
@@ -84,6 +86,10 @@ export function Today({
   // ── инлайн-создание задачи в ячейке таймлайна (§11 C2/C4, H3) ──
   // draft-state живёт здесь (Today), DayTimeline только рисует и шлёт колбэки.
   const [draft, setDraft] = useState<Draft | null>(null);
+  // зеркало draft для эффектов, которым нужен актуальный draft БЕЗ перезапуска на каждый
+  // keystroke (E9 должен срабатывать только на переход hidden, а не на ввод текста).
+  const draftRef = useRef<Draft | null>(null);
+  draftRef.current = draft;
   const gridRef = useRef<HTMLDivElement>(null);
 
   const openDraft = useCallback((r: { startMin: number; endMin: number }) => {
@@ -92,29 +98,49 @@ export function Today({
 
   // commit: пусто → отмена; иначе SAVING → POST → ок:закрыть+рефетч / ошибка:ERROR.
   // Защита от двойного POST: коммитим только из editing/error (не из saving).
+  // M3: таймаут 5с (Promise.race) → ERROR, текст цел. saveTok защищает от гонки —
+  // поздний ответ POST игнорируется, если черновик уже ушёл из saving или это уже другой коммит.
+  const saveTokRef = useRef(0);
   const commitDraft = useCallback(() => {
     setDraft((d) => {
       if (!d || d.state === "saving") return d;       // уже летит POST — игнор (анти-дубль)
       if (!d.title.trim()) return null;               // пусто → отмена
       const title = d.title.trim();
       const { startMin, endMin } = d;
+      const tok = ++saveTokRef.current;               // токен этого коммита
       void (async () => {
+        // settled — общий гард: применяем исход (ok/err/timeout) ровно один раз,
+        // и только если черновик всё ещё в saving того же токена.
+        let settled = false;
+        const apply = (next: "done" | "error") => {
+          if (settled) return;
+          settled = true;
+          setDraft((cur) => {
+            if (saveTokRef.current !== tok || !cur || cur.state !== "saving") return cur; // гонка — игнор
+            if (next === "done") { load(); return null; }
+            return { ...cur, state: "error" };
+          });
+        };
+        let timer = 0;
+        const timeout = new Promise<never>((_, rej) => {
+          timer = window.setTimeout(() => rej(new Error("timeout")), 5000);
+        });
         try {
-          await createTask(title, createPayload(startMin, endMin, iso));
-          setDraft(null);
-          load();
+          await Promise.race([createTask(title, createPayload(startMin, endMin, iso)), timeout]);
+          apply("done");
         } catch {
-          setDraft((cur) => (cur ? { ...cur, state: "error" } : null));
+          apply("error");
+        } finally {
+          window.clearTimeout(timer);
         }
       })();
       return { ...d, state: "saving" };
     });
   }, [iso, load]);
 
-  const retryDraft = useCallback(() => {
-    setDraft((d) => (d ? { ...d, state: "editing" } : d));
-    commitDraft();
-  }, [commitDraft]);
+  // retry из ERROR: commitDraft коммитит из любого состояния кроме saving (включая error),
+  // так что отдельный перевод в editing не нужен.
+  const retryDraft = commitDraft;
 
   // scroll-lock фона на время открытого черновика (как anyOverlay в App):
   // иначе autoFocus инпута утаскивает фон вверх в iOS WebView.
@@ -128,6 +154,16 @@ export function Today({
       window.scrollTo(0, y);
     };
   }, [!!draft]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // E9: смена таба с открытым черновиком (Today не размонтируется — keep-alive в App).
+  // Скрыли экран → непустой draft авто-коммитим (как тап-вне), пустой отбрасываем.
+  // saving не трогаем (POST уже летит). При возврате (hidden=false) ничего не дёргаем.
+  useEffect(() => {
+    if (!hidden) return;
+    if (draftRef.current?.state === "saving") return;
+    if (draftRef.current?.title.trim()) commitDraft();
+    else if (draftRef.current) setDraft(null);
+  }, [hidden, commitDraft]);
 
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
   // all-day = с датой на сегодня, но без времени; открытые (не done/wont_do)
