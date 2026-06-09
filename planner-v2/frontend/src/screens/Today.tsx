@@ -4,10 +4,13 @@ import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { QuickAddBar } from "../components/QuickAddBar";
 import { IcoBack, IcoChevron, IcoInbox } from "../components/icons";
-import { getDayTasks, getProjects, getTasks, patchTask } from "../api";
+import { createTask, getDayTasks, getProjects, getTasks, patchTask } from "../api";
+import { createPayload } from "../lib/timelineLayout";
 import { tg } from "../telegram";
 import type { ParseResult } from "../lib/quickParse";
 import type { Project, Task } from "../types";
+
+type Draft = { startMin: number; endMin: number; title: string; state: "editing" | "saving" | "error" };
 
 const FMT = new Intl.DateTimeFormat("ru-RU", { weekday: "long", day: "numeric", month: "long" });
 
@@ -28,10 +31,9 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
 type LoadState = "loading" | "error" | "ready";
 
 export function Today({
-  reloadKey, onTapHour, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount,
+  reloadKey, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount,
 }: {
   reloadKey: number;
-  onTapHour: (hour: number) => void;
   onOpenTask?: (t: Task) => void;
   view: "timeline" | "tasks";
   onViewChange: (v: "timeline" | "tasks") => void;
@@ -78,6 +80,54 @@ export function Today({
     setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, due_time: patch.due_time, end_time: patch.end_time } : x)));
     patchTask(t.id, patch).catch(() => load());
   }, [load]);
+
+  // ── инлайн-создание задачи в ячейке таймлайна (§11 C2/C4, H3) ──
+  // draft-state живёт здесь (Today), DayTimeline только рисует и шлёт колбэки.
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  const openDraft = useCallback((r: { startMin: number; endMin: number }) => {
+    setDraft({ ...r, title: "", state: "editing" });
+  }, []);
+
+  // commit: пусто → отмена; иначе SAVING → POST → ок:закрыть+рефетч / ошибка:ERROR.
+  // Защита от двойного POST: коммитим только из editing/error (не из saving).
+  const commitDraft = useCallback(() => {
+    setDraft((d) => {
+      if (!d || d.state === "saving") return d;       // уже летит POST — игнор (анти-дубль)
+      if (!d.title.trim()) return null;               // пусто → отмена
+      const title = d.title.trim();
+      const { startMin, endMin } = d;
+      void (async () => {
+        try {
+          await createTask(title, createPayload(startMin, endMin, iso));
+          setDraft(null);
+          load();
+        } catch {
+          setDraft((cur) => (cur ? { ...cur, state: "error" } : null));
+        }
+      })();
+      return { ...d, state: "saving" };
+    });
+  }, [iso, load]);
+
+  const retryDraft = useCallback(() => {
+    setDraft((d) => (d ? { ...d, state: "editing" } : d));
+    commitDraft();
+  }, [commitDraft]);
+
+  // scroll-lock фона на время открытого черновика (как anyOverlay в App):
+  // иначе autoFocus инпута утаскивает фон вверх в iOS WebView.
+  useEffect(() => {
+    if (!draft) return;
+    const y = window.scrollY;
+    const b = document.body.style;
+    b.position = "fixed"; b.top = `-${y}px`; b.left = "0"; b.right = "0"; b.width = "100%";
+    return () => {
+      b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.width = "";
+      window.scrollTo(0, y);
+    };
+  }, [!!draft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
   // all-day = с датой на сегодня, но без времени; открытые (не done/wont_do)
@@ -168,13 +218,25 @@ export function Today({
               byId={byId}
               isToday
               autoScroll={false}
-              onTapHour={onTapHour}
+              gridRef={gridRef}
+              onCreateDraft={openDraft}
+              draft={draft}
+              onDraftChange={(title) => setDraft((d) => (d ? { ...d, title } : d))}
+              onDraftCommit={commitDraft}
+              onDraftCancel={() => setDraft(null)}
+              onDraftRetry={retryDraft}
               onToggle={toggle}
               onOpen={onOpenTask}
               onResize={resize}
               nowAnchorId="today-now"
             />
           )}
+        {draft?.state === "editing" && (
+          <div className="cal-accessory">
+            {/* onMouseDown preventDefault: не дать инпуту потерять фокус ДО клика (blur уже коммитит — но порядок важен для consistency) */}
+            <button onMouseDown={(e) => e.preventDefault()} onClick={commitDraft}>Готово</button>
+          </div>
+        )}
       </div>
     );
   }

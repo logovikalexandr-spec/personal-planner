@@ -253,6 +253,7 @@ export const DayTimeline = memo(function DayTimeline({
     if (!onCreateDraft) return;
     // тап по существующему блоку/черновику — это «открыть», не «создать» (E1)
     if ((e.target as HTMLElement).closest(".cal-block,.cal-draft")) return;
+    e.stopPropagation();
     const m = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
     createRef.current = { startMin: m, originY: e.clientY, moved: false };
   }
@@ -424,6 +425,9 @@ export const DayTimeline = memo(function DayTimeline({
                   if (e.key === "Enter") { e.preventDefault(); onDraftCommit?.(); }
                   if (e.key === "Escape") { e.preventDefault(); onDraftCancel?.(); }
                 }}
+                // авто-коммит при потере фокуса = «тап-вне» (E12): пусто→отмена, текст→SAVING.
+                // commitDraft анти-дубль (игнор из saving) делает blur+Enter+«Готово» идемпотентными.
+                onBlur={() => onDraftCommit?.()}
                 ref={(el) => { if (el && draft.state === "editing") el.scrollIntoView({ block: "center" }); }}
               />
               {draft.state === "error" ? (
