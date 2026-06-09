@@ -5,6 +5,7 @@ import type { Priority, Project, Task } from "../types";
 import {
   HOUR_H, STEP_MIN, PX_PER_MIN, DAY_END,
   parseMin, hhmm, clamp, snap15, layoutColumns,
+  pointerToMinutes, defaultRange, normalizeRange,
 } from "../lib/timelineLayout";
 
 const START_HOUR = 5; // таймлайн начинается с 05:00 (ночь 00–04 скрыта, если на неё нет задач)
@@ -37,11 +38,13 @@ type Edge = "top" | "bottom" | "move";
 
 export const DayTimeline = memo(function DayTimeline({
   tasks, byId, isToday, onTapHour, onToggle, onOpen, onResize, autoScroll = true, nowAnchorId,
+  gridRef: gridRefProp, onCreateDraft,
 }: {
   tasks: Task[];
   byId: Map<number, Project>;
   isToday: boolean;
-  onTapHour: (hour: number) => void;
+  /** Старый путь тапа часа (Calendar). Опционален — Today перешёл на onCreateDraft. */
+  onTapHour?: (hour: number) => void;
   onToggle: (t: Task) => void;
   onOpen?: (t: Task) => void;
   /** Перенос/ресайз блока (шаг 15 мин). Если не передан — жесты выключены. */
@@ -49,8 +52,14 @@ export const DayTimeline = memo(function DayTimeline({
   autoScroll?: boolean;
   /** id на now-линии — якорь для прыжок-скролла «Сегодня» (Today timeline). */
   nowAnchorId?: string;
+  /** Ref на .cal-grid (нужен для координат жеста создания; живёт у родителя). */
+  gridRef?: React.RefObject<HTMLDivElement>;
+  /** Жест создания на пустой сетке: тап=1ч / протяжка=диапазон. Если не передан — создание выключено. */
+  onCreateDraft?: (range: { startMin: number; endMin: number }) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const localGridRef = useRef<HTMLDivElement>(null);
+  const gridRef = gridRefProp ?? localGridRef;
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
 
   // Начало сетки: 05:00, но растягиваем раньше, если есть задача до 05:00 (edge — задача не теряется).
@@ -69,6 +78,7 @@ export const DayTimeline = memo(function DayTimeline({
   const offsetMin = startHour * 60;
 
   // Раскладка пересекающихся блоков по колонкам (Apple-стиль).
+  const DRAFT_ID = -1; // sentinel id живого превью/черновика создания
   const cols = useMemo(() => layoutColumns(
     timed.map((t) => {
       const s = parseMin(t.due_time)!;
@@ -224,11 +234,61 @@ export const DayTimeline = memo(function DayTimeline({
     });
   }
 
+  // ── создание на пустой сетке: тап (move<CANCEL_PX) = блок 1ч, протяжка = диапазон ──
+  const createRef = useRef<{ startMin: number; originY: number; moved: boolean } | null>(null);
+  function gridTop(): number {
+    return gridRef.current?.getBoundingClientRect().top ?? 0;
+  }
+  function onHourDown(e: React.PointerEvent) {
+    if (!onCreateDraft) return;
+    // тап по существующему блоку/черновику — это «открыть», не «создать» (E1)
+    if ((e.target as HTMLElement).closest(".cal-block,.cal-draft")) return;
+    const m = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
+    createRef.current = { startMin: m, originY: e.clientY, moved: false };
+  }
+  function onHourMove(e: React.PointerEvent) {
+    const c = createRef.current;
+    if (!c) return;
+    if (c.moved || Math.abs(e.clientY - c.originY) > CANCEL_PX) {
+      c.moved = true;
+      const cur = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
+      // live-превью через тот же drag-стейт (id=DRAFT_ID), снап в подписи как у остальных
+      setDrag({ id: DRAFT_ID, startMin: Math.min(c.startMin, cur), endMin: Math.max(c.startMin, cur) });
+    }
+  }
+  function onHourUp() {
+    const c = createRef.current;
+    createRef.current = null;
+    if (!c) return;
+    const liveEnd = drag?.endMin;
+    setDrag(null);
+    if (!onCreateDraft) return;
+    const range = c.moved
+      ? normalizeRange(c.startMin, liveEnd ?? c.startMin)
+      : defaultRange(c.startMin);
+    const startClamped = clamp(range.startMin, offsetMin, DAY_END - STEP_MIN);
+    const endClamped = clamp(range.endMin, startClamped + STEP_MIN, DAY_END);
+    onCreateDraft({ startMin: startClamped, endMin: endClamped });
+  }
+
   return (
     <div className={`cal-scroll ${autoScroll ? "" : "daytimeline--static"}`} ref={scrollRef} style={{ flex: autoScroll ? 1 : "none" }}>
-      <div className="cal-grid" style={{ height: HOURS.length * HOUR_H }}>
+      <div
+        className="cal-grid"
+        ref={gridRef}
+        style={{ height: HOURS.length * HOUR_H }}
+        onPointerDown={onCreateDraft ? onHourDown : undefined}
+        onPointerMove={onCreateDraft ? onHourMove : undefined}
+        onPointerUp={onCreateDraft ? onHourUp : undefined}
+        onPointerCancel={onCreateDraft ? onHourUp : undefined}
+      >
         {HOURS.map((h) => (
-          <div key={h} className="cal-hour" style={{ height: HOUR_H }} onClick={() => onTapHour(h)}>
+          <div
+            key={h}
+            className="cal-hour"
+            style={{ height: HOUR_H }}
+            onClick={onTapHour && !onCreateDraft ? () => onTapHour(h) : undefined}
+          >
             <span className="cal-hourlabel">{`${h}`.padStart(2, "0")}:00</span>
           </div>
         ))}
