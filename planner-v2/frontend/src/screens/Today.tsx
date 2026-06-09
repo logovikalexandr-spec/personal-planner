@@ -257,6 +257,7 @@ export function Today({
               onDraftCommit={commitDraft}
               onDraftCancel={() => setDraft(null)}
               onDraftRetry={retryDraft}
+              onDraftResize={(r) => setDraft((d) => (d ? { ...d, ...r } : d))}
               onToggle={toggle}
               onOpen={onOpenTask}
               onResize={resize}

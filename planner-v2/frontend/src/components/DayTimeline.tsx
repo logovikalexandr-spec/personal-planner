@@ -40,7 +40,7 @@ type Draft = { startMin: number; endMin: number; title: string; state: "editing"
 export const DayTimeline = memo(function DayTimeline({
   tasks, byId, isToday, onTapHour, onToggle, onOpen, onResize, autoScroll = true, nowAnchorId,
   gridRef: gridRefProp, onCreateDraft,
-  draft, onDraftChange, onDraftCommit, onDraftCancel, onDraftRetry,
+  draft, onDraftChange, onDraftCommit, onDraftCancel, onDraftRetry, onDraftResize,
 }: {
   tasks: Task[];
   byId: Map<number, Project>;
@@ -64,6 +64,8 @@ export const DayTimeline = memo(function DayTimeline({
   onDraftCommit?: () => void;
   onDraftCancel?: () => void;
   onDraftRetry?: () => void;
+  /** Растягивание краёв черновика до коммита (шаг 15 мин, локально в Today). */
+  onDraftResize?: (range: { startMin: number; endMin: number }) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const localGridRef = useRef<HTMLDivElement>(null);
@@ -245,9 +247,9 @@ export const DayTimeline = memo(function DayTimeline({
   }
 
   // ── создание на пустой сетке ──
-  // КЛЮЧЕВОЕ: обычный драг по сетке = нативный СКРОЛЛ (не перехватываем!).
-  // Тап (быстро вниз-вверх без сдвига) = блок 1ч. Удержание (long-press) → потом протяжка = диапазон.
-  // Так скролл таймлайна не ломается, а создание-диапазон — осознанный жест (как перенос блока).
+  // Обычный драг по сетке = нативный СКРОЛЛ (не перехватываем!).
+  // Тап = блок 1ч на месте тапа. Удержание (long-press) → ДВИГАЕМ 1ч-блок пальцем (выбор времени),
+  // на отпускании блок встаёт там. Дальше длину тянешь за края готового черновика (как у блоков).
   const createRef = useRef<{ startMin: number; originY: number; armed: boolean; moved: boolean } | null>(null);
   const createLpRef = useRef<number | null>(null);
   function clearCreateLp() {
@@ -267,7 +269,7 @@ export const DayTimeline = memo(function DayTimeline({
     createLpRef.current = window.setTimeout(() => {
       const c = createRef.current;
       if (!c) return;
-      c.armed = true;              // взвели: жест теперь наш, дальше протяжка задаёт длину
+      c.armed = true;              // взвели: жест теперь наш, протяжка ДВИГАЕТ блок
       haptic("medium");
       startBlocking();             // только теперь глушим нативный скролл
       setDrag({ id: DRAFT_ID, startMin: c.startMin, endMin: c.startMin + 60 });
@@ -282,26 +284,55 @@ export const DayTimeline = memo(function DayTimeline({
       return;
     }
     c.moved = true;
+    // ДВИГАЕМ блок: верх следует за пальцем, длительность держим 1ч (растянешь краями потом)
     const cur = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
-    setDrag({ id: DRAFT_ID, startMin: Math.min(c.startMin, cur), endMin: Math.max(c.startMin, cur) });
+    const start = clamp(cur, offsetMin, DAY_END - 60);
+    setDrag({ id: DRAFT_ID, startMin: start, endMin: start + 60 });
   }
   function onHourUp() {
     clearCreateLp();
     const c = createRef.current;
     createRef.current = null;
     if (!c) return;                // скролл — создание было отменено
-    const liveEnd = drag?.endMin;
+    const liveStart = drag?.startMin;
     const wasArmed = c.armed;
     setDrag(null);
     stopBlocking();
     if (!onCreateDraft) return;
-    // armed+протяжка → диапазон; быстрый тап ИЛИ удержание без драга → 1ч
-    const range = wasArmed && c.moved
-      ? normalizeRange(c.startMin, liveEnd ?? c.startMin)
-      : defaultRange(c.startMin);
-    const startClamped = clamp(range.startMin, offsetMin, DAY_END - STEP_MIN);
-    const endClamped = clamp(range.endMin, startClamped + STEP_MIN, DAY_END);
+    // всегда блок 1ч; armed+двигали → на выбранном месте, иначе → на месте тапа. Длину тянут краями.
+    const baseStart = wasArmed && c.moved && liveStart != null ? liveStart : c.startMin;
+    const { startMin, endMin } = defaultRange(baseStart);
+    const startClamped = clamp(startMin, offsetMin, DAY_END - STEP_MIN);
+    const endClamped = clamp(endMin, startClamped + STEP_MIN, DAY_END);
     onCreateDraft({ startMin: startClamped, endMin: endClamped });
+  }
+
+  // ── растягивание краёв ЧЕРНОВИКА до коммита (как ресайз обычного блока, но в draft-state) ──
+  const draftEdgeRef = useRef<{ edge: "top" | "bottom"; originY: number; baseStart: number; baseEnd: number } | null>(null);
+  function onDraftEdgeDown(e: React.PointerEvent, edge: "top" | "bottom") {
+    if (!draft || !onDraftResize) return;
+    e.stopPropagation();
+    e.preventDefault();
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    startBlocking();
+    draftEdgeRef.current = { edge, originY: e.clientY, baseStart: draft.startMin, baseEnd: draft.endMin };
+  }
+  function onDraftEdgeMove(e: React.PointerEvent) {
+    const d = draftEdgeRef.current;
+    if (!d) return;
+    e.preventDefault();
+    const deltaMin = (e.clientY - d.originY) / PX_PER_MIN;
+    if (d.edge === "top") {
+      const s = clamp(snap15(d.baseStart + deltaMin), offsetMin, d.baseEnd - STEP_MIN);
+      onDraftResize?.({ startMin: s, endMin: d.baseEnd });
+    } else {
+      const en = clamp(snap15(d.baseEnd + deltaMin), d.baseStart + STEP_MIN, DAY_END);
+      onDraftResize?.({ startMin: d.baseStart, endMin: en });
+    }
+  }
+  function onDraftEdgeUp() {
+    stopBlocking();
+    draftEdgeRef.current = null;
   }
 
   return (
@@ -436,6 +467,12 @@ export const DayTimeline = memo(function DayTimeline({
               className={`cal-draft ${draft.state === "saving" ? "saving" : ""} ${draft.state === "error" ? "error" : ""}`}
               style={{ top, height, ...laneStyle(lay.colIndex, lay.colCount) }}
             >
+              {draft.state === "editing" && onDraftResize && (
+                <div className="cal-resize top" onPointerDown={(e) => onDraftEdgeDown(e, "top")}
+                     onPointerMove={onDraftEdgeMove} onPointerUp={onDraftEdgeUp} onPointerCancel={onDraftEdgeUp}>
+                  <span className="cal-resize-grip" />
+                </div>
+              )}
               <input
                 className="cal-draft-input"
                 autoFocus
@@ -448,8 +485,8 @@ export const DayTimeline = memo(function DayTimeline({
                   if (e.key === "Escape") { e.preventDefault(); onDraftCancel?.(); }
                 }}
                 // авто-коммит при потере фокуса = «тап-вне» (E12): пусто→отмена, текст→SAVING.
-                // commitDraft анти-дубль (игнор из saving) делает blur+Enter+«Готово» идемпотентными.
-                onBlur={() => onDraftCommit?.()}
+                // НО не коммитим, если фокус ушёл из-за перетаскивания края черновика (ресайз).
+                onBlur={() => { if (!draftEdgeRef.current) onDraftCommit?.(); }}
               />
               {draft.state === "error" ? (
                 <span className="cal-draft-err">
@@ -460,6 +497,12 @@ export const DayTimeline = memo(function DayTimeline({
                 <span className="cal-draft-time">
                   {hhmm(draft.startMin)}–{hhmm(draft.endMin)}{draft.state === "saving" ? " · сохранение…" : ""}
                 </span>
+              )}
+              {draft.state === "editing" && onDraftResize && (
+                <div className="cal-resize bottom" onPointerDown={(e) => onDraftEdgeDown(e, "bottom")}
+                     onPointerMove={onDraftEdgeMove} onPointerUp={onDraftEdgeUp} onPointerCancel={onDraftEdgeUp}>
+                  <span className="cal-resize-grip" />
+                </div>
               )}
             </div>
           );
