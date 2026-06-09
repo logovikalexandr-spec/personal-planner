@@ -35,10 +35,12 @@ export function priorityColor(priority: Priority): string | null {
 
 type Drag = { id: number; startMin: number; endMin: number };
 type Edge = "top" | "bottom" | "move";
+type Draft = { startMin: number; endMin: number; title: string; state: "editing" | "saving" | "error" };
 
 export const DayTimeline = memo(function DayTimeline({
   tasks, byId, isToday, onTapHour, onToggle, onOpen, onResize, autoScroll = true, nowAnchorId,
   gridRef: gridRefProp, onCreateDraft,
+  draft, onDraftChange, onDraftCommit, onDraftCancel, onDraftRetry,
 }: {
   tasks: Task[];
   byId: Map<number, Project>;
@@ -56,6 +58,12 @@ export const DayTimeline = memo(function DayTimeline({
   gridRef?: React.RefObject<HTMLDivElement>;
   /** Жест создания на пустой сетке: тап=1ч / протяжка=диапазон. Если не передан — создание выключено. */
   onCreateDraft?: (range: { startMin: number; endMin: number }) => void;
+  /** Черновик создаваемой задачи (state живёт в родителе — Today). */
+  draft?: Draft | null;
+  onDraftChange?: (title: string) => void;
+  onDraftCommit?: () => void;
+  onDraftCancel?: () => void;
+  onDraftRetry?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const localGridRef = useRef<HTMLDivElement>(null);
@@ -79,13 +87,15 @@ export const DayTimeline = memo(function DayTimeline({
 
   // Раскладка пересекающихся блоков по колонкам (Apple-стиль).
   const DRAFT_ID = -1; // sentinel id живого превью/черновика создания
-  const cols = useMemo(() => layoutColumns(
-    timed.map((t) => {
+  const cols = useMemo(() => {
+    const blocks = timed.map((t) => {
       const s = parseMin(t.due_time)!;
       const e = parseMin(t.end_time);
       return { id: t.id, startMin: s, endMin: e && e > s ? e : s + 60 };
-    }),
-  ), [timed]);
+    });
+    if (draft) blocks.push({ id: DRAFT_ID, startMin: draft.startMin, endMin: draft.endMin });
+    return layoutColumns(blocks);
+  }, [timed, draft]);
   const GUTTER = 4; // px между колонками
   const LANE_LEFT = 56;
   const LANE_RIGHT = 8;
@@ -378,6 +388,57 @@ export const DayTimeline = memo(function DayTimeline({
             </div>
           );
         })}
+
+        {/* live-превью протяжки-создания (до отпускания; draft-проп ещё не поднят в Today) */}
+        {!draft && drag && drag.id === DRAFT_ID && (
+          <div
+            className="cal-draft"
+            style={{
+              top: ((snap15(drag.startMin) - offsetMin) / 60) * HOUR_H + 1,
+              height: Math.max(((snap15(drag.endMin) - snap15(drag.startMin)) / 60) * HOUR_H - 2, 22),
+              ...laneStyle(cols.get(DRAFT_ID)?.colIndex ?? 0, cols.get(DRAFT_ID)?.colCount ?? 1),
+            }}
+          >
+            <span className="cal-draft-time">{hhmm(snap15(drag.startMin))}–{hhmm(snap15(drag.endMin))}</span>
+          </div>
+        )}
+
+        {/* draft-блок с инлайн-инпутом (state живёт в Today) */}
+        {draft && (() => {
+          const lay = cols.get(DRAFT_ID) ?? { colIndex: 0, colCount: 1 };
+          const top = ((draft.startMin - offsetMin) / 60) * HOUR_H + 1;
+          const height = Math.max(((draft.endMin - draft.startMin) / 60) * HOUR_H - 2, 44);
+          return (
+            <div
+              className={`cal-draft ${draft.state === "saving" ? "saving" : ""} ${draft.state === "error" ? "error" : ""}`}
+              style={{ top, height, ...laneStyle(lay.colIndex, lay.colCount) }}
+            >
+              <input
+                className="cal-draft-input"
+                autoFocus
+                placeholder="Новая задача"
+                value={draft.title}
+                disabled={draft.state === "saving"}
+                onChange={(e) => onDraftChange?.(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); onDraftCommit?.(); }
+                  if (e.key === "Escape") { e.preventDefault(); onDraftCancel?.(); }
+                }}
+                ref={(el) => { if (el && draft.state === "editing") el.scrollIntoView({ block: "center" }); }}
+              />
+              {draft.state === "error" ? (
+                <span className="cal-draft-err">
+                  Не сохранено
+                  <button onClick={onDraftRetry}>Повторить</button>
+                </span>
+              ) : (
+                <span className="cal-draft-time">
+                  {hhmm(draft.startMin)}–{hhmm(draft.endMin)}{draft.state === "saving" ? " · сохранение…" : ""}
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
