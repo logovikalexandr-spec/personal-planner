@@ -340,6 +340,34 @@ select.input { appearance: none; -webkit-appearance: none; }
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   display: flex; align-items: flex-start; gap: 7px;
 }
+/* колонки наложений — ширина/смещение задаются инлайном (left/width), здесь только переходы */
+.cal-block { transition: left 120ms ease, width 120ms ease; }
+/* черновик создания — намеренно ОТЛИЧЕН от обычного блока (пунктир ember) */
+.cal-draft {
+  position: absolute; border-radius: 10px; padding: 5px 9px; z-index: 5;
+  border: 1.5px dashed var(--accent); background: var(--accent-soft);
+  display: flex; flex-direction: column; gap: 2px; overflow: hidden;
+}
+.cal-draft.saving { opacity: 0.6; }
+.cal-draft.error { border-style: solid; border-color: var(--danger); background: rgba(255,92,92,0.10); }
+.cal-draft-input {
+  -webkit-appearance: none; appearance: none; background: transparent; border: 0; outline: 0;
+  font-family: inherit; font-size: 14px; font-weight: 500; color: var(--text);
+  caret-color: var(--accent); min-height: 22px; width: 100%; padding: 0;
+}
+.cal-draft-input::placeholder { color: var(--text-muted); }
+.cal-draft-time { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+.cal-draft-err { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--danger); }
+.cal-draft-err button { background: var(--danger); color: #1a0808; border: 0; border-radius: 6px; padding: 3px 9px; font-weight: 600; font-size: 11px; }
+/* accessory-бар «Готово» над клавиатурой */
+.cal-accessory {
+  position: fixed; left: 0; right: 0; bottom: var(--kb-inset, 0); z-index: 50;
+  display: flex; justify-content: flex-end; padding: 8px 14px;
+  background: linear-gradient(transparent, var(--onyx) 45%);
+}
+.cal-accessory button { min-height: 44px; background: var(--accent); color: #1a1209; border: 0; border-radius: 12px; padding: 0 22px; font-size: 15px; font-weight: 600; }
+@keyframes cal-pulse { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
+.cal-block.created { animation: cal-pulse 200ms ease; }
 .cal-block-main { flex: 1 1 auto; min-width: 0; }
 .cal-cb {
   width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-muted);
