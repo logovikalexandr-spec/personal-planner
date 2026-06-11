@@ -269,7 +269,7 @@ function RetroView({ retro, onTaskToggle }: { retro: RetroOut | null; onTaskTogg
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ transform: odOpen ? "none" : "rotate(-90deg)", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
           </button>
           {odOpen && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0 10px" }}>
+            <div className="retro-od" style={{ display: "flex", flexDirection: "column", gap: 7, padding: "6px 0 10px" }}>
               {tasks.overdue.map((o) => (
                 <TaskItem key={o.id} task={o} color={o.color} onToggle={onTaskToggle} />
               ))}

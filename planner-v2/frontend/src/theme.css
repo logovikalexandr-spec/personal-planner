@@ -59,6 +59,10 @@ input, textarea, [contenteditable="true"] {
 /* метка этапа задачи (A6): мишень-глиф + «этап N», цвет по статусу */
 .stagelbl { display: inline-flex; align-items: center; gap: 3px; font-weight: 600; }
 .stagelbl svg { width: 12px; height: 12px; }
+/* просроченные карточки в Ретро — компактнее и пропорциональнее (scoped, глобальный TaskItem не трогаем) */
+.retro-od .task-row { min-height: 0; padding: 10px 12px; gap: 10px; align-items: flex-start; }
+.retro-od .checkbox { width: 20px; height: 20px; margin-top: 1px; }
+.retro-od .task-row .grow > div:first-child { font-size: 14.5px; font-weight: 500; line-height: 1.25; }
 .mono { font-family: var(--font-mono); font-feature-settings: "tnum"; }
 
 .card { background: var(--surface); border-radius: var(--radius); padding: var(--s4); }
