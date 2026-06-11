@@ -1,6 +1,6 @@
 import { tg } from "./telegram";
 import type {
-  CheckItem, Counts, InboxItem, Priority, Project, RecurrenceJson,
+  CheckItem, Counts, InboxItem, Milestone, Priority, Project, RecurrenceJson,
   Reminder, ReminderInput, Tag, Task, TaskDetail,
 } from "./types";
 
@@ -44,6 +44,12 @@ export const getTasks = (scope = "all", projectId?: number, includeChildren = fa
       (includeChildren ? `&include_children=true` : ""),
   );
 export const getDayTasks = (date: string) => req<Task[]>(`/api/tasks?on_date=${date}`);
+// Форк B (календарь): задачи в окне дат [from,to] включительно (с done, без archived).
+export const getTasksRange = (from: string, to: string) =>
+  req<Task[]>(`/api/tasks?from=${from}&to=${to}`);
+// Форк B: вехи (Stage.is_milestone) в окне по всем проектам — флажки календаря.
+export const getMilestones = (from: string, to: string) =>
+  req<Milestone[]>(`/api/milestones?from=${from}&to=${to}`);
 export const getSubtasks = (parentId: number) => req<Task[]>(`/api/tasks?parent_task_id=${parentId}`);
 
 export interface TaskInput {

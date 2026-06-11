@@ -164,6 +164,7 @@ function AppMain() {
             onOpenInbox={openInbox}
             onQuickAdd={quickAdd}
             inboxCount={inboxCount}
+            onOpenDrawer={openDrawer}
           />
         )}
       </div>

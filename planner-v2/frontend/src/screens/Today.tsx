@@ -3,7 +3,8 @@ import { DayTimeline, priorityColor } from "../components/DayTimeline";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { QuickAddBar } from "../components/QuickAddBar";
-import { IcoBack, IcoChevron, IcoInbox } from "../components/icons";
+import { IcoBack, IcoChevron, IcoInbox, IcoMenu, IcoCalendar2, IcoChevronDown } from "../components/icons";
+import { DateJumpSheet } from "../components/DateJumpSheet";
 import { createTask, getDayTasks, getProjects, getTasks, patchTask } from "../api";
 import { createPayload } from "../lib/timelineLayout";
 import { tg } from "../telegram";
@@ -31,7 +32,7 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
 type LoadState = "loading" | "error" | "ready";
 
 export function Today({
-  reloadKey, hidden = false, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount,
+  reloadKey, hidden = false, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount, onOpenDrawer,
 }: {
   reloadKey: number;
   /** Экран скрыт (keep-alive: App рендерит через .screen-host[hidden]). Сигнал для авто-коммита черновика (E9). */
@@ -42,8 +43,14 @@ export function Today({
   onOpenInbox: () => void;
   onQuickAdd: (p: ParseResult) => void;
   inboxCount: number;
+  /** Открыть навигацию-шторку (бургер ☰). Drawer живёт в App. */
+  onOpenDrawer: () => void;
 }) {
-  const iso = localToday();
+  // Выбранный день таба «Задачи» (T1): по умолчанию сегодня; свайп/датапикер двигают.
+  const [selectedISO, setSelectedISO] = useState(localToday);
+  const iso = selectedISO;
+  const isToday = selectedISO === localToday();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [overdue, setOverdue] = useState<Task[]>([]);
   const [byId, setById] = useState<Map<number, Project>>(new Map());
@@ -176,6 +183,41 @@ export function Today({
     document.getElementById("today-now")?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
+  // «Сегодня» в шапке: не на сегодня → прыжок на сегодня; уже сегодня → скролл к now.
+  const goToday = useCallback(() => {
+    if (selectedISO !== localToday()) setSelectedISO(localToday());
+    else jumpNow();
+  }, [selectedISO, jumpNow]);
+
+  // Свайп ◀▶ по таймлайну = сосед-день. Левый край (≤24px) отдан шторке-drawer,
+  // блоки/черновик — свои жесты (skip по target), горизонталь должна доминировать.
+  const shiftDay = useCallback((delta: number) => {
+    const d = new Date(selectedISO + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    setSelectedISO(`${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`);
+  }, [selectedISO]);
+
+  const swStart = useRef<{ x: number; y: number } | null>(null);
+  const onSwipeStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    // у левого края — это edge-swipe шторки (App), не листание дней; на блоке/черновике — свои жесты
+    if (t.clientX <= 24 || (e.target as HTMLElement).closest(".cal-block,.cal-draft,.cal-accessory")) {
+      swStart.current = null; return;
+    }
+    swStart.current = { x: t.clientX, y: t.clientY };
+  }, []);
+  const onSwipeEnd = useCallback((e: React.TouchEvent) => {
+    const s = swStart.current;
+    swStart.current = null;
+    if (!s || draftRef.current || pickerOpen) return; // не листать при открытом черновике/пикере
+    const dx = e.changedTouches[0].clientX - s.x;
+    const dy = Math.abs(e.changedTouches[0].clientY - s.y);
+    if (Math.abs(dx) > 60 && Math.abs(dx) > dy * 1.5) {
+      tg()?.HapticFeedback?.impactOccurred?.("light");
+      shiftDay(dx < 0 ? 1 : -1); // влево=след.день, вправо=пред.день
+    }
+  }, [pickerOpen, shiftDay]);
+
   const renderList = (items: Task[]) => (
     <div className="list">
       {items.map((t) => (
@@ -201,17 +243,25 @@ export function Today({
   // ── вид «Таймлайн» (главный) ────────────────────────────────────────────
   if (view === "timeline") {
     return (
-      <div className="screen today">
+      <div className="screen today" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd}>
         <div className="today-head">
-          <div className="screen-hero today-pad today-hero-row">
-            <div>
-              <h1>Сегодня</h1>
-              <div className="date today-date" style={{ textTransform: "capitalize" }}>{FMT.format(new Date())}</div>
-              {tasks.length > 0 && (
-                <div className="today-summary">{tasks.length} задач · {closed.length} закрыто</div>
-              )}
+          <div className="screen-hero today-pad">
+            <div className="t1-hero-top">
+              <button className="t1-burger" onClick={onOpenDrawer} aria-label="Проекты"><IcoMenu /></button>
+              <h1>Задачи</h1>
             </div>
-            <button className="cal-today" onClick={jumpNow}>Сегодня</button>
+            <div className="t1-daterow">
+              <button className="t1-datebtn" onClick={() => setPickerOpen(true)}>
+                <IcoCalendar2 />
+                <span style={{ textTransform: "capitalize" }}>{FMT.format(new Date(selectedISO + "T00:00:00"))}</span>
+                <span className="chev"><IcoChevronDown /></span>
+              </button>
+              {!isToday && <button className="t1-jump" onClick={goToday}>Сегодня</button>}
+              {isToday && <button className="t1-jump" onClick={jumpNow}>Сейчас</button>}
+            </div>
+            {tasks.length > 0 && (
+              <div className="today-summary">{tasks.length} задач · {closed.length} закрыто</div>
+            )}
           </div>
           {allday.length > 0 && (
             <div className="cal-allday today-pad">
@@ -248,7 +298,7 @@ export function Today({
             <DayTimeline
               tasks={timed}
               byId={byId}
-              isToday
+              isToday={isToday}
               autoScroll={false}
               gridRef={gridRef}
               onCreateDraft={openDraft}
@@ -269,6 +319,13 @@ export function Today({
             {/* onMouseDown preventDefault: не дать инпуту потерять фокус ДО клика (blur уже коммитит — но порядок важен для consistency) */}
             <button onMouseDown={(e) => e.preventDefault()} onClick={commitDraft}>Готово</button>
           </div>
+        )}
+        {pickerOpen && (
+          <DateJumpSheet
+            initial={selectedISO}
+            onPick={(d) => setSelectedISO(d)}
+            onClose={() => setPickerOpen(false)}
+          />
         )}
       </div>
     );

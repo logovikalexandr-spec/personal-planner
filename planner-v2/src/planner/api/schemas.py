@@ -47,6 +47,7 @@ class TaskOut(BaseModel):
     parent_task_id: int | None = None
     progress: int = 0
     pinned: bool = False
+    stage_id: int | None = None
     tags: list[TagOut] = []
 
     model_config = {"from_attributes": True}
@@ -152,6 +153,77 @@ class ProjectOut(BaseModel):
     pinned: bool = False
     order_index: int = 0
     open_count: int = 0
+    # AI-слой (заполняет human-in-loop Claude, бэк LLM не зовёт)
+    success_probability: int | None = None
+    target_date: date | None = None
+    ai_notes: list[AiNote] | None = None
+    weeks_left: int | None = None  # computed из target_date
+
+    model_config = {"from_attributes": True}
+
+
+class AiNote(BaseModel):
+    date: date
+    type: str  # accelerate | risk | info
+    text: str
+
+
+class ProjectAiUpdate(BaseModel):
+    """Write-API human-in-loop: PUT /api/projects/{id}/ai."""
+
+    success_probability: int | None = None
+    target_date: date | None = None
+    ai_notes: list[AiNote] | None = None
+
+
+class StageCreate(BaseModel):
+    project_id: int
+    name: str
+    order_index: int | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    status: str = "future"  # done | current | future | late
+    progress: int = 0
+    is_milestone: bool = False
+    milestone_date: date | None = None
+    depends_on_ids: list[int] | None = None
+
+
+class StagePatch(BaseModel):
+    name: str | None = None
+    order_index: int | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    status: str | None = None
+    progress: int | None = None
+    is_milestone: bool | None = None
+    milestone_date: date | None = None
+    depends_on_ids: list[int] | None = None
+
+
+class StageOut(BaseModel):
+    id: int
+    project_id: int
+    name: str
+    order_index: int
+    start_date: date | None = None
+    end_date: date | None = None
+    status: str
+    progress: int
+    is_milestone: bool
+    milestone_date: date | None = None
+    depends_on_ids: list[int] = []
+
+    model_config = {"from_attributes": True}
+
+
+class MilestoneOut(BaseModel):
+    """Веха для календаря: лёгкая проекция Stage (флажок цвета проекта)."""
+    id: int
+    project_id: int
+    name: str
+    milestone_date: date
+    status: str
 
     model_config = {"from_attributes": True}
 

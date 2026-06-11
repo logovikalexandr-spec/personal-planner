@@ -21,7 +21,48 @@ class Project(Base):
     pinned: Mapped[bool] = mapped_column(Boolean, default=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    # --- AI-слой (заполняет human-in-loop Claude через write-API, бэк LLM не зовёт) ---
+    # success_probability: 0..100 вероятность успеха проекта-цели
+    success_probability: Mapped[int | None] = mapped_column(Integer, default=None)
+    target_date: Mapped[date | None] = mapped_column(Date, default=None)
+    # ai_notes: список {date, type(accelerate|risk|info), text}
+    ai_notes: Mapped[list | None] = mapped_column(JSON, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Stage(Base):
+    """Этап/веха проекта. Основа Ганта, Целей, DETAIL-этапа, INBOX-подсказки."""
+
+    __tablename__ = "stage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("project.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(200))
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+    start_date: Mapped[date | None] = mapped_column(Date, default=None)
+    end_date: Mapped[date | None] = mapped_column(Date, default=None)
+    # status ∈ done | current | future | late
+    status: Mapped[str] = mapped_column(String(10), default="future")
+    progress: Mapped[int] = mapped_column(Integer, default=0)
+    is_milestone: Mapped[bool] = mapped_column(Boolean, default=False)
+    milestone_date: Mapped[date | None] = mapped_column(Date, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class StageDependency(Base):
+    """Зависимость этапов для критпути. Ребро from_stage → to_stage:
+    to_stage НЕ может начаться, пока from_stage не закрыт (from = предшественник)."""
+
+    __tablename__ = "stage_dependency"
+
+    from_stage_id: Mapped[int] = mapped_column(
+        ForeignKey("stage.id", ondelete="CASCADE"), primary_key=True
+    )
+    to_stage_id: Mapped[int] = mapped_column(
+        ForeignKey("stage.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class Task(Base):
@@ -46,6 +87,9 @@ class Task(Base):
     source: Mapped[str] = mapped_column(String(10), default="manual")
     order_index: Mapped[int] = mapped_column(Integer, default=0)
     parent_task_id: Mapped[int | None] = mapped_column(ForeignKey("task.id"), default=None)
+    stage_id: Mapped[int | None] = mapped_column(
+        ForeignKey("stage.id", ondelete="SET NULL"), default=None
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     tags: Mapped[list[Tag]] = relationship(secondary="task_tag", lazy="selectin")

@@ -7,7 +7,7 @@ const TABS: { key: TabKey; label: string; Ico: (p: { active?: boolean }) => Reac
   { key: "calendar", label: "Календарь", Ico: IcoCalendar },
   { key: "lists", label: "Списки", Ico: IcoLists },
   { key: "goals", label: "Цели", Ico: IcoGoals },
-  { key: "tracking", label: "Трекинг", Ico: IcoTracking },
+  { key: "tracking", label: "Привычки", Ico: IcoTracking },
 ];
 
 export function BottomTabs({

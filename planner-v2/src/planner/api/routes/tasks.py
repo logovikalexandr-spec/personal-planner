@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from planner.api.auth import TelegramUser, require_owner
@@ -42,14 +42,20 @@ async def list_tasks(
     project_id: int | None = None,
     include_children: bool = False,
     on_date: date | None = None,
+    from_: date | None = Query(None, alias="from"),
+    to: date | None = None,
     parent_task_id: int | None = None,
 ):
     if project_id is not None and include_children:
         from planner.services.tasks import descendant_project_ids
         project_ids = await descendant_project_ids(db, project_id)
-        return await svc.list_tasks(db, scope=scope, project_ids=project_ids, on_date=on_date)
+        return await svc.list_tasks(
+            db, scope=scope, project_ids=project_ids, on_date=on_date,
+            from_date=from_, to_date=to,
+        )
     return await svc.list_tasks(
-        db, scope=scope, project_id=project_id, on_date=on_date, parent_task_id=parent_task_id,
+        db, scope=scope, project_id=project_id, on_date=on_date,
+        from_date=from_, to_date=to, parent_task_id=parent_task_id,
     )
 
 

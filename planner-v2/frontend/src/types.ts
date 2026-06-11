@@ -56,7 +56,18 @@ export interface Task {
   recurrence_json?: RecurrenceJson | null;
   progress?: number;          // 0-100, двигается чеклистом
   pinned?: boolean;
+  stage_id?: number | null;   // Форк 0: привязка к этапу проекта (метка на таймлайне T1)
   description?: string | null; parent_task_id?: number | null; tags?: Tag[];
+}
+
+// Форк 0: этап/веха проекта. Зеркало StageOut. order_index → «этап N» (N=order_index+1).
+export type StageStatus = "done" | "current" | "future" | "late";
+export interface Stage {
+  id: number; project_id: number; name: string; order_index: number;
+  start_date: string | null; end_date: string | null;
+  status: StageStatus; progress: number;
+  is_milestone: boolean; milestone_date: string | null;
+  depends_on_ids: number[];
 }
 
 // Волна 2 §2: GET /tasks/{id} — расширенная задача с вложенными коллекциями.
@@ -80,3 +91,15 @@ export type ActiveList =
   | { kind: "project"; id: number; title: string };
 
 export interface InboxItem { id: number; kind: string; source: string; raw_content: string; status: string; }
+
+// Форк B: веха для календаря (проекция Stage). Цвет флажка = цвет проекта.
+export interface Milestone {
+  id: number;
+  project_id: number;
+  name: string;
+  milestone_date: string; // ISO date
+  status: string;
+}
+
+// Форк B: три ракурса одного таба «Календарь».
+export type CalendarView = "week" | "month" | "agenda";

@@ -84,6 +84,8 @@ export function IcoTracking({ active }: P) {
 
 /* ── Wave 1 chrome-глифы (через sv(), stroke 1.9, размер задаёт контекст) ── */
 export const IcoChevron = () => sv(<path d="M9 6l6 6-6 6" />);                       /* шеврон строк/entry-card (замена «›»/«▸») */
+export const IcoChevronDown = () => sv(<path d="M6 9l6 6 6-6" />);                    /* шеврон-вниз дата-кнопки (T1) */
+export const IcoStage = () => sv(<><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></>); /* мишень-этап проекта (T1 метка, нейтральный steel) */
 export const IcoRepeatMicro = () => sv(<><path d="M4 9a8 8 0 0 1 14-3M20 15a8 8 0 0 1-14 3" /><path d="M18 3v3.5h-3.5M6 21v-3.5h3.5" /></>); /* таймлайн-мета 12px (замена 🔁) */
 export const IcoBellMicro = () => sv(<><path d="M18 9a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7" /><path d="M10.5 20a2 2 0 0 0 3 0" /></>); /* таймлайн-мета 12px (замена ⏰) */
 export const IcoPin = () => sv(<><path d="M9 4h6M10 4l-1 7-3 2v2h12v-2l-3-2-1-7M12 17v3" /></>); /* pin-маркер ~14px (замена 📌) */

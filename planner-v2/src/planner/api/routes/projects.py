@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,17 +7,36 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from planner.api.auth import TelegramUser, require_owner
 from planner.api.deps import get_db
-from planner.api.schemas import ProjectCreate, ProjectOrderItem, ProjectOut, ProjectPatch
+from planner.api.schemas import (
+    ProjectAiUpdate,
+    ProjectCreate,
+    ProjectOrderItem,
+    ProjectOut,
+    ProjectPatch,
+)
 from planner.db.models import Project
 from planner.services.projects import (
     create_project as create_project_svc,
+)
+from planner.services.projects import (
     delete_project as delete_project_svc,
+)
+from planner.services.projects import (
     reorder_projects as reorder_projects_svc,
+)
+from planner.services.projects import (
     update_project as update_project_svc,
 )
+from planner.services.stages import update_project_ai as update_project_ai_svc
 from planner.services.tasks import count_open_by_project
 
 router = APIRouter(prefix="/api/projects")
+
+
+def _weeks_left(target: date | None) -> int | None:
+    if target is None:
+        return None
+    return (target - date.today()).days // 7
 
 
 def _to_out(p: Project, open_count: int = 0) -> ProjectOut:
@@ -31,6 +51,10 @@ def _to_out(p: Project, open_count: int = 0) -> ProjectOut:
         pinned=p.pinned,
         order_index=p.order_index,
         open_count=open_count,
+        success_probability=p.success_probability,
+        target_date=p.target_date,
+        ai_notes=p.ai_notes,
+        weeks_left=_weeks_left(p.target_date),
     )
 
 
@@ -91,6 +115,28 @@ async def patch_project(
         proj = await update_project_svc(db, project_id, changes)
     except ValueError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    await db.commit()
+    await db.refresh(proj)
+    return _to_out(proj)
+
+
+@router.put("/{project_id}/ai", response_model=ProjectOut)
+async def update_project_ai(
+    project_id: int,
+    payload: ProjectAiUpdate,
+    _: Annotated[TelegramUser, Depends(require_owner)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    changes = payload.model_dump(exclude_unset=True)
+    # ai_notes -> JSON-сериализуемые (date внутри списка иначе падает); target_date
+    # остаётся date-объектом (это настоящая Date-колонка).
+    if changes.get("ai_notes") is not None:
+        changes["ai_notes"] = [n.model_dump(mode="json") for n in payload.ai_notes]
+    try:
+        proj = await update_project_ai_svc(db, project_id, changes)
+    except ValueError as exc:
+        code = status.HTTP_404_NOT_FOUND if "not found" in str(exc) else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(code, str(exc)) from exc
     await db.commit()
     await db.refresh(proj)
     return _to_out(proj)

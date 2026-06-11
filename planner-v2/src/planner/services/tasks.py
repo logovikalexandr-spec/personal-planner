@@ -79,6 +79,8 @@ async def list_tasks(
     project_id: int | None = None,
     project_ids: list[int] | None = None,
     on_date: date | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
     parent_task_id: int | None = None,
 ) -> list[Task]:
     stmt = select(Task).where(Task.status != "archived")
@@ -86,6 +88,12 @@ async def list_tasks(
         stmt = stmt.where(Task.parent_task_id == parent_task_id)
     if on_date is not None:
         stmt = stmt.where(Task.due_date == on_date)
+    elif from_date is not None or to_date is not None:
+        # Календарь (неделя/месяц/лента): окно дат, включая границы и done.
+        if from_date is not None:
+            stmt = stmt.where(Task.due_date >= from_date)
+        if to_date is not None:
+            stmt = stmt.where(Task.due_date <= to_date)
     elif scope == "today":
         stmt = stmt.where(Task.due_date == date.today(), Task.status != "done")
     elif scope == "week":
