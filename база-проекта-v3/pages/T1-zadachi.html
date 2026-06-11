@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T1 — Задачи (любой день)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+    --ember:#EE8A3C; --hairline:rgba(255,255,255,0.07); --hour-h:56px;
+    --p-zima:#3FB68B; --p-health:#5B8DEF; --p-plan:#9B8CCB; --p-fin:#C9A24B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;color:var(--bone);font-family:Geist, sans-serif;-webkit-font-smoothing:antialiased;padding:28px 0 60px}
+  .cap{max-width:430px;margin:0 auto 10px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);padding:0 8px;line-height:1.5}
+  .cap b{color:var(--accent)}
+  .row-frames{display:flex;gap:36px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .frame-cap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin:0 0 10px}
+  .frame-cap b{color:var(--accent)}
+  /* код-бейдж навигации: page·frame (T1·A …). Внутри элементы = A1,A2… */
+  .fcode{display:inline-block;background:var(--accent);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+  /* метка элемента внутри фрейма (A1,A2…). inline = в тексте, .pin = угол icon-элемента */
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+  .ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+  .phone{width:390px;background:var(--onyx);border:1px solid var(--hairline);border-radius:28px;overflow:hidden;position:relative;height:844px;display:flex;flex-direction:column}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-family:"Geist Mono",monospace;font-size:13px;color:var(--bone);flex:0 0 auto}
+  .status .dots{display:flex;gap:4px}.status .dots i{width:5px;height:5px;border-radius:50%;background:var(--steel);display:block}
+  .screen{flex:1;overflow-y:auto;display:flex;flex-direction:column;position:relative}
+  .today-head{position:sticky;top:0;z-index:5;background:var(--onyx);border-bottom:1px solid var(--hairline)}
+  .hero{padding:12px 16px 10px}
+  /* строка заголовка: бургер (шторка проектов) + Задачи */
+  .hero-top{display:flex;align-items:center;gap:12px}
+  .burger{width:34px;height:34px;border-radius:10px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;color:var(--bone);flex:0 0 auto}
+  .burger svg{width:18px;height:18px}
+  .hero h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  /* строка даты: дата-кнопка + «Сегодня» */
+  .daterow{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+  .datebtn{display:inline-flex;align-items:center;gap:8px;background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:7px 12px;font-size:14px;font-weight:600;color:var(--bone);text-transform:capitalize}
+  .datebtn svg{width:15px;height:15px;color:var(--accent)}
+  .datebtn .chev{color:var(--steel);width:13px;height:13px}
+  .head-jump{font-size:13px;color:var(--accent);font-weight:500;border:1px solid var(--hairline);border-radius:999px;padding:6px 13px}
+  .summary{color:var(--steel);font-family:"Geist Mono",monospace;font-size:12px;margin-top:9px}
+  .allday{display:flex;align-items:center;gap:10px;padding:8px 16px 10px;border-top:1px solid var(--hairline)}
+  .allday .lbl{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);flex:0 0 34px;line-height:1.2}
+  .allday .chip{background:rgba(91,141,239,0.13);color:var(--p-health);border-radius:8px;padding:7px 11px;font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--warning)}
+  .cal-scroll{padding:0 16px;flex:1}
+  .cal-grid{position:relative;margin-top:8px}
+  .cal-hour{height:var(--hour-h);border-top:1px solid var(--hairline);position:relative}
+  .cal-hour:last-child{border-bottom:1px solid var(--hairline)}
+  .cal-hourlabel{position:absolute;top:-7px;left:0;font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);background:var(--onyx);padding-right:6px}
+  .cal-now{position:absolute;left:42px;right:0;height:2px;background:var(--accent);z-index:4}
+  .cal-now::before{content:"";position:absolute;left:-5px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .cal-block{position:absolute;left:42px;right:0;background:var(--slate);border-left:3px solid transparent;border-radius:8px;padding:6px 8px 6px 10px;display:flex;gap:8px;align-items:flex-start;overflow:hidden}
+  .cal-cb{flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--steel);margin-top:1px;display:flex;align-items:center;justify-content:center}
+  .cal-cb.done{background:var(--accent);border-color:var(--accent)}.cal-cb svg{width:13px;height:13px}
+  .cal-block-main{min-width:0}
+  .bt{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bm{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-top:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .stage{display:inline-flex;align-items:center;gap:4px;color:var(--steel)}
+  .stage svg{width:12px;height:12px}
+  /* impact-токен «вклад в успех» NN% (МОНО ТЕКСТ, не цвет). Виден только impact≥30 И привязка к проекту/цели */
+  .imp{color:var(--bone);background:var(--slate);border-radius:6px;padding:1px 6px;font-size:11px;font-weight:600;font-family:"Geist Mono",monospace;display:inline-flex;align-items:center;gap:3px}
+  .cal-block.done{opacity:.5}.cal-block.done .bt{text-decoration:line-through}
+  .fab{position:absolute;right:16px;bottom:90px;display:flex;align-items:center;gap:10px;z-index:9}
+  .fab .tasks{display:flex;align-items:center;gap:7px;background:var(--slate);border:1px solid var(--hairline);border-radius:999px;padding:11px 16px;font-size:14px;font-weight:600;color:var(--bone);box-shadow:0 6px 18px rgba(0,0,0,.5)}
+  .fab .tasks svg{width:17px;height:17px;color:var(--accent)}
+  .fab .add{width:52px;height:52px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+  .fab .add svg{width:24px;height:24px;color:#1a1209}
+  .tabs{flex:0 0 auto;display:flex;background:var(--smoke);border-top:1px solid var(--hairline);padding:8px 4px 18px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--steel);font-size:11px}
+  .tab.active{color:var(--accent)}.tab svg{width:22px;height:22px}
+  .swipe-hint{position:absolute;left:50%;transform:translateX(-50%);bottom:158px;display:flex;align-items:center;gap:7px;background:rgba(20,20,22,.85);border:1px solid var(--hairline);border-radius:999px;padding:6px 13px;font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);z-index:8}
+  .swipe-hint svg{width:13px;height:13px}
+  .picker-back{position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-start;justify-content:center;padding-top:120px}
+  .mini-cal{width:300px;background:var(--smoke);border:1px solid var(--hairline);border-radius:18px;padding:16px}
+  .mc-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .mc-head .m{font-size:15px;font-weight:600}
+  .mc-head .nav{display:flex;gap:8px;color:var(--steel)}
+  .mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+  .mc-grid .dow{font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);padding-bottom:4px}
+  .mc-grid .d{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;border-radius:8px;color:var(--bone);position:relative}
+  .mc-grid .d.dim{color:#444}
+  /* T1-D тепло по нагрузке дня (заливка ячейки) */
+  .mc-grid .d.g{background:rgba(63,182,139,0.20)}
+  .mc-grid .d.y{background:rgba(255,176,46,0.20)}
+  .mc-grid .d.r{background:rgba(255,92,92,0.22)}
+  /* today — ember-кольцо поверх тепла (не заливка, иначе скроет heat) */
+  .mc-grid .d.today{outline:2px solid var(--accent);outline-offset:-2px;color:var(--bone);font-weight:700}
+  .mc-grid .d.sel{box-shadow:0 0 0 1.5px var(--accent) inset}
+  .mc-grid .d .dt{position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%}
+  .mc-foot{display:flex;justify-content:space-between;margin-top:14px}
+  .mc-foot button{border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:600;font-family:inherit}
+  .mc-foot .today-b{background:var(--accent-soft);color:var(--accent)}
+  .mc-foot .ok-b{background:var(--accent);color:#1a1209}
+  .drawer-back{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:25}
+  .drawer{position:absolute;top:0;left:0;bottom:0;width:300px;background:var(--smoke);border-right:1px solid var(--hairline);z-index:26;display:flex;flex-direction:column;padding:44px 0 0}
+  .dr-h{padding:8px 18px 12px;font-size:18px;font-weight:700}
+  .dr-sec{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--steel);padding:12px 18px 6px}
+  .dr-item{display:flex;align-items:center;gap:11px;padding:11px 18px;font-size:14.5px}
+  .dr-item .ic{width:20px;color:var(--steel);display:flex}.dr-item .ic svg{width:18px;height:18px}
+  .dr-item .cnt{margin-left:auto;font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .dr-item.on{background:var(--accent-soft)}.dr-item.on span{color:var(--accent)}
+  .dr-proj{display:flex;align-items:center;gap:11px;padding:10px 18px;font-size:14.5px}
+  .dr-proj .dot{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+  .dr-add{display:flex;align-items:center;gap:9px;padding:12px 18px;color:var(--steel);font-size:13.5px}
+  .legend{max-width:860px;margin:26px auto 0;font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);line-height:1.7;padding:0 8px}
+  .legend b{color:var(--bone)} .legend .acc{color:var(--accent)}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:middle;margin:0 4px}
+  /* ====== F17 шторка (встроено инлайн, без ссылок) ====== */
+  .f17{position:absolute;inset:0;z-index:26;background:var(--onyx);display:flex;flex-direction:column;overflow:hidden}
+  .f17 .dh{display:flex;align-items:center;gap:12px;padding:50px 16px 12px}
+  .f17 .ava{width:40px;height:40px;border-radius:50%;background:var(--accent);color:#1a1209;font-weight:700;font-size:17px;display:flex;align-items:center;justify-content:center;position:relative;flex:0 0 auto}
+  .f17 .crown{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--warning);display:flex;align-items:center;justify-content:center}
+  .f17 .crown svg{width:10px;height:10px;color:#1a1209}
+  .f17 .nm{font-size:17px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .f17 .hico{width:34px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--steel)}
+  .f17 .hico svg{width:22px;height:22px}
+  .f17 .scroll{flex:1;overflow-y:auto;padding:4px 0 0}
+  .f17 .item{display:flex;align-items:center;gap:13px;padding:12px 16px}
+  .f17 .item .li{width:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+  .f17 .item .li svg{width:22px;height:22px;color:var(--steel)}
+  .f17 .item.active .li svg{color:var(--accent)}
+  .f17 .item .emo{width:24px;flex:0 0 auto;text-align:center;font-size:18px;line-height:1}
+  .f17 .item .dot{width:9px;height:9px;border-radius:3px;flex:0 0 auto;margin-right:2px}
+  .f17 .item .nm{flex:1;font-size:16px;font-weight:500}
+  .f17 .item .cnt{font-family:"Geist Mono",monospace;font-size:14px;color:var(--steel)}
+  .f17 .item .chev{color:var(--steel);margin-left:6px}.f17 .item .chev svg{width:16px;height:16px;display:block}
+  .f17 .item.active{background:var(--accent-soft);border-radius:12px;margin:0 8px;padding:12px}
+  .f17 .item.active .nm{color:var(--accent)}
+  .f17 .sec{font-size:12px;font-weight:600;color:var(--steel);letter-spacing:.06em;text-transform:uppercase;padding:12px 16px 6px}
+  .f17 .foot{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 22px;border-top:1px solid var(--hairline)}
+  .f17 .foot .add{display:flex;align-items:center;gap:10px;color:var(--bone);font-size:16px;font-weight:500}
+  .f17 .foot .add svg{width:22px;height:22px;color:var(--accent)}
+  .f17 .foot .set svg{width:22px;height:22px;color:var(--steel)}
+  /* ====== вид «Список» (T1-F гибрид) ====== */
+  .lst{flex:1;overflow-y:auto;padding:0 16px}
+  .lst .lhead{display:flex;align-items:center;gap:6px;color:var(--accent);font-size:13px;font-weight:600;padding:14px 0 4px}
+  .lst .lhead svg{width:16px;height:16px}
+  .lst h1{font-size:22px;font-weight:700;margin:2px 0 12px}
+  .lst .entry{display:flex;align-items:center;gap:12px;background:var(--smoke);border-radius:14px;padding:14px;margin-bottom:12px}
+  .lst .entry .ld{color:var(--accent);display:flex}.lst .entry .ld svg{width:20px;height:20px}
+  .lst .entry .gr{flex:1;font-size:15px;font-weight:500}
+  .lst .entry .ct{font-family:"Geist Mono",monospace;background:var(--accent);color:#1a1209;border-radius:999px;font-size:12px;font-weight:700;padding:2px 8px}
+  .lst .entry .cv{color:var(--steel)}.lst .entry .cv svg{width:16px;height:16px;display:block}
+  .lst .qa{display:flex;align-items:center;gap:9px;background:var(--slate);border:1px solid var(--hairline);border-radius:12px;padding:12px 14px;color:var(--steel);font-size:14px;margin-bottom:14px}
+  .lst .qa svg{width:18px;height:18px;color:var(--accent)}
+  .lst .slabel{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--steel);margin:14px 0 8px}
+  .lst .slabel.over{color:var(--danger)}
+  .lst .trow{display:flex;align-items:center;gap:12px;background:var(--smoke);border-radius:12px;padding:13px 14px;margin-bottom:8px}
+  .lst .trow .tcb{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--steel);flex:0 0 auto}
+  .lst .trow .tt{flex:1;font-size:15px}
+  .lst .trow .tm{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .lst .trow.done{opacity:.5}.lst .trow.done .tt{text-decoration:line-through}
+  .lst .trow .pri{width:3px;align-self:stretch;border-radius:2px;margin:-13px 0 -13px -14px;margin-right:2px}
+  .lst .sect-toggle{display:flex;align-items:center;justify-content:space-between;color:var(--steel);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px}
+  /* T1·D активный токен-композер (как V2 P01·B) */
+  .lst .qa2{background:var(--smoke);border-radius:14px;padding:14px 14px 13px;margin-bottom:14px}
+  .lst .qa-line{font-size:16px;font-weight:500;line-height:1.4}
+  .lst .qa-line .tkd{background:var(--accent-soft);color:var(--accent);border-radius:5px;padding:1px 5px}
+  .lst .qa-line .tkp{color:var(--accent);font-weight:700}
+  .lst .qa-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px;align-items:center}
+  .lst .qchip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:500;border:1px solid var(--hairline);background:var(--slate);color:var(--steel)}
+  .lst .qchip svg{width:14px;height:14px}
+  .lst .qchip.on{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+  .lst .qa-row2{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .lst .qsend{margin-left:auto;width:46px;height:46px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center}
+  .lst .qsend svg{width:20px;height:20px;color:#1a1209}
+  .lst .qa-hint{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);margin-top:12px;line-height:1.5}
+  /* строка-задача = цветная карточка: фон=проект-тинт (инлайн), кант=приоритет */
+  .lst .trow{border-left:3px solid transparent}
+</style>
+</head>
+<body>
+  <div class="cap">T1 — <b>Задачи</b> (любой день). ☰ <b>бургер</b> = шторка проектов (освободили edge-свайп). <b>Свайп ◀▶</b> = листать даты. Дата-кнопка = мини-календарь (тепло по нагрузке). Метка этапа — <b>цвет по статусу</b>.</div>
+
+  <div class="row-frames">
+    <!-- ФРЕЙМ 1: главный -->
+    <div class="col">
+      <div class="frame-cap"><span class="fcode">T1·A</span>главный · <b>таймлайн, свайп=даты</b></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span></div>
+        <div class="screen">
+          <div class="today-head">
+            <div class="hero">
+              <div class="hero-top">
+                <button class="burger" style="position:relative"><span class="ecode pin">A1·F17</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+                <h1>Задачи</h1>
+              </div>
+              <div class="daterow">
+                <button class="datebtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>вторник, 9 июня<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg><span class="ecode">A2·B</span></button>
+                <span class="head-jump">Сейчас<span class="ecode">A3</span></span>
+              </div>
+              <div class="summary">6 задач · 2 закрыто<span class="ecode">A4</span></div>
+            </div>
+            <div class="allday" style="align-items:flex-start">
+              <span class="lbl">весь<br>день<span class="ecode">A5</span></span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <span class="chip">Записаться на анализы (расширенные)</span>
+                <span class="chip" style="background:rgba(63,182,139,0.13);color:var(--p-zima);border-left-color:var(--danger)">Договор аренды ZIMA</span>
+                <span style="align-self:flex-start;font-family:'Geist Mono',monospace;font-size:12px;color:var(--steel);padding:5px 11px;border:1px dashed var(--hairline);border-radius:8px">+2 ещё</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cal-scroll">
+            <div class="cal-grid" style="height:1064px">
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">05:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">06:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">07:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">08:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">09:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">10:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">11:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">12:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">13:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">14:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">15:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">16:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">17:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">18:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">19:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">20:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">21:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">22:00</span></div>
+              <div class="cal-hour" style="height:56px"><span class="cal-hourlabel">23:00</span></div>
+
+              <div class="cal-now" style="top:532px"></div>
+
+              <div class="cal-block done" style="top:169px;height:54px">
+                <div class="cal-cb done"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="cal-block-main"><div class="bt">Утренний обзор задач</div><div class="bm"><span>08:00–08:30</span></div></div>
+              </div>
+              <div class="cal-block" style="top:225px;height:110px;background:rgba(63,182,139,0.13);border-left-color:var(--warning)">
+                <span class="ecode pin">A6·P07</span>
+                <div class="cal-cb"></div>
+                <div class="cal-block-main"><div class="bt">Созвон с командой ZIMA</div><div class="bm"><span>09:00–10:00</span><span class="stage" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 3</span> · <span class="imp">80%</span></div></div>
+              </div>
+              <div class="cal-block" style="top:337px;height:54px;background:rgba(91,141,239,0.13);border-left-color:var(--danger)">
+                <div class="cal-cb"></div>
+                <div class="cal-block-main"><div class="bt">Анализы — сдать кровь</div><div class="bm"><span>11:00</span><span class="stage" style="color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 1 !</span> · <span class="imp">45%</span></div></div>
+              </div>
+              <div class="cal-block" style="top:449px;height:138px;left:42px;right:auto;width:calc((100% - 50px)/2 - 2px);background:rgba(155,140,203,0.13);border-left-color:var(--warning)">
+                <div class="cal-cb"></div>
+                <div class="cal-block-main"><div class="bt">Дизайн «Цели»</div><div class="bm"><span>13:00</span><span class="stage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg></span></div></div>
+              </div>
+              <div class="cal-block" style="top:477px;height:54px;left:calc(42px + (100% - 50px)/2 + 4px);right:0;background:rgba(63,182,139,0.13);border-left-color:var(--danger)">
+                <div class="cal-cb"></div>
+                <div class="cal-block-main"><div class="bt">Звонок покупателю</div><div class="bm"><span>13:30</span></div></div>
+              </div>
+              <div class="cal-block" style="top:729px;height:54px;background:rgba(201,162,75,0.13);border-left-color:var(--accent)">
+                <div class="cal-cb"></div>
+                <div class="cal-block-main"><div class="bt">Оплатить налоги (záloha)</div><div class="bm"><span>18:00</span><span class="stage" style="color:var(--steel)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 2</span> · <span class="imp">60%</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="swipe-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l-6 6 6 6M15 6l6 6-6 6"/></svg>свайп — другой день</div>
+        <!-- T1-F · день=сегодня → пилюля «Список» видна (на других днях остаётся только [+]) -->
+        <div class="fab">
+          <div class="tasks" style="position:relative"><span class="ecode pin">A7·D</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg>Список</div>
+          <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span>Задачи</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Календарь</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h14M4 18h7"/></svg><span>Гант</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Цели</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg><span>Привычки</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ФРЕЙМ 2: датапикер -->
+    <div class="col">
+      <div class="frame-cap"><span class="fcode">T1·B</span>тап даты → <b>мини-календарь</b></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span></div>
+        <div class="screen">
+          <div class="today-head">
+            <div class="hero">
+              <div class="hero-top">
+                <button class="burger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+                <h1>Задачи</h1>
+              </div>
+              <div class="daterow">
+                <button class="datebtn" style="border-color:var(--accent);color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>среда, 4 июня<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 15l6-6 6 6"/></svg></button>
+                <span class="head-jump">Сегодня</span>
+              </div>
+              <div class="summary">6 задач · 2 закрыто</div>
+            </div>
+          </div>
+          <div style="opacity:.2;padding:0 16px;margin-top:6px"><div style="height:56px;border-top:1px solid var(--hairline)"></div><div style="height:56px;border-top:1px solid var(--hairline)"></div></div>
+        </div>
+        <div class="picker-back">
+          <div class="mini-cal">
+            <div class="mc-head"><span class="m">Июнь 2026</span><span class="nav"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            <div class="mc-grid">
+              <span class="dow">Пн</span><span class="dow">Вт</span><span class="dow">Ср</span><span class="dow">Чт</span><span class="dow">Пт</span><span class="dow">Сб</span><span class="dow">Вс</span>
+              <span class="d r">1</span><span class="d y">2</span><span class="d g">3</span><span class="d sel y">4</span><span class="d g">5</span><span class="d">6</span><span class="d">7</span>
+              <span class="d g">8</span><span class="d today r">9</span><span class="d y">10</span><span class="d r">11</span><span class="d g">12</span><span class="d">13</span><span class="d">14</span>
+              <span class="d y">15</span><span class="d g">16</span><span class="d">17</span><span class="d r">18</span><span class="d y">19</span><span class="d g">20</span><span class="d">21</span>
+              <span class="d">22</span><span class="d g">23</span><span class="d y">24</span><span class="d">25</span><span class="d r">26</span><span class="d">27</span><span class="d">28</span>
+              <span class="d g">29</span><span class="d y">30</span><span class="d dim">1</span><span class="d dim">2</span><span class="d dim">3</span><span class="d dim">4</span><span class="d dim">5</span>
+            </div>
+            <div class="mc-foot" style="justify-content:flex-start"><button class="today-b">Сегодня</button></div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span>Задачи</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Календарь</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h14M4 18h7"/></svg><span>Гант</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Цели</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg><span>Привычки</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ФРЕЙМ 3: бургер → шторка проектов -->
+    <div class="col">
+      <div class="frame-cap"><span class="fcode">T1·C</span>☰ бургер → <b>шторка (F17, встроена)</b></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span></div>
+        <!-- T1-A открывает шторку. Содержимое = контракт F17 (здесь инлайн, без ссылок) -->
+        <div class="f17">
+          <div class="dh">
+            <div class="ava">А<span class="crown"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 7l5 4 4-7 4 7 5-4-2 12H5z"/></svg></span></div>
+            <div class="nm">Александр Логовик</div>
+            <div class="hico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></div>
+            <div class="hico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 00-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 00-1.7-1l-.3-2.5h-4l-.3 2.5a7 7 0 00-1.7 1l-2.3-1-2 3.4L4.1 11a7 7 0 000 2l-2 1.5 2 3.4 2.3-1a7 7 0 001.7 1l.3 2.5h4l.3-2.5a7 7 0 001.7-1l2.3 1 2-3.4-2-1.5a7 7 0 00.1-1z"/></svg></div>
+          </div>
+          <div class="scroll">
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg></span><span class="nm">Все</span><span class="cnt">42</span></div>
+            <div class="item active"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span><span class="nm">Сегодня</span><span class="cnt">7</span></div>
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 00-10 0"/><path d="M12 2v7M5 9l1.5 1.5M19 9l-1.5 1.5M2 18h20"/></svg></span><span class="nm">Завтра</span><span class="cnt">4</span></div>
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span><span class="nm">Следующие 7 дней</span><span class="cnt">18</span></div>
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.5A2 2 0 0016.7 4H7.3a2 2 0 00-1.8 1.5z"/></svg></span><span class="nm">Входящие</span><span class="cnt">3</span></div>
+            <div class="sec">Проекты</div>
+            <div class="item"><span class="emo">🎯</span><span class="nm">Глобальные цели</span><span class="dot" style="background:#9B6BE0"></span><span class="cnt">12</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            <div class="item"><span class="emo">💰</span><span class="nm">Финансы</span><span class="dot" style="background:#C9A24B"></span><span class="cnt">9</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            <div class="item"><span class="emo">🧊</span><span class="nm">ZIMA</span><span class="dot" style="background:#3FB68B"></span><span class="cnt">14</span></div>
+            <div class="item"><span class="emo">🏛️</span><span class="nm">Недвижимость</span><span class="dot" style="background:#4FB0A8"></span><span class="cnt">5</span></div>
+            <div class="item"><span class="emo">🧘</span><span class="nm">Духовность</span><span class="dot" style="background:#C77DA8"></span><span class="cnt">3</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+          </div>
+          <div class="foot">
+            <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Добавить</div>
+            <div class="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h11M4 12h11M4 18h7"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="15" cy="18" r="2"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ФРЕЙМ 4: вид «Список» (T1-F) -->
+    <div class="col">
+      <div class="frame-cap"><span class="fcode">T1·D</span>FAB «Список» → <b>гибрид-список</b></div>
+      <div class="phone">
+        <div class="status"><span>9:41</span></div>
+        <div class="screen">
+          <div class="lst">
+            <div class="lhead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Таймлайн</div>
+            <h1>Сегодня</h1>
+            <div class="entry"><span class="ld"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.5A2 2 0 0016.7 4H7.3a2 2 0 00-1.8 1.5z"/></svg></span><span class="gr">Входящие</span><span class="ct">3</span><span class="cv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+            <!-- T1·D активный композер: ввёл задачу → разворачивается токен-распознавание (как V2 P01·B) -->
+            <div class="qa2">
+              <div class="qa-line">Позвонить в банк <span class="tkd">завтра</span> <span class="tkp">!1</span></div>
+              <div class="qa-chips">
+                <span class="qchip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>завтра</span>
+                <span class="qchip on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>P1</span>
+                <span class="qchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0l-7.6-7.6V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg>тег</span>
+              </div>
+              <div class="qa-row2">
+                <span class="qchip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>напоминание</span>
+                <span class="qsend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+              </div>
+              <div class="qa-hint">распознано: дата · проект · приоритет · тег — тап по токену вернёт в текст</div>
+            </div>
+
+            <div class="slabel over">Просрочено · 2</div>
+            <div class="trow" style="background:rgba(201,162,75,0.13);border-left-color:var(--danger)"><span class="tcb"></span><div style="flex:1;min-width:0"><div class="tt">Отправить документы бухгалтеру</div><div class="tm" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span style="color:var(--danger)">2 июн · 14:00</span> · <span class="imp">55%</span></div></div></div>
+            <div class="trow" style="background:rgba(91,141,239,0.13);border-left-color:var(--warning)"><span class="tcb"></span><div style="flex:1;min-width:0"><div class="tt">Записаться к стоматологу</div><div class="tm" style="color:var(--danger)">3 июн</div></div></div>
+
+            <div class="slabel">Без времени · 2</div>
+            <div class="trow" style="background:rgba(155,140,203,0.13);border-left-color:var(--accent)"><span class="tcb"></span><div style="flex:1;min-width:0"><div class="tt">Разобрать бэклог планировщика</div><div class="tm" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span>Планировщик</span> · <span class="imp">35%</span></div></div></div>
+            <div class="trow" style="background:rgba(91,141,239,0.13)"><span class="tcb"></span><div style="flex:1;min-width:0"><div class="tt">Купить добавки: магний, омега-3</div><div class="tm" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span>Здоровье</span> · <span class="imp">40%</span></div></div></div>
+
+            <div class="sect-toggle"><span>Закрыто · 2</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+          </div>
+        </div>
+        <div class="fab">
+          <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div>
+        </div>
+        <div class="tabs">
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></svg><span>Задачи</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Календарь</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h14M4 18h7"/></svg><span>Гант</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Цели</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg><span>Привычки</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <b>Контракт (решения 11.06):</b><br>
+    • <span class="acc">☰ Бургер (T1-A)</span> — слева от «Задачи». Только ОТКРЫВАЕТ шторку; сама шторка = отдельный контракт <b>F17</b> (features/F17-drawer.html): аватар+корона, смарт-списки, проекты-emoji, свайп Изменить/Удалить, свободный цвет. Выбор = переход на экран Списка. Edge-свайп тоже открывает. <b>NB:</b> прод-ProjectTreePanel пока старее F17 — апгрейд до F17 = свой таск, не Форк A.<br>
+    • <span class="acc">Чип справа от даты</span> — две роли: на ДРУГОМ дне = «Сегодня» (прыжок на сегодня); на сегодня = «Сейчас» (скролл к now-линии).<br>
+    • <span class="acc">Свайп ◀▶</span> по таймлайну = пред/след день (и со старта на блоке, если не взведён перенос; левый край ≤24px отдан шторке). <span class="acc">Хинт-пилюля</span> исчезает после первого свайпа.<br>
+    • <span class="acc">Дата-кнопка (T1-D)</span> = мини-календарь с <b>тепло-заливкой по нагрузке дня</b> (зелёный=лёгкий · жёлтый=средний · красный=забит/висят пропущенные важные · пусто=без цвета); today=ember-кольцо поверх; <b>тап дня = сразу прыжок</b>, «Сегодня» = быстрый возврат.<br>
+    • <span class="acc">All-day 3+</span> = показываем 2 чипа + «+N ещё» (тап раскрывает).<br>
+    • <span class="acc">FAB «Список»</span> + [+] — пилюля «Список» видна <b>только когда день = сегодня</b>; на других днях только [+].<br>
+    • <span class="acc">Метка этапа</span> = мишень + «этап N», <b>цвет по статусу</b> (current=ember · late=danger «!» · future=steel); не тапается; узкий блок = только иконка.<br>
+    • <span class="acc">Токен «вклад в успех» <span class="imp">NN%</span></span> = моно-пилюля в мете (bone/slate, НЕ цвет-сигнал), рядом с этапом через «·». Виден <b>только</b> при <code>impact ≥ 30</code> И привязке к проекту/цели; быт/инбокс/без проекта — без токена. Пишет Claude в чате (ZERO-AFK), не приложение.<br>
+    • Создание в ячейке на не-сегодня пишет задачу на <b>выбранный день</b> (due_date=выбранная дата). Смена дня = мгновенный свап без скелетона, гонка запросов отменяется (последний выигрывает).<br>
+    <b>Не тронуто:</b> таймлайн, инлайн-создание, наложения=колонки, жесты переноса/ресайза.<br><br>
+    <b>Цвет=смысл.</b> Фон=проект: <span class="sw" style="background:var(--p-zima)"></span>ZIMA <span class="sw" style="background:var(--p-health)"></span>Здоровье <span class="sw" style="background:var(--p-plan)"></span>planner <span class="sw" style="background:var(--p-fin)"></span>Финансы. Полоса=приоритет: <span class="sw" style="background:var(--danger)"></span>high <span class="sw" style="background:var(--warning)"></span>med <span class="sw" style="background:var(--accent)"></span>low.
+  </div>
+</body>
+</html>

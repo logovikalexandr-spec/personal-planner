@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F12 — ListViewSwipe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  --accent:var(--ember);
+  --proj-work:#9B8CCB; /* проект Планировщик/Работа/Дело */
+  --s2:6px; --s3:10px; --s4:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:#2a2a2e;
+  font-family:Geist, sans-serif;
+  color:var(--bone);
+  display:flex;flex-direction:column;align-items:center;
+  padding:40px 16px 80px;gap:14px;
+  min-height:100vh;
+}
+.mono{font-family:"Geist Mono", monospace;}
+
+/* заголовок-плашка */
+.frame-label{
+  font-family:"Geist Mono", monospace;
+  font-size:12px;color:var(--steel);
+  letter-spacing:0.04em;text-transform:uppercase;
+  display:flex;gap:8px;align-items:baseline;
+}
+.frame-label b{color:var(--ember);font-weight:500;}
+
+/* телефон-фрейм */
+.phone{
+  width:390px;min-height:844px;
+  background:var(--onyx);
+  border-radius:28px;
+  border:1px solid var(--hairline);
+  overflow:hidden;
+  position:relative;
+  display:flex;flex-direction:column;
+}
+.phone.alt{min-height:auto;}
+
+/* статусбар */
+.statusbar{
+  height:44px;flex:0 0 44px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px;
+}
+.statusbar .time{font-family:"Geist Mono", monospace;font-size:14px;font-weight:500;color:var(--bone);}
+.statusbar .dots{display:flex;gap:4px;align-items:center;}
+.statusbar .dots i{width:5px;height:5px;border-radius:50%;background:var(--steel);display:block;}
+.statusbar .dots .bat{width:22px;height:11px;border:1px solid var(--steel);border-radius:3px;position:relative;}
+.statusbar .dots .bat::after{content:"";position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:13px;background:var(--bone);border-radius:1px;}
+
+/* screen */
+.screen{flex:1;display:flex;flex-direction:column;padding:8px 18px 0;overflow:hidden;}
+.row{display:flex;align-items:center;}
+.hamb{
+  background:none;border:none;color:var(--bone);
+  width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border-radius:8px;
+}
+.hamb svg{width:22px;height:22px;}
+h1{font-size:26px;font-weight:700;letter-spacing:-0.02em;}
+
+.list{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+
+/* строка-свайп */
+.task-swipe{position:relative;border-radius:12px;overflow:hidden;}
+
+/* левый слот действий (открыт при свайпе влево) */
+.swipe-actions{
+  position:absolute;top:0;bottom:0;
+  display:flex;align-items:stretch;
+}
+.swipe-actions.right{right:0;}
+.swipe-actions.left{left:0;}
+.swipe-btn{
+  width:62px;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  color:var(--bone);font-size:11px;font-weight:500;
+  font-family:Geist, sans-serif;
+}
+.swipe-btn svg{width:20px;height:20px;}
+.swipe-btn.date{background:var(--slate);color:var(--bone);}
+.swipe-btn.move{background:var(--ember);color:#1a1209;}
+.swipe-btn.del{background:var(--danger);color:var(--bone);}
+.swipe-btn.done{background:var(--ember);color:#1a1209;width:80px;}
+
+/* строка задачи — фон = тинт ПРОЕКТА 0.13, полоса = ПРИОРИТЕТ */
+.task-row{
+  position:relative;
+  background:var(--smoke); /* fallback: задача без проекта */
+  border-radius:12px;
+  padding:13px var(--s4);
+  display:flex;align-items:flex-start;gap:12px;
+  transition:transform 180ms cubic-bezier(0.22,1,0.36,1);
+}
+/* проект Работа/Дело → тинт #9B8CCB @ 0.13 */
+.task-row.proj-work{background:rgba(155,140,203,0.13);}
+.task-row.prio-high{border-left:3px solid var(--danger);padding-left:calc(var(--s4) - 3px);}
+.task-row.prio-medium{border-left:3px solid var(--warning);padding-left:calc(var(--s4) - 3px);}
+.task-row.prio-low{border-left:3px solid var(--ember);padding-left:calc(var(--s4) - 3px);}
+
+/* строка сдвинута влево, показывая слот действий */
+.task-row.swiped{transform:translateX(-186px);}
+
+.checkbox{
+  width:22px;height:22px;flex:0 0 22px;
+  border:1.5px solid var(--steel);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;margin-top:1px;
+}
+.checkbox svg{width:13px;height:13px;color:#fff;}
+.checkbox.done{background:var(--ember);border-color:var(--ember);}
+.checkbox.wontdo{border-color:var(--steel);}
+.cb-wontdo{color:var(--steel);display:flex;}
+.cb-wontdo svg{width:13px;height:13px;}
+
+.grow{flex:1;min-width:0;}
+.grow .ttl{font-size:15px;line-height:1.3;font-weight:400;color:var(--bone);}
+.title-done{text-decoration:line-through;color:var(--steel);}
+.meta{font-family:"Geist Mono", monospace;font-size:13px;margin-top:2px;color:var(--steel);}
+.meta.over{color:var(--danger);}
+
+/* секция закрытых */
+.closed-section{margin-top:18px;}
+.closed-head{
+  background:none;border:none;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+  color:var(--steel);font-size:14px;font-weight:500;
+  font-family:Geist, sans-serif;padding:4px 0;
+}
+.closed-chev svg{width:16px;height:16px;transition:transform 160ms;}
+.closed-count{font-size:13px;color:var(--steel);}
+
+/* tab-bar */
+.tabbar{
+  flex:0 0 64px;
+  background:var(--smoke);
+  border-top:1px solid var(--hairline);
+  display:flex;align-items:center;justify-content:space-around;
+  padding:0 6px;padding-bottom:6px;
+}
+.tab{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  color:var(--steel);font-size:10px;font-weight:500;flex:1;
+}
+.tab svg{width:24px;height:24px;}
+.tab.active{color:var(--ember);}
+
+/* подсказка свайпа */
+.swipe-hint{
+  font-family:"Geist Mono", monospace;font-size:11px;color:var(--steel);
+  text-align:center;margin-top:14px;opacity:0.7;
+}
+
+/* подпись alt-фрейма */
+.cap{
+  font-family:"Geist Mono", monospace;font-size:11px;color:var(--steel);
+  margin-top:2px;letter-spacing:0.03em;
+}
+
+/* скелетон */
+.skeleton{
+  height:52px;border-radius:12px;
+  background:linear-gradient(90deg,var(--smoke) 0%,var(--slate) 50%,var(--smoke) 100%);
+  background-size:200% 100%;
+  animation:sk 1.4s ease-in-out infinite;
+}
+@keyframes sk{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* empty / error */
+.empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;text-align:center;color:var(--steel);padding:40px 20px;
+}
+.empty .txt{font-size:15px;max-width:220px;}
+.btn-primary{
+  background:var(--ember);border:none;
+  color:#1a1209;border-radius:10px;padding:11px 22px;
+  font-family:Geist, sans-serif;font-size:14px;font-weight:600;cursor:pointer;
+}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<div class="frame-label"><span class="fcode">F12·A</span><b>F12</b> · ListViewSwipe — открытые свайп-действия строки</div>
+
+<!-- ОСНОВНОЙ ФРЕЙМ -->
+<div class="phone">
+  <div class="statusbar">
+    <span class="time mono">9:41</span>
+    <span class="dots"><i></i><i></i><i></i><span class="bat"></span></span>
+  </div>
+
+  <div class="screen">
+    <div class="row" style="gap:4px;margin-bottom:10px;">
+      <button class="hamb" aria-label="Меню">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <h1>Работа</h1>
+    </div>
+
+    <div class="list">
+
+      <!-- строка БЕЗ свайпа, приоритет high -->
+      <div class="task-swipe">
+        <div class="swipe-actions left" aria-hidden="true">
+          <button class="swipe-btn done">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+            <span>Готово<span class="ecode">A5</span></span>
+          </button>
+        </div>
+        <div class="task-row proj-work prio-high">
+          <div class="checkbox" role="button" aria-label="done"></div>
+          <div class="grow">
+            <div class="ttl">Отправить КП клиенту Ledger<span class="ecode">A1</span></div>
+            <div class="meta over mono">2 июн · 17:00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- АКТИВНЫЙ СВАЙП: строка сдвинута, открыт левый слот действий -->
+      <div class="task-swipe">
+        <div class="swipe-actions right" aria-hidden="false">
+          <button class="swipe-btn date">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+            <span>Дата<span class="ecode">A6</span></span>
+          </button>
+          <button class="swipe-btn move">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg>
+            <span>В список<span class="ecode">A7</span></span>
+          </button>
+          <button class="swipe-btn del">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg>
+            <span>Удалить<span class="ecode">A8</span></span>
+          </button>
+        </div>
+        <div class="task-row prio-medium swiped">
+          <div class="checkbox" role="button" aria-label="done"></div>
+          <div class="grow">
+            <div class="ttl">Согласовать дизайн волны 2 с командой<span class="ecode">A2</span></div>
+            <div class="meta mono">4 июн · 12:30</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- обычная строка, приоритет low -->
+      <div class="task-swipe">
+        <div class="task-row prio-low">
+          <div class="checkbox" role="button" aria-label="done"></div>
+          <div class="grow">
+            <div class="ttl">Ревью PR по сверке банка<span class="ecode">A3</span></div>
+            <div class="meta mono">5 июн</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- строка без приоритета и без даты -->
+      <div class="task-swipe">
+        <div class="task-row">
+          <div class="checkbox" role="button" aria-label="done"></div>
+          <div class="grow">
+            <div class="ttl">Записать лог сессии в NotebookLM<span class="ecode">A4</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- секция Выполнено и Не делать -->
+    <div class="closed-section">
+      <button class="closed-head">
+        <span class="closed-chev">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+        <span>Выполнено и Не делать</span>
+        <span class="closed-count mono">· 2</span>
+      </button>
+    </div>
+
+    <div class="swipe-hint mono">← свайп влево: Дата · В список · Удалить · свайп вправо → Готово</div>
+  </div>
+
+  <!-- tab-bar -->
+  <div class="tabbar">
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h4"/></svg>
+      <span>Сегодня</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+      <span>Календарь</span>
+    </div>
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Обзор</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+      <span>Цели</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+      <span>Трекинг</span>
+    </div>
+  </div>
+</div>
+
+<!-- ALT 1: loading скелетон -->
+<div class="phone alt" style="margin-top:18px;">
+  <div class="statusbar">
+    <span class="time mono">9:41</span>
+    <span class="dots"><i></i><i></i><i></i><span class="bat"></span></span>
+  </div>
+  <div class="screen" style="padding-bottom:18px;">
+    <div class="row" style="gap:4px;margin-bottom:10px;">
+      <button class="hamb" aria-label="Меню">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <h1>Работа</h1>
+    </div>
+    <div class="list" aria-busy="true">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  </div>
+</div>
+<div class="cap mono"><span class="fcode">F12·B</span>loading — скелетоны (5 строк), без спиннера</div>
+
+<!-- ALT 2: error -->
+<div class="phone alt" style="margin-top:18px;">
+  <div class="statusbar">
+    <span class="time mono">9:41</span>
+    <span class="dots"><i></i><i></i><i></i><span class="bat"></span></span>
+  </div>
+  <div class="screen" style="padding-bottom:18px;">
+    <div class="row" style="gap:4px;margin-bottom:10px;">
+      <button class="hamb" aria-label="Меню">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <h1>Работа</h1>
+    </div>
+    <div class="empty">
+      <div class="txt">Не удалось загрузить список.</div>
+      <button class="btn-ghost">Повторить<span class="ecode">C1</span></button>
+    </div>
+  </div>
+</div>
+<div class="cap mono"><span class="fcode">F12·C</span>error — Empty + кнопка «Повторить» (btn-ghost)</div>
+
+</body>
+</html>

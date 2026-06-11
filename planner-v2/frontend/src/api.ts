@@ -131,6 +131,17 @@ export const deleteMetric = (id: number) => reqVoid(`/api/metrics/${id}`, { meth
 export const measureMetric = (id: number, date: string, value: number) =>
   req<MetricOut>(`/api/metrics/${id}/measure`, { method: "POST", body: JSON.stringify({ date, value }) });
 
-export interface RetroOut { week_start: string; week_end: string; habits: number; done_days: number; total_days: number; }
-export const getRetro = (weekStart: string) =>
-  req<RetroOut>(`/api/tracking/retro?week_start=${weekStart}`);
+export interface RetroProjectRow { project_id: number | null; name: string; color: string; done: number; total: number; }
+export interface RetroOverdue { id: number; title: string; project: string | null; color: string; days_late: number; }
+export interface RetroHabitRow { id: number; name: string; color: string; week: boolean[]; week_done: number; streak: number; tag: string | null; }
+export interface RetroOut {
+  week_start: string; week_end: string;
+  tasks: {
+    done: number; planned: number; impact_sum: number;
+    by_project: RetroProjectRow[]; overdue: RetroOverdue[];
+    top_task: { title: string; impact: number; project: string | null } | null;
+  };
+  habits: { done_days: number; total_days: number; count: number; items: RetroHabitRow[]; };
+}
+export const getRetro = (weekStart?: string) =>
+  req<RetroOut>(`/api/tracking/retro${weekStart ? `?week_start=${weekStart}` : ""}`);

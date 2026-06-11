@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Наложение задач — варианты</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--onyx:#0F0F11;--slate:#242529;--bone:#F4F4F5;--steel:#8A8B91;--accent:#EE8A3C;--hairline:rgba(255,255,255,.07);--hour-h:64px;--zima:#3FB68B;--health:#5B8DEF;--danger:#FF5C5C;--warning:#FFB02E}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#1b1b1e;color:var(--bone);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 16px 70px}
+  .cap{max-width:1100px;margin:0 auto 22px;font-family:"Geist Mono",monospace;font-size:13px;color:var(--steel);line-height:1.6}
+  .cap b{color:var(--accent)}
+  .row{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center;max-width:300px}
+  .fc{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin:0 0 10px;text-align:center}
+  .fc b{color:var(--accent)} .fc .bad{color:var(--danger)} .fc .ok{color:var(--zima)}
+  .desc{font-size:12.5px;color:var(--steel);line-height:1.55;margin-top:12px;text-align:left}
+  .desc b{color:var(--bone)}
+  .phone{width:280px;background:var(--onyx);border:1px solid var(--hairline);border-radius:22px;overflow:hidden}
+  .head{padding:10px 14px;border-bottom:1px solid var(--hairline)}
+  .head h3{font-size:17px;font-weight:700}
+  .grid{position:relative;padding:0 12px;height:340px}
+  .gi{position:relative}
+  .hour{height:var(--hour-h);border-top:1px solid var(--hairline);position:relative}
+  .hl{position:absolute;top:-7px;left:0;font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);background:var(--onyx);padding-right:5px}
+  .blk{position:absolute;border-radius:8px;padding:5px 8px;overflow:hidden;box-shadow:0 1px 5px rgba(0,0,0,.45);border-left:3px solid transparent}
+  .blk .t{font-size:12.5px;font-weight:500}.blk .m{font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel)}
+  .zima{background:rgba(63,182,139,.16);border-left-color:var(--warning)}
+  .health{background:rgba(91,141,239,.16);border-left-color:var(--danger)}
+</style></head>
+<body>
+  <div class="cap"><b>Наложение задач на таймлайне.</b> Пример: «Созвон ZIMA» 09:00–11:00 и «Анализы» 10:00–11:30 пересекаются 10:00–11:00. Как рисуем?</div>
+  <div class="row">
+
+    <!-- A current -->
+    <div class="col">
+      <div class="fc"><span class="bad">A · СЕЙЧАС</span> — перекрытие</div>
+      <div class="phone">
+        <div class="head"><h3>Сегодня</h3></div>
+        <div class="grid"><div class="gi">
+          <div class="hour"><span class="hl">09:00</span></div>
+          <div class="hour"><span class="hl">10:00</span></div>
+          <div class="hour"><span class="hl">11:00</span></div>
+          <div class="hour"><span class="hl">12:00</span></div>
+          <!-- zima 09-11 full width, под -->
+          <div class="blk zima" style="left:42px;right:8px;top:2px;height:124px;z-index:1">
+            <div class="t">Созвон ZIMA</div><div class="m">09:00–11:00</div>
+          </div>
+          <!-- health 10-11:30 full width, СВЕРХУ перекрывает -->
+          <div class="blk health" style="left:42px;right:8px;top:66px;height:92px;z-index:2">
+            <div class="t">Анализы</div><div class="m">10:00–11:30</div>
+          </div>
+        </div></div>
+      </div>
+      <div class="desc"><b>Проблема:</b> верхний блок закрывает нижний. «Созвон» с 10:00 не видно. Не понять, что их два и что они в конфликте.</div>
+    </div>
+
+    <!-- B side-by-side -->
+    <div class="col">
+      <div class="fc"><span class="ok">B · КОЛОНКИ (Apple)</span> — рекомендую</div>
+      <div class="phone">
+        <div class="head"><h3>Сегодня</h3></div>
+        <div class="grid"><div class="gi">
+          <div class="hour"><span class="hl">09:00</span></div>
+          <div class="hour"><span class="hl">10:00</span></div>
+          <div class="hour"><span class="hl">11:00</span></div>
+          <div class="hour"><span class="hl">12:00</span></div>
+          <!-- кластер 09-11:30 делится: zima левая половина (на всё время), health правая -->
+          <div class="blk zima" style="left:42px;width:108px;top:2px;height:124px">
+            <div class="t">Созвон ZIMA</div><div class="m">09:00–11:00</div>
+          </div>
+          <div class="blk health" style="left:154px;right:8px;top:66px;height:92px">
+            <div class="t">Анализы</div><div class="m">10:00–11:30</div>
+          </div>
+        </div></div>
+      </div>
+      <div class="desc"><b>Делим ширину пополам</b> на пересекающихся. Видно оба, видно конфликт. 3+ наложения → 3 колонки и т.д. Стандарт календарей.</div>
+    </div>
+
+    <!-- C cascade -->
+    <div class="col">
+      <div class="fc"><span style="color:var(--steel)">C · КАСКАД</span> — сдвиг+тень</div>
+      <div class="phone">
+        <div class="head"><h3>Сегодня</h3></div>
+        <div class="grid"><div class="gi">
+          <div class="hour"><span class="hl">09:00</span></div>
+          <div class="hour"><span class="hl">10:00</span></div>
+          <div class="hour"><span class="hl">11:00</span></div>
+          <div class="hour"><span class="hl">12:00</span></div>
+          <div class="blk zima" style="left:42px;right:34px;top:2px;height:124px;z-index:1">
+            <div class="t">Созвон ZIMA</div><div class="m">09:00–11:00</div>
+          </div>
+          <div class="blk health" style="left:68px;right:8px;top:66px;height:92px;z-index:2">
+            <div class="t">Анализы</div><div class="m">10:00–11:30</div>
+          </div>
+        </div></div>
+      </div>
+      <div class="desc"><b>Сдвиг вправо + тень</b> у верхнего, нижний выглядывает слева. Проще колонок, но при 3+ мельчит и всё равно частично закрывает.</div>
+    </div>
+
+  </div>
+</body></html>

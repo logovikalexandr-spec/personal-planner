@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planner v2 — база проекта</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+    --ember-soft:rgba(238,138,60,0.16); --hairline:rgba(255,255,255,0.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--onyx); color:var(--bone);
+    font-family:Geist,system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+    padding:40px 24px 80px; line-height:1.4;
+  }
+  .wrap{max-width:1320px;margin:0 auto}
+  header{margin-bottom:8px}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  .sub{color:var(--steel);font-family:"Geist Mono",monospace;font-size:13px;margin-top:6px}
+  .meta{color:var(--steel);font-size:13px;margin-top:4px}
+  h2{
+    font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--steel);margin:44px 0 18px;padding-bottom:10px;
+    border-bottom:1px solid var(--hairline);
+  }
+  .grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:20px;
+  }
+  .card{
+    background:var(--smoke);border:1px solid var(--hairline);border-radius:14px;
+    overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;
+    transition:transform .14s ease,border-color .14s ease;
+  }
+  .card:hover{transform:translateY(-3px);border-color:var(--ember)}
+  .thumb{
+    position:relative;height:300px;overflow:hidden;background:var(--onyx);
+    border-bottom:1px solid var(--hairline);
+  }
+  /* iframe рендерит мокап в 390px и масштабируется в карточку */
+  .thumb iframe{
+    width:390px;height:844px;border:0;
+    transform:scale(.667);transform-origin:top left;
+    pointer-events:none;
+  }
+  .label{padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+  .num{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ember)}
+  .title{font-size:15px;font-weight:500}
+  .acts{display:flex;gap:8px;margin-top:10px}
+  .acts a{flex:1;text-align:center;font-size:12px;font-weight:500;text-decoration:none;
+          padding:7px 0;border-radius:8px;border:1px solid var(--hairline);color:var(--bone)}
+  .acts a:hover{border-color:var(--ember)}
+  .acts a.mark{background:var(--ember-soft);color:var(--ember);border-color:transparent}
+  .badge{
+    position:absolute;top:10px;left:10px;z-index:2;
+    background:var(--ember-soft);color:var(--ember);
+    font-family:"Geist Mono",monospace;font-size:11px;font-weight:500;
+    padding:3px 8px;border-radius:999px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Planner v2 — база проекта</h1>
+    <div class="sub">7 страниц · 16 фич · 23 мокапа</div>
+    <div class="meta">Каждый артефакт = автономный HTML по DESIGN.md (onyx + ember). Клик — открыть в полный экран.</div>
+  </header>
+
+  <h2>Страницы — 5 табов + Inbox + Tasks</h2>
+  <div class="grid" id="pages"></div>
+
+  <h2>Фичи — листы, пикеры, компоненты</h2>
+  <div class="grid" id="features"></div>
+</div>
+
+<script>
+  const pages = [
+    ["P01","Сегодня (гибрид)","pages/P01-segodnya.html"],
+    ["P02","Календарь — День/Неделя/Месяц","pages/P02-kalendar.html"],
+    ["P03","Обзор — дашборд + Гант","pages/P03-obzor.html"],
+    ["P04","Цели — трекер прогресса","pages/P04-tseli.html"],
+    ["P05","Трекинг — привычки/метрики","pages/P05-treking.html"],
+    ["P06","Входящие (Inbox)","pages/P06-inbox.html"],
+    ["P07","Задачи — список","pages/P07-tasks.html"],
+  ];
+  const features = [
+    ["F01","TaskComposer — полный ввод","features/F01-taskcomposer.html"],
+    ["F02","TaskDetail — карточка задачи","features/F02-taskdetail.html"],
+    ["F03","QuickAdd — быстрый ввод (NL)","features/F03-quickadd.html"],
+    ["F04","RecurrenceSheet — повторы","features/F04-recurrencesheet.html"],
+    ["F05","RemindersSheet — напоминания","features/F05-reminderssheet.html"],
+    ["F06","DateDurationSheet — дата+длит.","features/F06-datedurationsheet.html"],
+    ["F07","ProjectSheet — проект (emoji+цвет)","features/F07-projectsheet.html"],
+    ["F09","BatchBar — мульти-выбор","features/F09-batchbar.html"],
+    ["F10","Checklist — подзадачи","features/F10-checklist.html"],
+    ["F11","DayTimeline — таймлайн дня","features/F11-daytimeline.html"],
+    ["F12","ListView — свайп-действия","features/F12-listviewswipe.html"],
+    ["F14","BottomTabs — навигация","features/F14-bottomtabs.html"],
+    ["F15","Pickers — пикеры","features/F15-pickers.html"],
+    ["F16","AddSheet — лист + FAB","features/F16-addsheet.html"],
+    ["F17","Drawer — шторка + проекты","features/F17-drawer.html"],
+    ["F18","Project Picker — дерево","features/F18-project-picker.html"],
+  ];
+  const card = ([num,title,href]) => `
+    <div class="card">
+      <a class="thumb" href="${href}" target="_blank"><span class="badge">${num}</span><iframe src="${href}" loading="lazy" scrolling="no"></iframe></a>
+      <div class="label"><span class="num">${num}</span><span class="title">${title}</span>
+        <div class="acts">
+          <a href="${href}" target="_blank">открыть</a>
+          <a class="mark" href="annotator.html?m=${encodeURIComponent(href)}" target="_blank">разметить</a>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById("pages").innerHTML = pages.map(card).join("");
+  document.getElementById("features").innerHTML = features.map(card).join("");
+</script>
+</body>
+</html>

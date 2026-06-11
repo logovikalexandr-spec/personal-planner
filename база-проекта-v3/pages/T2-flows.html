@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T2 Календарь — функциональные флоу (каждое взаимодействие)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --fin:#C9A24B;
+    --hi:#FF5C5C; --med:#FFB02E; --lo:#EE8A3C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 22px 90px;line-height:1.45}
+  .top{max-width:880px;margin-bottom:8px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--ember)}
+  h2{font-size:18px;font-weight:700;margin:40px 0 5px;letter-spacing:-.02em}
+  .trig{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ember);margin-bottom:15px}
+  .trig b{color:var(--bone)}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .panel{width:330px}
+  .plabel{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+  .note{font-size:12px;color:var(--steel);margin-top:11px;max-width:330px}
+  .note b{color:var(--bone)} .rec{color:var(--zima);font-weight:600} .bad{color:var(--danger)}
+  .arrow{align-self:center;color:var(--steel);font-size:26px;padding:0 2px}
+  .mono{font-family:"Geist Mono",monospace}
+
+  /* ── переключатель видов (как в базах) ── */
+  .seg{display:flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:11px;padding:3px}
+  .seg i{flex:1;text-align:center;font-style:normal;font-size:12.5px;font-weight:600;color:var(--steel);padding:8px 0;border-radius:8px}
+  .seg i.on{background:var(--slate);color:var(--bone)}
+
+  /* ── мини-неделя (упрощённая сетка для триггеров) ── */
+  .wk{background:var(--smoke);border:1px solid var(--hairline);border-radius:12px;padding:9px 8px}
+  .wk .range{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .wk .range .nav{color:var(--bone);font-size:13px}
+  .wk .range .nav.lit{color:var(--ember)}
+  .daysrow{display:flex;gap:3px}
+  .col{flex:1;position:relative;min-width:0}
+  .dh{text-align:center;margin-bottom:5px}
+  .dh .dn{font-size:9px;color:var(--steel);text-transform:uppercase}
+  .dh .dd{font-size:13px;font-weight:600;margin-top:1px;display:inline-flex;align-items:center;gap:2px}
+  .dh.today .dd{color:var(--ember)}
+  .pen{width:7px;height:8px;flex:0 0 auto}
+  .grid{position:relative;background:var(--onyx);border:1px solid var(--hairline);border-radius:7px;height:210px;overflow:hidden}
+  .hr{position:absolute;left:0;right:0;border-top:1px solid rgba(255,255,255,.05)}
+  .now{position:absolute;left:0;right:0;height:1.5px;background:var(--ember);z-index:5}
+  .now::before{content:"";position:absolute;left:-2px;top:-2.5px;width:6px;height:6px;border-radius:50%;background:var(--ember)}
+  .blk{position:absolute;left:2px;right:2px;border-radius:6px;padding:3px 4px;overflow:hidden;background:var(--tint);border:1px solid var(--hairline);border-left:3px solid var(--pr)}
+  .blk .bn{font-size:9px;font-weight:600;line-height:1.15}
+  .blk .bt{font-size:7.5px;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:1px}
+  /* drag-состояния таймблока */
+  .blk.ghost{opacity:.4;border-style:dashed}
+  .blk.drag{outline:2px solid var(--ember);outline-offset:1px;box-shadow:0 8px 20px rgba(0,0,0,.5);z-index:9}
+  .blk .edge{position:absolute;left:0;right:0;height:8px;display:flex;align-items:center;justify-content:center}
+  .blk .edge.t{top:-1px}.blk .edge.b{bottom:-1px}
+  .blk .edge i{width:18px;height:3px;border-radius:2px;background:var(--ember)}
+  .slothi{position:absolute;left:2px;right:2px;border-radius:6px;background:var(--ember-soft);border:1.5px dashed var(--ember);z-index:7}
+  .slothi .sl{position:absolute;top:2px;left:4px;font-size:7.5px;color:var(--ember);font-family:"Geist Mono",monospace}
+  .tap-cell{position:absolute;left:2px;right:2px;border-radius:6px;background:rgba(238,138,60,.07);border:1px dashed rgba(238,138,60,.5);z-index:6}
+
+  /* ── месяц-мини ── */
+  .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .mdow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px}
+  .mdow span{text-align:center;font-family:"Geist Mono",monospace;font-size:8.5px;color:var(--steel)}
+  .cell{aspect-ratio:1/1.05;background:var(--card);border:1px solid var(--hairline);border-radius:8px;padding:4px 3px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .cell.out{background:transparent;border-color:transparent}.cell.out .num{color:#46474c}
+  .num{font-size:10.5px;font-weight:600;line-height:1;margin-bottom:auto}
+  .cell.today{border-color:var(--ember);box-shadow:0 0 0 1px var(--ember)}.cell.today .num{color:var(--ember)}
+  .cell.sel{background:var(--ember-soft);border-color:var(--ember)}
+  .cell.press{outline:2px solid var(--ember);outline-offset:1px}
+  .dots{display:flex;flex-wrap:wrap;gap:2px}
+  .pt{width:5px;height:5px;border-radius:50%}
+  .mflag{display:flex;align-items:center;gap:2px;margin-bottom:2px}
+  .mflag svg{width:7px;height:7px;flex:0 0 auto}
+  .mflag .ft{font-size:6.5px;color:var(--steel);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ── полоска «весь день» ── */
+  .adcap{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:.4px;color:var(--steel);text-transform:uppercase;margin:0 2px 3px}
+  .adrow{display:flex;gap:3px;margin-bottom:7px}
+  .adrow .slot{flex:1;min-width:0}
+  .adrow .pill{font-size:8px;font-weight:600;line-height:1.2;border-radius:5px;padding:3px 4px;border-left:2px solid var(--pr);background:var(--tint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* ── bottom sheet (создать задачу / выбор) ── */
+  .sheet{background:#141519;border:1px solid var(--hairline);border-radius:20px;padding:16px 16px 18px}
+  .handle{width:36px;height:4px;border-radius:2px;background:var(--slate);margin:0 auto 14px}
+  .sh-title{font-size:17px;font-weight:700;margin-bottom:4px}
+  .sh-sub{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace;margin-bottom:14px}
+  .fld{margin-bottom:13px}
+  .fld .lab{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+  .inp{background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:11px 12px;font-size:14px;color:var(--bone)}
+  .inp.ph{color:var(--steel)}
+  .seg2{display:flex;background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:3px}
+  .seg2 i{flex:1;text-align:center;font-style:normal;font-size:12.5px;font-weight:600;color:var(--steel);padding:8px 0;border-radius:8px}
+  .seg2 i.on{background:var(--card);color:var(--bone);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{font-size:12.5px;color:var(--steel);background:var(--slate);border:1px solid var(--hairline);border-radius:9px;padding:7px 11px;font-weight:500}
+  .chip.on{background:var(--ember-soft);color:var(--ember);border-color:transparent}
+  .chip.zima.on{background:rgba(63,182,139,.16);color:var(--zima)}
+  .cta{background:var(--ember);color:#1a1209;border-radius:11px;padding:13px;text-align:center;font-weight:700;font-size:15px;margin-top:6px}
+  .cta.ghost{background:var(--slate);color:var(--bone)}
+  .two{display:flex;gap:9px}.two>*{flex:1}
+
+  /* ── detail (полноэкранная деталь задачи/события) ── */
+  .det{width:330px;background:var(--onyx);border:1px solid var(--hairline);border-radius:20px;overflow:hidden}
+  .det .dhead{display:flex;align-items:center;gap:12px;padding:14px 15px 4px;color:var(--steel)}
+  .det .dhead .bk{font-size:20px}
+  .det .dhead .dots{margin-left:auto;font-size:20px;letter-spacing:1px}
+  .det .body2{padding:6px 15px 18px}
+  .det h3{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+  .det .meta{font-size:12.5px;color:var(--steel);font-family:"Geist Mono",monospace;margin-bottom:14px}
+  .drow{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--hairline);border-radius:11px;padding:11px 12px;font-size:13.5px;margin-bottom:8px}
+  .drow svg{width:16px;height:16px;color:var(--steel);flex:0 0 auto}
+  .drow .rv{margin-left:auto;color:var(--steel);font-family:"Geist Mono",monospace;font-size:12.5px}
+  .cant{font-size:11px;font-weight:600;font-family:"Geist Mono",monospace;padding:2px 7px;border-radius:6px;letter-spacing:.2px}
+
+  /* ── веха-строка ── */
+  .veha{display:flex;align-items:center;gap:10px;padding:11px 12px;background:rgba(255,255,255,.02);border:1px dashed var(--hairline);border-radius:13px}
+  .veha svg{width:13px;height:13px;flex:0 0 auto}
+  .veha .vn{font-size:14px;font-weight:600}
+  .veha .vtag{font-size:10.5px;font-weight:600;font-family:"Geist Mono",monospace;color:var(--steel);background:var(--slate);padding:2px 7px;border-radius:6px}
+  .veha .vt{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;margin-left:auto}
+
+  /* ── лоток недатированных ── */
+  .tray{background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:8px 12px 12px}
+  .tray .grab{width:38px;height:4px;border-radius:2px;background:var(--steel);opacity:.5;margin:0 auto 9px}
+  .tray .th{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+  .tray .th .t{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:.5px;color:var(--steel);text-transform:uppercase}
+  .tray .th .t b{color:var(--ember)}
+  .ucards{display:flex;gap:8px;overflow:hidden}
+  .ucard{flex:0 0 132px;border:1.4px dashed rgba(255,255,255,.18);border-radius:11px;padding:9px 10px;background:rgba(255,255,255,.02);position:relative}
+  .ucard.lift{border-color:var(--ember);background:var(--ember-soft);transform:translateY(-4px);box-shadow:0 8px 18px rgba(0,0,0,.45)}
+  .ucard::before{content:"";position:absolute;left:7px;top:9px;bottom:9px;width:2.5px;border-radius:2px;background:var(--c)}
+  .ucard .nm{font-size:12px;font-weight:500;line-height:1.3;padding-left:9px}
+  .ucard .pr{font-size:9px;color:var(--steel);font-family:"Geist Mono",monospace;padding-left:9px;margin-top:4px}
+  .ucard .grip{position:absolute;right:7px;top:8px;color:var(--steel);font-size:10px;letter-spacing:-1px}
+
+  /* ── day panel (тап дня в Месяце) ── */
+  .dp-hdr{display:flex;align-items:baseline;gap:9px;margin:0 2px 9px}
+  .dp-hdr .d{font-size:15px;font-weight:700;color:var(--ember)}
+  .dp-hdr .cnt{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .dp-task{display:flex;align-items:flex-start;gap:11px;background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:10px 12px;margin-bottom:7px;position:relative;overflow:hidden}
+  .dp-task::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .dp-cb{flex:0 0 auto;width:18px;height:18px;border-radius:50%;border:2px solid var(--c);margin-top:1px}
+  .dp-nm{font-size:14px;font-weight:500;line-height:1.3}
+  .dp-sub{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap}
+  .dp-time{font-size:11.5px;color:var(--steel);font-family:"Geist Mono",monospace}
+
+  /* swipe навигации (между неделями) */
+  .swk{position:relative;overflow:hidden;border-radius:12px}
+  .swk .peek{position:absolute;top:0;bottom:0;width:46px;display:flex;align-items:center;justify-content:center;z-index:4;color:var(--ember);font-size:20px}
+  .swk .peek.l{left:0;background:linear-gradient(90deg,rgba(238,138,60,.18),transparent)}
+  .swk .peek.r{right:0;background:linear-gradient(270deg,rgba(238,138,60,.18),transparent)}
+  .swk.shift .wk{transform:translateX(26px);opacity:.85}
+</style></head>
+<body>
+
+<div class="top">
+  <h1>T2 «Календарь» — функциональные флоу</h1>
+  <p>Каждое касание и переход трёх видов (Неделя · Месяц · Лента). <b>Зелёное</b> = поведение по умолчанию (рекомендация), <b>красное</b> = деструктив/осторожно. Контракт Фазы 2 — что строить. Модель: задачи с <b>due</b>, вехи из <b>Stage.is_milestone</b>, range-фильтр окна.</p>
+</div>
+
+<!-- 1 -->
+<h2>1 · Переключение вида · Неделя / Месяц / Лента</h2>
+<div class="trig"><b>Где:</b> сегментед-переключатель в шапке. <b>Что:</b> тот же range, другой ракурс. Одни данные.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">Неделя · планирование (тайм-блокинг)</div>
+    <div class="seg" style="width:300px;margin-bottom:8px"><i class="on">Неделя</i><i>Месяц</i><i>Лента</i></div>
+    <div class="wk" style="width:300px">
+      <div class="range"><span class="nav">‹</span> 9–15 июня <span class="nav">›</span></div>
+      <div class="daysrow">
+        <div class="col"><div class="dh today"><div class="dn">Пн</div><div class="dd">9</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div><div class="now" style="top:80px"></div><div class="blk" style="top:18px;height:30px;--tint:rgba(63,182,139,.16);--pr:var(--hi)"><div class="bn">Звонок</div></div><div class="blk" style="top:96px;height:40px;--tint:rgba(155,107,224,.16);--pr:var(--med)"><div class="bn">Сборка</div></div></div></div>
+        <div class="col"><div class="dh"><div class="dn">Вт</div><div class="dd">10</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div><div class="blk" style="top:60px;height:26px;--tint:rgba(91,141,239,.16);--pr:var(--lo)"><div class="bn">Добавки</div></div></div></div>
+        <div class="col"><div class="dh"><div class="dn">Ср</div><div class="dd">11</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div><div class="blk" style="top:36px;height:34px;--tint:rgba(91,141,239,.16);--pr:var(--hi)"><div class="bn">Анализы</div></div></div></div>
+        <div class="col"><div class="dh"><div class="dn">Чт</div><div class="dd">12</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div></div></div>
+        <div class="col"><div class="dh"><div class="dn">Пт</div><div class="dd">13</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div></div></div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">Месяц · обзор спреда</div>
+    <div class="seg" style="width:240px;margin-bottom:8px"><i>Неделя</i><i class="on">Месяц</i><i>Лента</i></div>
+    <div class="wk" style="width:240px">
+      <div class="range"><span>Июнь 2026</span></div>
+      <div class="mdow"><span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span>С</span><span>В</span></div>
+      <div class="mgrid">
+        <div class="cell"><div class="num">8</div></div>
+        <div class="cell today"><div class="num">9</div><div class="dots"><span class="pt" style="background:var(--zima)"></span><span class="pt" style="background:var(--health)"></span></div></div>
+        <div class="cell"><div class="num">10</div><div class="dots"><span class="pt" style="background:var(--fin)"></span></div></div>
+        <div class="cell"><div class="num">11</div><div class="dots"><span class="pt" style="background:var(--plan)"></span></div></div>
+        <div class="cell"><div class="num">12</div></div>
+        <div class="cell"><div class="num">13</div></div>
+        <div class="cell"><div class="num">14</div></div>
+        <div class="cell"><div class="num">15</div><div class="mflag"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#5B8DEF" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#5B8DEF"/></svg><span class="ft">Анализы</span></div></div>
+        <div class="cell"><div class="num">16</div></div>
+        <div class="cell"><div class="num">17</div><div class="dots"><span class="pt" style="background:var(--plan)"></span></div></div>
+        <div class="cell"><div class="num">18</div></div>
+        <div class="cell"><div class="num">19</div></div>
+        <div class="cell"><div class="num">20</div></div>
+        <div class="cell"><div class="num">21</div></div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">Лента · вертикальный скан</div>
+    <div class="seg" style="width:230px;margin-bottom:8px"><i>Неделя</i><i>Месяц</i><i class="on">Лента</i></div>
+    <div class="wk" style="width:230px;padding:11px 11px">
+      <div class="dp-hdr" style="margin-bottom:7px"><span class="d" style="color:var(--danger)">Просрочено · 2</span></div>
+      <div class="dp-task" style="--c:var(--health)"><div class="dp-cb" style="border-color:var(--health)"></div><div><div class="dp-nm">МРТ</div><div class="dp-sub"><span class="dp-time" style="color:var(--danger)">было 6 июня</span></div></div></div>
+      <div class="dp-hdr" style="margin:11px 0 7px"><span class="d">Сегодня</span><span class="cnt">Вт 9</span></div>
+      <div class="dp-task" style="--c:var(--zima)"><div class="dp-cb" style="border-color:var(--zima)"></div><div><div class="dp-nm">Созвон ZIMA</div><div class="dp-sub"><span class="dp-time">11:00</span></div></div></div>
+    </div>
+  </div>
+</div>
+<div class="note">Переключатель — <b>slate-сегментед</b>, ember бережём под данные/линию «сейчас». <span class="rec">Неделя=планируешь (тайм-блокинг), Месяц=смотришь спред/вехи, Лента=скан ближайшего.</span> Range и выбранная дата сохраняются между видами.</div>
+
+<!-- 2 -->
+<h2>2 · Тап пустого слота недели → создать задачу на это время</h2>
+<div class="trig"><b>Где:</b> тап по свободному месту в колонке дня. <b>Что:</b> час под пальцем подсвечивается → шит-конструктор с предзаполненными датой+временем.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">триггер · подсветка слота 14:00</div>
+    <div class="wk" style="width:230px">
+      <div class="range"><span>Чт 12 июня</span></div>
+      <div class="daysrow">
+        <div class="col"><div class="dh today"><div class="dn">Чт</div><div class="dd">12</div></div><div class="grid">
+          <div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div>
+          <div class="tap-cell" style="top:120px;height:46px"></div>
+          <div class="slothi" style="top:120px;height:46px"><span class="sl">14:00</span></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel">
+    <div class="plabel">шит «новая задача» · дата+время заданы</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Новая задача</div>
+      <div class="sh-sub">Чт 12 июня · 14:00–15:00</div>
+      <div class="fld"><div class="lab">Название</div><div class="inp ph">Напр. «Звонок покупателю»</div></div>
+      <div class="two">
+        <div class="fld"><div class="lab">Время</div><div class="inp">14:00</div></div>
+        <div class="fld"><div class="lab">Длит.</div><div class="inp">1 ч</div></div>
+      </div>
+      <div class="fld"><div class="lab">Проект</div><div class="chips"><span class="chip zima on">ZIMA</span><span class="chip">Здоровье</span><span class="chip">planner</span></div></div>
+      <div class="cta">Создать</div>
+    </div>
+  </div>
+  <div class="note">Слот = ближайший час (тап в 14:10 → 14:00). <span class="rec">Длительность по умолч. 1 ч</span> — край блока сразу можно тянуть (см. 5). Проект/приоритет — дефолты, не обязательны. Поле «время» правится, если ткнул мимо.</div>
+</div>
+
+<!-- 3 -->
+<h2>3 · Тап пустого дня в Месяце → создать задачу на дату (без времени)</h2>
+<div class="trig"><b>Где:</b> тап по ячейке-дню без задач в Месяце. <b>Что:</b> шит, дата заполнена, время — пусто (all-day).</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">триггер · тап пустого дня 20</div>
+    <div class="wk" style="width:240px">
+      <div class="mdow"><span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span>С</span><span>В</span></div>
+      <div class="mgrid">
+        <div class="cell"><div class="num">15</div><div class="dots"><span class="pt" style="background:var(--health)"></span></div></div>
+        <div class="cell"><div class="num">16</div></div>
+        <div class="cell"><div class="num">17</div></div>
+        <div class="cell"><div class="num">18</div></div>
+        <div class="cell"><div class="num">19</div></div>
+        <div class="cell press"><div class="num" style="color:var(--ember)">20</div></div>
+        <div class="cell"><div class="num">21</div></div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel">
+    <div class="plabel">шит «новая задача» · только дата</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Новая задача</div>
+      <div class="sh-sub">Сб 20 июня · без времени</div>
+      <div class="fld"><div class="lab">Название</div><div class="inp ph">Что нужно сделать</div></div>
+      <div class="fld"><div class="lab">Время</div><div class="inp ph">не задано · весь день</div></div>
+      <div class="fld"><div class="lab">Проект</div><div class="chips"><span class="chip">ZIMA</span><span class="chip on">planner</span><span class="chip">Финансы</span></div></div>
+      <div class="cta">Создать</div>
+    </div>
+  </div>
+  <div class="note">В Месяце нет часов → задача создаётся <b>all-day</b> (дата без времени). <span class="rec">В Неделе она ляжет в полоску «весь день»</span> над сеткой, не в час. Можно задать время вручную — тогда станет таймблоком.</div>
+</div>
+
+<!-- 4 -->
+<h2>4 · Тап задачи/события → деталь (DETAIL)</h2>
+<div class="trig"><b>Где:</b> тап по таймблоку (Неделя), точке-задаче (Месяц·панель дня) или строке (Лента). <b>Что:</b> уходит в полноэкранную деталь задачи (DETAIL).</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">триггер · таймблок в Неделе</div>
+    <div class="wk" style="width:160px">
+      <div class="daysrow"><div class="col"><div class="dh today"><div class="dn">Пн</div><div class="dd">9</div></div><div class="grid">
+        <div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div>
+        <div class="blk drag" style="top:40px;height:50px;--tint:rgba(63,182,139,.16);--pr:var(--hi)"><div class="bn">Звонок покуп.</div><div class="bt">9:30</div></div>
+      </div></div></div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">деталь задачи (DETAIL)</div>
+    <div class="det">
+      <div class="dhead"><span class="bk">‹</span><span>Задача</span><span class="dots">⋯</span></div>
+      <div class="body2">
+        <h3>Звонок покупателю</h3>
+        <div class="meta">Пн 9 июня · 9:30–10:20</div>
+        <div class="drow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>Когда<span class="rv">9 июня · 9:30</span></div>
+        <div class="drow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Длительность<span class="rv">50 мин</span></div>
+        <div class="drow"><span class="cant" style="color:var(--zima);background:rgba(63,182,139,.13)">ZIMA</span><span class="cant" style="color:var(--steel);background:var(--slate)">этап 4 · Переговоры</span><span class="rv">⌄</span></div>
+        <div class="drow danger" style="color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 4l-8 14a2 2 0 0 0 1.7 3h16a2 2 0 0 0 1.7-3l-8-14a2 2 0 0 0-3.4 0z"/></svg>Приоритет high</div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Деталь = единый экран DETAIL</b> (чеклист/повтор/напоминания + блок «Этап проекта»). Все три вида ведут в него. <span class="rec">Удалить/перенести-датой живут в детали и в ⋯</span> — не мусорят сетку. Возврат ‹ = назад к тому же виду календаря.</div>
+</div>
+
+<!-- 5 -->
+<h2>5 · Time-blocking · драг таймблока (перенос + ресайз краёв)</h2>
+<div class="trig"><b>Долгий тап по блоку</b> = захват (приподнимается). <b>Тяг по вертикали</b> = перенос времени, <b>в сторону</b> = другой день. <b>Тяг за край</b> = ресайз длительности.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">перенос · 13:00 → 15:00 (ghost где был)</div>
+    <div class="wk" style="width:200px">
+      <div class="daysrow">
+        <div class="col"><div class="dh"><div class="dn">Чт</div><div class="dd">12</div></div><div class="grid">
+          <div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div>
+          <div class="blk ghost" style="top:40px;height:40px;--tint:rgba(155,107,224,.16);--pr:var(--med)"><div class="bn">Сборка</div></div>
+          <div class="blk drag" style="top:120px;height:40px;--tint:rgba(155,107,224,.22);--pr:var(--med)"><div class="bn">Сборка</div><div class="bt">15:00</div></div>
+        </div></div>
+        <div class="col"><div class="dh"><div class="dn">Пт</div><div class="dd">13</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div></div></div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">|</span>
+  <div class="panel" style="width:auto"><div class="plabel">ресайз · тяг нижнего края (грипы)</div>
+    <div class="wk" style="width:160px">
+      <div class="daysrow"><div class="col"><div class="dh"><div class="dn">Ср</div><div class="dd">11</div></div><div class="grid">
+        <div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div>
+        <div class="blk drag" style="top:36px;height:70px;--tint:rgba(91,141,239,.16);--pr:var(--hi)"><div class="edge t"><i></i></div><div class="bn">Анализы</div><div class="bt">11:00–13:00</div><div class="edge b"><i></i></div></div>
+      </div></div></div>
+    </div>
+  </div>
+  <div class="note"><b>Снап к 15-мин сетке</b>. Время-подпись блока обновляется вживую (13:00→15:00, длит. 2 ч). <span class="rec">Грипы (ember) появляются только на захваченном блоке</span>, чтобы случайный тап не ресайзил. Ghost-плейсхолдер показывает старое место — отпустил мимо/отмена → вернётся. Заехал на занятый час → каскад-наложение (как в базе G2).</div>
+</div>
+
+<!-- 6 -->
+<h2>6 · Свайп ◀ ▶ → соседняя неделя / месяц</h2>
+<div class="trig"><b>Свайп влево/вправо</b> по сетке = следующий/прошлый период. <b>‹ ›</b> в range — то же. Заголовок-range и точки перетекают.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">свайп влево → неделя 16–22 (сосед выезжает)</div>
+    <div class="swk shift" style="width:240px">
+      <div class="peek l">‹</div>
+      <div class="wk">
+        <div class="range"><span class="nav lit">‹</span> 16–22 июня <span class="nav">›</span></div>
+        <div class="daysrow">
+          <div class="col"><div class="dh"><div class="dn">Пн</div><div class="dd">16</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div><div class="blk" style="top:60px;height:30px;--tint:rgba(155,107,224,.16);--pr:var(--lo)"><div class="bn">Ретро</div></div></div></div>
+          <div class="col"><div class="dh"><div class="dn">Вт</div><div class="dd">17</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div></div></div>
+          <div class="col"><div class="dh"><div class="dn">Ср</div><div class="dd">18</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div><div class="blk" style="top:96px;height:26px;--tint:rgba(63,182,139,.16);--pr:var(--med)"><div class="bn">Демо</div></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">В Месяце свайп = соседний месяц (та же механика, range «Июль 2026»). <span class="rec">«Сегодня» при уходе с текущего периода → проявляется кнопка возврата</span> (см. 9). Линия «сейчас» рисуется только когда видимый период содержит сегодня.</div>
+</div>
+
+<!-- 7 -->
+<h2>7 · Тап флажка-вехи → проект / этап</h2>
+<div class="trig"><b>Где:</b> тап по флажку у числа (Неделя) или в ячейке (Месяц). <b>Что:</b> поповер вехи → переход в Цели/Гант к этапу. Веха = <b>Stage.is_milestone</b>, не задача.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">триггер · флажок 15 июня</div>
+    <div class="wk" style="width:120px">
+      <div class="mdow"><span>П</span><span>В</span><span>С</span></div>
+      <div class="mgrid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="cell press" style="aspect-ratio:1/1.25"><div class="num">15</div><div class="mflag"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#5B8DEF" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#5B8DEF"/></svg><span class="ft">Анализы</span></div></div>
+        <div class="cell" style="aspect-ratio:1/1.25"><div class="num">16</div></div>
+        <div class="cell" style="aspect-ratio:1/1.25"><div class="num">17</div></div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel"><div class="plabel">поповер вехи</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="veha" style="margin-bottom:13px"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#5B8DEF" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#5B8DEF"/></svg><span class="vn">Анализы сданы</span><span class="vtag">веха</span></div>
+      <div class="drow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>Проект<span class="rv" style="color:var(--health)">Здоровье</span></div>
+      <div class="drow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h14M4 18h7"/></svg>Этап<span class="rv">2 → 3 · к 15.06</span></div>
+      <div class="cta ghost" style="margin-top:8px">Открыть в Цели</div>
+    </div>
+  </div>
+  <div class="note">Флажок — <b>дата-рубеж этапа</b> (к этой дате этап должен закрыться), цвет = проект. <span class="rec">Поповер ведёт в Цели/Гант к этапу</span>, а не открывает «задачу» (у вехи нет чекбокса). Просроченная веха (рубеж прошёл, этап не закрыт) → флажок красный.</div>
+</div>
+
+<!-- 8 -->
+<h2>8 · Лоток недатированных → драг карточки на сетку</h2>
+<div class="trig"><b>Где:</b> полка «Без даты» снизу Недели. <b>Тяг карточку вверх в день/час</b> → задача получает дату+время, исчезает из лотка.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">драг карточки в слот Чт 14:00</div>
+    <div class="wk" style="width:230px;margin-bottom:9px">
+      <div class="daysrow">
+        <div class="col"><div class="dh"><div class="dn">Ср</div><div class="dd">11</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div></div></div>
+        <div class="col"><div class="dh today"><div class="dn">Чт</div><div class="dd">12</div></div><div class="grid"><div class="hr" style="top:48px"></div><div class="hr" style="top:96px"></div><div class="hr" style="top:144px"></div>
+          <div class="slothi" style="top:120px;height:40px"><span class="sl">14:00</span></div></div></div>
+      </div>
+    </div>
+    <div class="tray" style="width:230px">
+      <div class="grab"></div>
+      <div class="th"><span class="t">Без даты · <b>3</b></span><span style="color:var(--steel);font-size:13px">⌃</span></div>
+      <div class="ucards">
+        <div class="ucard lift" style="--c:var(--zima)"><span class="grip">⋮⋮</span><div class="nm">Счёт на залог</div><div class="pr">ZIMA</div></div>
+        <div class="ucard" style="--c:var(--fin)"><span class="grip">⋮⋮</span><div class="nm">Сверить Revolut</div><div class="pr">Финансы</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Полка свёрнута по умолчанию («Без даты · 3»), тяг вверх раскрывает ряд. <span class="rec">Карточка приподнимается (ember) при захвате, слот-цель подсвечивается.</span> Бросил в час → таймблок; бросил в полоску «весь день» → all-day. Отпустил вне сетки → вернулась в лоток. В Месяце/Ленте лотка нет (только Неделя).</div>
+</div>
+
+<!-- 9 -->
+<h2>9 · Кнопка «Сегодня» → возврат к текущему периоду</h2>
+<div class="trig"><b>Где:</b> появляется в шапке, <b>только когда ушёл</b> с текущей недели/месяца (свайпом/стрелками). <b>Что:</b> прыжок назад на сегодня.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">ушёл вперёд → кнопка проявилась</div>
+    <div class="wk" style="width:240px">
+      <div class="range" style="justify-content:space-between"><span><span class="nav">‹</span> Июль 2026 <span class="nav">›</span></span><span style="font-family:'Geist Mono';font-size:10px;color:var(--ember);border:1px solid rgba(238,138,60,.4);border-radius:7px;padding:3px 9px;background:var(--ember-soft)">Сегодня</span></div>
+      <div class="mdow"><span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span>С</span><span>В</span></div>
+      <div class="mgrid">
+        <div class="cell out"><div class="num">29</div></div><div class="cell out"><div class="num">30</div></div>
+        <div class="cell"><div class="num">1</div><div class="dots"><span class="pt" style="background:var(--zima)"></span></div></div>
+        <div class="cell"><div class="num">2</div></div><div class="cell"><div class="num">3</div></div>
+        <div class="cell"><div class="num">4</div></div><div class="cell"><div class="num">5</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><span class="rec">На текущем периоде кнопка скрыта</span> (некуда возвращаться — не мусорит шапку). Тап → range встаёт на содержащий сегодня период, скролл к текущему часу (Неделя) или подсветка дня (Месяц). Работает во всех трёх видах.</div>
+</div>
+
+<!-- 10 -->
+<h2>10 · Тап дня в Месяце → панель дня под сеткой</h2>
+<div class="trig"><b>Где:</b> тап по ячейке-дню с задачами. <b>Что:</b> ячейка выделяется (ember-кант), под сеткой раскрывается список задач этого дня — не уходя с экрана.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">выбран 11 (ember-заливка) → панель снизу</div>
+    <div class="wk" style="width:280px">
+      <div class="mdow"><span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span>С</span><span>В</span></div>
+      <div class="mgrid" style="margin-bottom:12px">
+        <div class="cell"><div class="num">8</div></div>
+        <div class="cell today"><div class="num">9</div><div class="dots"><span class="pt" style="background:var(--zima)"></span><span class="pt" style="background:var(--health)"></span></div></div>
+        <div class="cell"><div class="num">10</div></div>
+        <div class="cell sel"><div class="num">11</div><div class="dots"><span class="pt" style="background:var(--plan)"></span><span class="pt" style="background:var(--zima)"></span></div></div>
+        <div class="cell"><div class="num">12</div></div>
+        <div class="cell"><div class="num">13</div></div>
+        <div class="cell"><div class="num">14</div></div>
+      </div>
+      <div class="dp-hdr"><span class="d">Ср 11 июня</span><span class="cnt">2 задачи</span></div>
+      <div class="dp-task" style="--c:var(--plan)"><div class="dp-cb" style="border-color:var(--plan)"></div><div><div class="dp-nm">Планёрка planner</div><div class="dp-sub"><span class="dp-time">10:00</span></div></div></div>
+      <div class="dp-task" style="--c:var(--zima)"><div class="dp-cb" style="border-color:var(--zima)"></div><div><div class="dp-nm">Юр.пакет ZIMA</div><div class="dp-sub"><span class="cant" style="color:var(--steel);background:var(--slate)">этап 4</span></div></div></div>
+    </div>
+  </div>
+  <div class="note"><span class="rec">Месяц не дублирует «Задачи (день)»</span> — панель = быстрый просмотр выбранного дня. Тап задачи в панели → DETAIL (флоу 4). День без задач → панель «свободно» (см. состояния). Выбранный день переживает переключение в Неделю/Ленту.</div>
+</div>
+
+</body></html>

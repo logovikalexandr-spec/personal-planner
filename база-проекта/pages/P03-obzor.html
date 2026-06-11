@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P03 — Обзор</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+    --ember:#EE8A3C; --hairline:rgba(255,255,255,0.07);
+    --p-goals:#9B6BE0; --p-fin:#C9A24B; --p-zima:#3FB68B; --p-realty:#4FB0A8;
+    --p-health:#5B8DEF; --p-work:#9B8CCB; --p-spirit:#C77DA8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;color:var(--bone);font-family:Geist, sans-serif;-webkit-font-smoothing:antialiased;padding:28px 0 60px}
+  .cap{max-width:430px;margin:0 auto 14px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);padding:0 8px;line-height:1.5}
+  .row-frames{display:flex;gap:36px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .frame-cap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin:0 0 10px}
+  .frame-cap b{color:var(--accent)}
+  .phone{width:390px;background:var(--onyx);border:1px solid var(--hairline);border-radius:28px;overflow:hidden;position:relative;height:844px;display:flex;flex-direction:column}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-family:"Geist Mono",monospace;font-size:13px;color:var(--bone);flex:0 0 auto}
+  .status .dots{display:flex;gap:4px}.status .dots i{width:5px;height:5px;border-radius:50%;background:var(--steel);display:block}
+  .screen{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+  .head{padding:14px 16px 6px}
+  .head h1{font-size:22px;font-weight:700;letter-spacing:-.02em}
+  .seg{display:flex;background:var(--slate);border-radius:10px;padding:3px;margin:10px 16px 14px}
+  .seg div{flex:1;text-align:center;font-size:14px;font-weight:500;color:var(--steel);padding:8px 0;border-radius:8px}
+  .seg div.on{background:var(--accent-soft);color:var(--accent)}
+  .body{padding:0 16px}
+  .card{background:var(--smoke);border-radius:14px;padding:15px 16px;margin-bottom:12px}
+  .card h3{font-size:13px;font-weight:600;color:var(--steel);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;display:flex;justify-content:space-between}
+  .card h3 .a{color:var(--accent);font-family:"Geist Mono",monospace}
+  /* прогресс дня — кольцо */
+  .ringrow{display:flex;align-items:center;gap:18px}
+  .ring{width:84px;height:84px;flex:0 0 auto;position:relative}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .pct b{font-size:22px;font-weight:700;font-family:"Geist Mono",monospace}
+  .ring .pct s{font-size:10px;color:var(--steel);text-decoration:none}
+  .daystat{display:flex;flex-direction:column;gap:7px;font-size:14px}
+  .daystat div{display:flex;align-items:center;gap:8px;color:var(--steel)}
+  .daystat b{color:var(--bone);font-family:"Geist Mono",monospace}
+  .daystat .d{width:8px;height:8px;border-radius:2px}
+  /* неделя бары */
+  .week{display:flex;justify-content:space-between;align-items:flex-end;height:74px;gap:7px}
+  .wd{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .wd .bar{width:100%;background:var(--slate);border-radius:5px;position:relative;overflow:hidden}
+  .wd .bar i{position:absolute;left:0;right:0;bottom:0;background:var(--accent);display:block}
+  .wd.today .lbl{color:var(--accent)}
+  .wd .lbl{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel)}
+  /* дедлайны — каждая строка = задача: фон=тинт проекта 0.13, полоса=приоритет */
+  .ddl{display:flex;align-items:center;gap:11px;padding:10px 11px;margin-bottom:8px;border-radius:10px;border-left:3px solid transparent}
+  .ddl:last-child{margin-bottom:0}
+  .ddl.p-high{border-left-color:var(--danger)}
+  .ddl.p-med{border-left-color:var(--warning)}
+  .ddl.p-low{border-left-color:var(--ember)}
+  .ddl .nm{flex:1;font-size:15px;font-weight:500}
+  .ddl .when{font-family:"Geist Mono",monospace;font-size:13px;color:var(--steel)}
+  .ddl .when.over{color:var(--danger)}
+  /* стрики */
+  .streak{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--hairline)}
+  .streak:first-of-type{border-top:0}
+  .streak .nm{flex:1;font-size:15px;font-weight:500}
+  .streak .days{display:flex;gap:4px}
+  .streak .days i{width:13px;height:13px;border-radius:4px;background:var(--slate)}
+  .streak .days i.on{background:var(--accent)}
+  .streak .cnt{font-family:"Geist Mono",monospace;font-size:13px;color:var(--accent);min-width:30px;text-align:right}
+  /* цели мини */
+  .goal{padding:10px 0;border-top:1px solid var(--hairline)}
+  .goal:first-of-type{border-top:0}
+  .goal .top{display:flex;justify-content:space-between;font-size:15px;margin-bottom:7px}
+  .goal .top b{color:var(--steel);font-family:"Geist Mono",monospace;font-weight:500}
+  .goal .track{height:6px;background:var(--slate);border-radius:3px;overflow:hidden}
+  .goal .track i{display:block;height:100%;background:var(--accent);border-radius:3px}
+  /* ГАНТ */
+  .gantt-head{display:flex;padding:0 0 0 96px;margin-bottom:8px}
+  .gantt-head .gd{flex:1;text-align:center;font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel)}
+  .gantt-head .gd.today{color:var(--accent)}
+  .grow{display:flex;align-items:center;height:42px;position:relative}
+  .grow .glabel{width:96px;flex:0 0 96px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden}
+  .grow .glabel .emo{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+  .gtrack{flex:1;position:relative;height:100%}
+  .gtrack .grid{position:absolute;inset:0;display:flex}
+  .gtrack .grid span{flex:1;border-left:1px solid var(--hairline)}
+  .gbar{position:absolute;top:50%;transform:translateY(-50%);height:22px;border-radius:6px;display:flex;align-items:center;padding:0 8px;font-size:12px;font-weight:500;color:#0F0F11;white-space:nowrap;overflow:hidden}
+  .gnow{position:absolute;top:-22px;bottom:0;width:2px;background:var(--accent);z-index:3}
+  .gnow::before{content:"";position:absolute;top:-4px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .tabs{flex:0 0 auto;display:flex;background:var(--smoke);border-top:1px solid var(--hairline);padding:8px 4px 18px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--steel);font-size:11px}
+  .tab.active{color:var(--accent)}.tab svg{width:22px;height:22px}
+  /* состояния */
+  .state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px;gap:14px}
+  .state .ico{width:54px;height:54px;border-radius:16px;background:var(--slate);display:flex;align-items:center;justify-content:center}
+  .state .ico svg{width:26px;height:26px;color:var(--steel)}
+  .state p{font-size:15px;color:var(--steel);line-height:1.5;max-width:240px}
+  .state .btn{margin-top:4px;background:var(--accent);color:#1a1209;font-weight:600;font-size:15px;padding:12px 22px;border-radius:12px;border:0}
+  /* скелетоны */
+  .sk{background:var(--smoke);border-radius:14px;padding:15px 16px;margin-bottom:12px}
+  .sk .l{height:12px;border-radius:6px;background:var(--slate);margin-bottom:10px}
+  .sk .l:last-child{margin-bottom:0}
+  .fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+  .ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+  <div class="cap">P03 — Обзор. Третий таб: Сводка дня/недели + дедлайны + стрики + цели, и Гант проектов по датам. Проекты в шторке.</div>
+
+  <div class="row-frames">
+    <!-- ФРЕЙМ 1: Сводка -->
+    <div class="col">
+      <div class="frame-cap"><span class="fcode">P03·A</span>таб «Обзор» · <b>Сводка</b> · ↔ V3 T3 (Гант)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="screen">
+          <div class="head"><h1>Обзор</h1></div>
+          <div class="seg"><div class="on">Сводка<span class="ecode">A1·T3</span></div><div>Гант<span class="ecode">A2·T3</span></div></div>
+          <div class="body">
+
+            <div class="card">
+              <h3>Прогресс дня <span class="a">63%</span></h3>
+              <div class="ringrow">
+                <div class="ring">
+                  <svg width="84" height="84" viewBox="0 0 84 84">
+                    <circle cx="42" cy="42" r="36" fill="none" stroke="#242529" stroke-width="8"/>
+                    <circle cx="42" cy="42" r="36" fill="none" stroke="#EE8A3C" stroke-width="8" stroke-linecap="round" stroke-dasharray="226" stroke-dashoffset="84"/>
+                  </svg>
+                  <div class="pct"><b>5/8</b><s>закрыто <span class="ecode">A3</span></s></div>
+                </div>
+                <div class="daystat">
+                  <div><span class="d" style="background:var(--accent)"></span>Сделано <b>5</b><span class="ecode">A4</span></div>
+                  <div><span class="d" style="background:var(--steel)"></span>Осталось <b>3</b></div>
+                  <div><span class="d" style="background:var(--danger)"></span>Просрочено <b>2</b></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Неделя <span class="a">пн–вс</span><span class="ecode">A5</span></h3>
+              <div class="week">
+                <div class="wd"><div class="bar" style="height:60%"><i style="height:80%"></i></div><span class="lbl">Пн</span></div>
+                <div class="wd"><div class="bar" style="height:60%"><i style="height:55%"></i></div><span class="lbl">Вт</span></div>
+                <div class="wd today"><div class="bar" style="height:60%"><i style="height:63%"></i></div><span class="lbl">Ср</span></div>
+                <div class="wd"><div class="bar" style="height:60%"><i style="height:0%"></i></div><span class="lbl">Чт</span></div>
+                <div class="wd"><div class="bar" style="height:60%"><i style="height:0%"></i></div><span class="lbl">Пт</span></div>
+                <div class="wd"><div class="bar" style="height:60%"><i style="height:0%"></i></div><span class="lbl">Сб</span></div>
+                <div class="wd"><div class="bar" style="height:60%"><i style="height:0%"></i></div><span class="lbl">Вс</span></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Ближайшие дедлайны</h3>
+              <div class="ddl p-high" style="background:rgba(201,162,75,0.13)"><span class="nm">Отправить документы бухгалтеру<span class="ecode">A6</span></span><span class="when over">просрочено</span></div>
+              <div class="ddl p-high" style="background:rgba(91,141,239,0.13)"><span class="nm">Анализы — сдать кровь</span><span class="when">сегодня 11:00</span></div>
+              <div class="ddl p-med" style="background:rgba(63,182,139,0.13)"><span class="nm">Договор аренды студии</span><span class="when">завтра</span></div>
+              <div class="ddl p-low" style="background:rgba(155,107,224,0.13)"><span class="nm">Ревизия целей квартала</span><span class="when">6 июн</span></div>
+            </div>
+
+            <div class="card">
+              <h3>Привычки · стрики</h3>
+              <div class="streak"><span class="nm">Валик-протокол утром<span class="ecode">A7</span></span><span class="days"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="cnt">12</span></div>
+              <div class="streak"><span class="nm">Без сахара</span><span class="days"><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i class="on"></i></span><span class="cnt">4</span></div>
+              <div class="streak"><span class="nm">Медитация 10 мин</span><span class="days"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="cnt">8</span></div>
+            </div>
+
+            <div class="card">
+              <h3>Цели</h3>
+              <div class="goal"><div class="top"><span>Продать студию ZIMA<span class="ecode">A8</span></span><b>64%</b></div><div class="track"><i style="width:64%"></i></div></div>
+              <div class="goal"><div class="top"><span>Финансовая подушка 6 мес</span><b>38%</b></div><div class="track"><i style="width:38%"></i></div></div>
+            </div>
+            <div style="height:20px"></div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Сегодня</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Календарь</span></div>
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Обзор</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Цели</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M21 8v5h-5"/></svg><span>Трекинг</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ФРЕЙМ 2: Гант -->
+    <div class="col">
+      <div class="frame-cap"><span class="fcode">P03·B</span>таб «Обзор» · <b>Гант</b> · ↔ V3 T3 (Гант)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="screen">
+          <div class="head"><h1>Обзор</h1></div>
+          <div class="seg"><div>Сводка<span class="ecode">B1·T3</span></div><div class="on">Гант<span class="ecode">B2·T3</span></div></div>
+          <div class="body">
+            <div class="card" style="padding:15px 14px">
+              <div class="gantt-head">
+                <span class="gd">Пн</span><span class="gd">Вт</span><span class="gd today">Ср</span><span class="gd">Чт</span><span class="gd">Пт</span><span class="gd">Сб</span><span class="gd">Вс</span>
+              </div>
+              <!-- now-линия среда = 5-я колонка из 7 (после label 96px): left = 96 + 2/7 области -->
+              <div style="position:relative">
+                <div class="gnow" style="left:calc(96px + (100% - 96px) * 0.357)"><span class="ecode pin">B3</span></div>
+
+                <div class="grow"><div class="glabel"><span class="emo" style="background:var(--p-fin)"></span>Финансы</div><div class="gtrack"><div class="grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="gbar" style="left:0%;width:43%;background:var(--p-fin)">Налоги Q2<span class="ecode">B4·T1</span></div></div></div>
+                <div class="grow"><div class="glabel"><span class="emo" style="background:var(--p-zima)"></span>ZIMA</div><div class="gtrack"><div class="grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="gbar" style="left:28%;width:58%;background:var(--p-zima)">Сделка по студии<span class="ecode">B5·T1</span></div></div></div>
+                <div class="grow"><div class="glabel"><span class="emo" style="background:var(--p-health)"></span>Здоровье</div><div class="gtrack"><div class="grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="gbar" style="left:14%;width:28%;background:var(--p-health)">Анализы<span class="ecode">B6·T1</span></div></div></div>
+                <div class="grow"><div class="glabel"><span class="emo" style="background:var(--p-goals)"></span>Цели</div><div class="gtrack"><div class="grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="gbar" style="left:57%;width:43%;background:var(--p-goals)">Ревизия квартала<span class="ecode">B7·T1</span></div></div></div>
+                <div class="grow"><div class="glabel"><span class="emo" style="background:var(--p-realty)"></span>Недвиж.</div><div class="gtrack"><div class="grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="gbar" style="left:71%;width:29%;background:var(--p-realty)">Ипотека<span class="ecode">B8·T1</span></div></div></div>
+              </div>
+            </div>
+            <div class="cap" style="margin:2px 2px 0;padding:0">Полосы = проекты во времени (цвет = проект). Линия — сегодня. Тап по полосе → задачи проекта.</div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Сегодня</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Календарь</span></div>
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Обзор</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Цели</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M21 8v5h-5"/></svg><span>Трекинг</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ФРЕЙМ 3: Empty -->
+    <div class="col">
+      <div class="frame-cap"><span class="fcode">P03·C</span>таб «Обзор» · <b>Empty</b> · ↔ V3 T3 (Гант)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="screen">
+          <div class="head"><h1>Обзор</h1></div>
+          <div class="seg"><div class="on">Сводка<span class="ecode">C1·T3</span></div><div>Гант<span class="ecode">C2·T3</span></div></div>
+          <div class="state">
+            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+            <p>Пока нечего показать. Добавь задачи и проекты — сводка соберётся сама.</p>
+            <button class="btn">Добавить задачу<span class="ecode">C3</span></button>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Сегодня</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Календарь</span></div>
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Обзор</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Цели</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M21 8v5h-5"/></svg><span>Трекинг</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ФРЕЙМ 4: Loading / Error -->
+    <div class="col">
+      <div class="frame-cap"><span class="fcode">P03·D</span>таб «Обзор» · <b>Loading + Error</b> · ↔ V3 T3 (Гант)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="screen">
+          <div class="head"><h1>Обзор</h1></div>
+          <div class="seg"><div class="on">Сводка<span class="ecode">D1·T3</span></div><div>Гант<span class="ecode">D2·T3</span></div></div>
+          <div class="body">
+            <div class="sk" style="position:relative"><span class="ecode pin">D3</span><div class="l" style="width:40%"></div><div class="l" style="width:80%;height:60px"></div></div>
+            <div class="sk"><div class="l" style="width:30%"></div><div class="l" style="width:70%"></div><div class="l" style="width:55%"></div></div>
+          </div>
+          <div class="state" style="flex:0 0 auto;padding:18px 40px 26px">
+            <p style="color:var(--danger)">Не удалось загрузить сводку.</p>
+            <button class="btn">Повторить<span class="ecode">D4</span></button>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Сегодня</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><span>Календарь</span></div>
+          <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Обзор</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Цели</span></div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M21 8v5h-5"/></svg><span>Трекинг</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

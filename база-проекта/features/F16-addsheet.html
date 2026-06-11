@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F16 — Лист добавления + FAB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  --accent:var(--ember);
+  --s2:8px;
+  /* палитра проектов */
+  --p-zima:#3FB68B; --p-health:#5B8DEF; --p-fin:#C9A24B;
+  --p-work:#9B8CCB; --p-goals:#9B6BE0; --p-realty:#4FB0A8; --p-spirit:#C77DA8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#2a2a2e;
+  font-family:Geist, sans-serif;
+  color:var(--bone);
+  display:flex; flex-direction:column; align-items:center;
+  gap:28px; padding:40px 16px 80px;
+}
+.mono{font-family:"Geist Mono", monospace;}
+
+/* плашка-заголовок */
+.plate{ text-align:center; }
+.plate .num{
+  font-family:"Geist Mono", monospace; font-size:12px; letter-spacing:.08em;
+  color:var(--ember); text-transform:uppercase;
+}
+.plate .name{
+  font-family:"Geist Mono", monospace; font-size:13px; color:var(--steel);
+  margin-top:4px;
+}
+
+/* телефон-фрейм */
+.phone{
+  width:390px; min-height:844px; background:var(--onyx);
+  border-radius:28px; overflow:hidden; position:relative;
+  border:1px solid var(--hairline);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.4);
+}
+.phone.short{ min-height:560px; }
+
+/* статусбар */
+.statusbar{
+  height:44px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px; font-size:14px;
+}
+.statusbar .time{ font-family:"Geist Mono", monospace; font-weight:500; }
+.statusbar .dots{ display:flex; gap:5px; }
+.statusbar .dots i{ width:6px; height:6px; border-radius:50%; background:var(--steel); display:block;}
+.statusbar .dots i.on{ background:var(--bone); }
+
+/* подложка-экран (Сегодня) */
+.app-header{ padding:6px 20px 14px; }
+.app-header h1{ font-size:26px; font-weight:700; letter-spacing:-.02em;}
+.app-header .sub{ font-size:13px; color:var(--steel); margin-top:2px;}
+
+.section-label{
+  font-family:"Geist Mono", monospace; font-size:11px; letter-spacing:.08em;
+  color:var(--steel); text-transform:uppercase; padding:14px 20px 8px;
+}
+
+.task{
+  display:flex; align-items:center; gap:12px;
+  background:var(--smoke); border-radius:12px; margin:6px 16px;
+  padding:13px 14px 13px 0; position:relative; overflow:hidden;
+  border-left:3px solid transparent;
+}
+/* приоритет = левая полоса */
+.task.high{ border-left-color:var(--danger); }
+.task.medium{ border-left-color:var(--warning); }
+.task.low{ border-left-color:var(--ember); }
+/* тинт проекта (фон строки) */
+.task.p-zima{ background:rgba(63,182,139,0.13); }
+.task.p-health{ background:rgba(91,141,239,0.13); }
+.task.p-fin{ background:rgba(201,162,75,0.13); }
+.task.p-work{ background:rgba(155,140,203,0.13); }
+.task .pad{ width:11px; flex:0 0 11px;}
+.checkbox{
+  width:22px; height:22px; flex:0 0 22px; border-radius:50%;
+  border:1.5px solid var(--steel); display:flex; align-items:center; justify-content:center;
+}
+.checkbox{ cursor:pointer; }
+.checkbox.done{ background:var(--ember); border-color:var(--ember); }
+.checkbox.done svg{ width:13px; height:13px; }
+.task .body{ flex:1; min-width:0; }
+.task .title{ font-size:15px; font-weight:500; }
+.task.done .title{ color:var(--steel); text-decoration:line-through; }
+.task .meta{ font-size:12px; color:var(--steel); margin-top:3px; display:flex; gap:8px; align-items:center;}
+.task .meta svg{ width:12px; height:12px; color:var(--steel);}
+
+/* затемнение под шитом */
+.scrim{
+  position:absolute; inset:0; background:rgba(0,0,0,0.5);
+}
+
+/* bottom-sheet */
+.sheet{
+  position:absolute; left:0; right:0; bottom:0;
+  background:var(--smoke);
+  border-radius:20px 20px 0 0;
+  padding:8px 18px calc(18px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--hairline);
+}
+.sheet-grip{
+  width:38px; height:4px; border-radius:99px; background:var(--slate);
+  margin:6px auto 16px;
+}
+.input{
+  width:100%; background:var(--onyx); border:1px solid var(--hairline);
+  border-radius:12px; padding:14px 14px; font-size:16px; color:var(--bone);
+  font-family:Geist, sans-serif; outline:none;
+}
+.input::placeholder{ color:var(--steel); }
+.caret{ border-color:rgba(238,138,60,0.5); }
+
+.row{ display:flex; align-items:center; }
+.chips{ flex-wrap:wrap; gap:8px; margin:14px 0 18px; }
+.btn-chip{
+  border:1px solid var(--hairline); background:var(--slate);
+  color:var(--bone); font-family:Geist, sans-serif;
+  font-size:14px; font-weight:500; padding:9px 16px; border-radius:99px;
+  cursor:pointer;
+}
+.btn-chip.active{
+  background:var(--ember-soft); color:var(--ember); border-color:transparent;
+}
+.btn{
+  width:100%; background:var(--ember); color:#1a1209; border:none;
+  font-family:Geist, sans-serif; font-size:16px; font-weight:600;
+  padding:15px; border-radius:10px; cursor:pointer;
+}
+
+/* FAB */
+.fab-wrap{ position:absolute; right:18px; bottom:96px; display:flex; flex-direction:column; align-items:center; gap:14px;}
+.fab{
+  width:56px; height:56px; border-radius:50%; background:var(--ember);
+  color:#1a1209; border:none; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 6px 18px rgba(0,0,0,0.45); cursor:pointer;
+}
+.fab svg{ width:24px; height:24px; }
+.fab-secondary{
+  width:44px; height:44px; background:var(--slate); color:var(--ember);
+  border:1px solid var(--hairline); font-family:"Geist Mono",monospace;
+  font-size:13px; font-weight:500; box-shadow:none;
+}
+
+/* tab-bar */
+.tabbar{
+  position:absolute; left:0; right:0; bottom:0; height:76px;
+  background:var(--smoke); border-top:1px solid var(--hairline);
+  display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+}
+.tab{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+  color:var(--steel); font-size:10px; cursor:pointer;
+}
+.tab.active{ color:var(--ember); }
+.tab svg{ width:22px; height:22px; }
+
+.cap{ font-family:"Geist Mono", monospace; font-size:11px; color:var(--steel); margin-top:10px; text-align:center;}
+
+/* skeleton */
+.sk{ background:linear-gradient(90deg, var(--slate) 0%, #2c2d31 50%, var(--slate) 100%);
+  border-radius:8px; }
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<div class="plate">
+  <div class="num">F16 · ADDSHEET</div>
+  <div class="name">Лист добавления задачи + FAB-кнопка</div>
+</div>
+
+<!-- ОСНОВНОЙ ВИД: шит открыт поверх подложки -->
+<div class="phone">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+
+  <!-- подложка: экран Сегодня -->
+  <div class="app-header">
+    <h1>Сегодня</h1>
+    <div class="sub">среда, 4 июня · 3 задачи</div>
+  </div>
+  <div class="section-label">Просрочено</div>
+  <div class="task high p-fin">
+    <span class="pad"></span>
+    <span class="checkbox"></span>
+    <div class="body">
+      <div class="title">Подать налоговую за май</div>
+      <div class="meta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        вчера 18:00
+      </div>
+    </div>
+  </div>
+  <div class="section-label">Сегодня</div>
+  <div class="task medium p-zima">
+    <span class="pad"></span>
+    <span class="checkbox"></span>
+    <div class="body">
+      <div class="title">Созвон с мастерами ZIMA</div>
+      <div class="meta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        14:30
+      </div>
+    </div>
+  </div>
+  <div class="task done low p-health">
+    <span class="pad"></span>
+    <span class="checkbox done"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span>
+    <div class="body">
+      <div class="title">Анализы крови — записаться на 15.06</div>
+    </div>
+  </div>
+
+  <!-- scrim -->
+  <div class="scrim"></div>
+
+  <!-- bottom-sheet AddSheet -->
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="input caret">Купить валик для миофасциального релиза<span style="color:var(--ember)">|</span><span class="ecode">A1</span></div>
+    <div class="row chips">
+      <button class="btn-chip">Высокий<span class="ecode">A2</span></button>
+      <button class="btn-chip active">Средний</button>
+      <button class="btn-chip">Низкий</button>
+      <button class="btn-chip">Без</button>
+    </div>
+    <button class="btn">Добавить<span class="ecode">A3</span></button>
+  </div>
+
+  <!-- tab-bar (под scrim — затемнён визуально scrim'ом, но это подложка) -->
+  <div class="tabbar" style="opacity:.35">
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h4"/></svg>
+      Сегодня
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+      Календарь
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Обзор
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/></svg>
+      Цели
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+      Трекинг
+    </div>
+  </div>
+</div>
+<div class="cap"><span class="fcode">F16·A</span>основной вид · шит открыт, приоритет «Средний» активен · scrim под листом</div>
+
+<!-- ALT: FAB закрыт (шит не открыт) — стартовое состояние -->
+<div class="phone short">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+  <div class="app-header">
+    <h1>Сегодня</h1>
+    <div class="sub">среда, 4 июня · 3 задачи</div>
+  </div>
+  <div class="section-label">Сегодня</div>
+  <div class="task high p-fin">
+    <span class="pad"></span><span class="checkbox"></span>
+    <div class="body"><div class="title">Подать налоговую за май</div>
+      <div class="meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>14:30</div>
+    </div>
+  </div>
+  <div class="task medium p-zima">
+    <span class="pad"></span><span class="checkbox"></span>
+    <div class="body"><div class="title">Созвон с мастерами ZIMA</div></div>
+  </div>
+
+  <!-- FAB: Задачи secondary + plus primary -->
+  <div class="fab-wrap" style="bottom:32px">
+    <button class="fab fab-secondary" aria-label="Задачи" style="width:auto;padding:0 16px;border-radius:999px;font-size:14px;font-weight:600;gap:6px">Задачи<span class="ecode">B1</span></button>
+    <button class="fab" aria-label="Добавить" style="position:relative">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span class="ecode pin">B2</span>
+    </button>
+  </div>
+</div>
+<div class="cap"><span class="fcode">F16·B</span>alt · FAB-стек до открытия (Задачи + плюс), шит закрыт</div>
+
+<!-- ALT: пустое поле — кнопка как при пустом вводе (submit no-op) -->
+<div class="phone short">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+  <div style="height:360px"></div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="input" style="color:var(--steel)">Новая задача...<span class="ecode">C1</span></div>
+    <div class="row chips">
+      <button class="btn-chip">Высокий</button>
+      <button class="btn-chip">Средний</button>
+      <button class="btn-chip">Низкий</button>
+      <button class="btn-chip active">Без</button>
+    </div>
+    <button class="btn" style="opacity:.45">Добавить<span class="ecode">C2</span></button>
+  </div>
+</div>
+<div class="cap"><span class="fcode">F16·C</span>alt · пустой ввод (placeholder, prio=Без по умолчанию) — submit no-op</div>
+
+<!-- ALT: LOADING — скелетоны подложки под открытым шитом -->
+<div class="phone short">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+  <div class="app-header">
+    <h1>Сегодня</h1>
+    <div class="sk" style="height:13px;width:160px;margin-top:8px"></div>
+  </div>
+  <div class="section-label">Сегодня</div>
+  <div class="task" style="background:var(--smoke)">
+    <span class="pad"></span>
+    <span class="sk" style="width:22px;height:22px;border-radius:50%;flex:0 0 22px"></span>
+    <div class="body"><div class="sk" style="height:14px;width:70%"></div>
+      <div class="sk" style="height:11px;width:40%;margin-top:8px"></div>
+    </div>
+  </div>
+  <div class="task" style="background:var(--smoke)">
+    <span class="pad"></span>
+    <span class="sk" style="width:22px;height:22px;border-radius:50%;flex:0 0 22px"></span>
+    <div class="body"><div class="sk" style="height:14px;width:55%"></div></div>
+  </div>
+  <div class="task" style="background:var(--smoke)">
+    <span class="pad"></span>
+    <span class="sk" style="width:22px;height:22px;border-radius:50%;flex:0 0 22px"></span>
+    <div class="body"><div class="sk" style="height:14px;width:62%"></div></div>
+  </div>
+</div>
+<div class="cap"><span class="fcode">F16·D</span>alt · LOADING — скелетоны строк (не спиннер)</div>
+
+<!-- ALT: ERROR — состояние ошибки + primary «Повторить» -->
+<div class="phone short">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+  <div class="app-header">
+    <h1>Сегодня</h1>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px;min-height:380px;gap:14px">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="var(--steel)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+    <div style="font-size:16px;font-weight:600">Не удалось загрузить</div>
+    <div style="font-size:13px;color:var(--steel)">Проверь соединение и попробуй снова</div>
+    <button class="btn" style="width:auto;padding:12px 28px;margin-top:6px">Повторить<span class="ecode">E1</span></button>
+  </div>
+</div>
+<div class="cap"><span class="fcode">F16·E</span>alt · ERROR — muted-сообщение + primary «Повторить»</div>
+
+<!-- ALT: EMPTY — нет задач, primary-кнопка добавления -->
+<div class="phone short">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+  <div class="app-header">
+    <h1>Сегодня</h1>
+    <div class="sub">среда, 4 июня · нет задач</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 40px;min-height:360px;gap:14px">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="var(--steel)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M9 14h6"/></svg>
+    <div style="font-size:16px;font-weight:600">На сегодня всё чисто</div>
+    <div style="font-size:13px;color:var(--steel)">Добавь первую задачу на день</div>
+    <button class="btn" style="width:auto;padding:12px 28px;margin-top:6px">Добавить задачу<span class="ecode">F1</span></button>
+  </div>
+</div>
+<div class="cap"><span class="fcode">F16·F</span>alt · EMPTY — нет задач, центр + muted + ember primary-кнопка</div>
+
+</body>
+</html>

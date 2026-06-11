@@ -1,0 +1,231 @@
+{
+  "main": {
+    "id": "16e5c8dce58dd95e",
+    "type": "split",
+    "children": [
+      {
+        "id": "3e2c6e24302d45a6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3a0e97f5a2f44f33",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Граф"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "9729fc71a820a7e8",
+    "type": "split",
+    "children": [
+      {
+        "id": "d3ab50a06ca3ff74",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f94a7adf103bd59f",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "88c914d79e5620d7",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Поиск"
+            }
+          },
+          {
+            "id": "291f9851df2b1e78",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Закладки"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "right": {
+    "id": "4e7d7fecb5943c08",
+    "type": "split",
+    "children": [
+      {
+        "id": "683e7e8b16adc216",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c2e7406a9cc293e2",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Обратные ссылки"
+            }
+          },
+          {
+            "id": "44291221025dc102",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Исходящие ссылки"
+            }
+          },
+          {
+            "id": "70c584fbe1538fc4",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Теги"
+            }
+          },
+          {
+            "id": "24eaff14ee1491e6",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Все свойства"
+            }
+          },
+          {
+            "id": "2e3588ea77841e0e",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Структура"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false
+    }
+  },
+  "active": "3a0e97f5a2f44f33",
+  "lastOpenFiles": [
+    "test-remote.txt",
+    "контекст/сессии/2026-06-01.md",
+    "b2b.ctok.de/продажи/inventory/Zalando A Textiles 10.555 1.xlsx",
+    "b2b.ctok.de/продажи/inventory/Zalando A Shoes 2069 1.xlsx",
+    "b2b.ctok.de/продажи/inventory/Zalando A Underwear 4940 1.xlsx",
+    "b2b.ctok.de/продажи/inventory/Tchibo 7676.xlsx",
+    "b2b.ctok.de/продажи/inventory/_PL-2026-05-28-комплект-Аллы/Tamaris-Fashion-Sizes-1072.xlsx",
+    "b2b.ctok.de/продажи/inventory/_PL-2026-05-28-комплект-Аллы/Fashion-Brand-Mix-A-Zalando-4992-1040.xlsx",
+    "b2b.ctok.de/продажи/inventory/_PL-2026-05-28-комплект-Аллы/EU-Mix-A-4000-PC-1001.xlsx",
+    "b2b.ctok.de/продажи/inventory/_PL-2026-05-28-комплект-Аллы",
+    "b2b.ctok.de/продажи/inventory/Amazon-26142-ALL.xlsx",
+    "b2b.ctok.de/продажи/inventory/AZ 116 2552.xlsx",
+    "товар/КАТАЛОГ.md",
+    "контекст/созвоны-склад/2026-06-01.md",
+    "контекст/созвоны-команда/2026-05-28-планёрка-prep.md",
+    "контекст/сессии/2026-05-31.md",
+    "контекст/сессии/2026-05-28.md",
+    "контекст/сессии/2026-05-27.md",
+    "контекст/stock.de-маркетинг/2026-06-01-онбординг-день1.md",
+    "docs/superpowers/specs/2026-05-28-kz-buyers-scrape-design.md",
+    "b2b.ctok.de/продажи/планы/PLAN-SALES-2026-05-26.md",
+    "b2b.ctok.de/продажи/планы/PLAN-SALES-2026-05-18.canvas",
+    "b2b.ctok.de/продажи/планы/PLAN-EXEC-2026-05-26.md",
+    "b2b.ctok.de/продажи/лиды/казахстан/prospects-kz-2026-05-28.md",
+    "b2b.ctok.de/продажи/лиды/казахстан/market-size.md",
+    "b2b.ctok.de/продажи/лиды/балканы/prospects-balkans-2026-05-28.md",
+    "b2b.ctok.de/продажи/лиды/raw-контакты-вики-2026-05-28.md",
+    "b2b.ctok.de/продажи/dispatch/messages-batch-2026-05-19.md",
+    "b2b.ctok.de/продажи/dispatch/dispatch-sheet-2026-05-26.md",
+    "b2b.ctok.de/продажи/dispatch/dispatch-2026-05-26-FULL.md",
+    "b2b.ctok.de/продажи/_архив/dispatch-sheet-2026-05-19.md",
+    "b2b.ctok.de/маркетинг/posts/2026-06-11-tchibo-1064.md",
+    "b2b.ctok.de/маркетинг/posts/2026-06-08-marc-cain-1010.md",
+    "b2b.ctok.de/маркетинг/posts/2026-06-04-tamaris-textil-mix-1072.md",
+    "b2b.ctok.de/маркетинг/posts/2026-06-01-kids-summer-shoes-1069.md",
+    "b2b.ctok.de/маркетинг/linkedin-recommendation-requests.md",
+    "сущности/люди/Наталья-JDAA.md",
+    "b2b.ctok.de/продажи/PLAN-SALES-2026-05-18.canvas",
+    "ctok-landing-dark-2/public/world.svg",
+    "ctok-landing-dark-2/public/worker_palets .jpg",
+    "ctok-landing-dark-2/public/woman-mix.png",
+    "ctok-landing-dark-2/public/we-source.png",
+    "ctok-landing-dark-2/public/supplier-truck-load.png",
+    "ctok-landing-dark-2/public/supplier-sealed-carton.png",
+    "ctok-landing-dark-2/public/stock-lots cat/stok-lots hero.jpg",
+    "ctok-landing-dark-2/public/stock-lots cat/cat spec.png",
+    "ctok-landing-dark-2/public/stock-lots cat/cat shoes.jpg",
+    "ctok-landing-dark-2/public/stock-lots cat/cat mono brand.png"
+  ]
+}

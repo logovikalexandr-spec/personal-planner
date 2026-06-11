@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вклад без конфликта цветов — карта каналов</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 22px 90px;line-height:1.45}
+  .top{max-width:1180px;margin:0 auto 10px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--ember)}
+  .grid{max-width:1180px;margin:0 auto;display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .col{width:360px}
+  .vlabel{font-family:"Geist Mono";font-size:11px;color:var(--ember);text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px}
+  .vname{font-size:16px;font-weight:700;margin-bottom:3px}
+  .vdesc{font-size:12px;color:var(--steel);margin-bottom:12px;min-height:34px}
+  .phone{background:var(--onyx);border:1px solid var(--hairline);border-radius:20px;overflow:hidden;padding:14px 13px 16px}
+  .ph-head{font-size:17px;font-weight:700;margin-bottom:2px}
+  .ph-sub{font-size:11.5px;color:var(--steel);font-family:"Geist Mono";margin-bottom:13px}
+  .seclbl{font-family:"Geist Mono";font-size:10.5px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin:13px 0 7px}
+
+  /* реальная строка-таймлайн как у владельца */
+  .blk{border-radius:13px;padding:11px 12px;margin-bottom:9px;position:relative;overflow:hidden;display:flex;align-items:flex-start;gap:11px}
+  .blk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--pri)}
+  .cb{flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:2px solid #3a3b40;margin-top:1px}
+  .bd{flex:1;min-width:0}
+  .bn{font-size:15px;font-weight:600}
+  .bm{font-size:12px;color:var(--steel);font-family:"Geist Mono";margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .stg{color:var(--ember);display:inline-flex;align-items:center;gap:3px}
+  .stg .ring{width:11px;height:11px;border:2px solid var(--ember);border-radius:50%;display:inline-block;position:relative}
+  .stg .ring::after{content:"";position:absolute;inset:2px;border-radius:50%;background:var(--ember)}
+  /* impact-токен (МОНО ТЕКСТ, не цвет) */
+  .imp{color:var(--bone);background:var(--slate);border-radius:6px;padding:1px 6px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:3px}
+  .imp.k{color:var(--ember)}
+  .annot{font-size:11px;color:var(--steel);margin:2px 0 12px;padding-left:4px;border-left:2px solid var(--hairline)}
+  .annot b{color:var(--bone)}
+  .note{font-size:12px;color:var(--steel);margin-top:11px}
+  .note b{color:var(--bone)} .rec{color:var(--zima);font-weight:600}
+  .chmap{max-width:1180px;margin:0 auto 22px;background:var(--onyx);border:1px solid var(--hairline);border-radius:14px;padding:14px 16px;font-size:13px}
+  .chmap div{margin:5px 0}
+  .chmap .ch{font-family:"Geist Mono";color:var(--ember);font-weight:600}
+</style></head>
+<body>
+<div class="top">
+  <h1>Вклад в успех — БЕЗ конфликта с цветами строки</h1>
+  <p>Строка уже кодирует: <b>кант=приоритет</b>, <b>фон=проект</b>, <b>мишень=этап</b>. Третий цвет не лезет. Решение: вклад = ТЕКСТ-число + сортировка + отдельный вид. Цвет не трогаем.</p>
+</div>
+
+<div class="chmap">
+  <div><span class="ch">кант слева</span> → приоритет (срочность-ручная: high/med/low) — БЕЗ изменений</div>
+  <div><span class="ch">фон</span> → проект — БЕЗ изменений</div>
+  <div><span class="ch">мишень «этап N»</span> → статус этапа — БЕЗ изменений</div>
+  <div><span class="ch">вклад% (новое)</span> → МОНО-число в мете (не цвет) + драйвит сортировку «Фокус» + ось матрицы. Пишет Claude в чате.</div>
+</div>
+
+<div class="grid">
+
+  <!-- 1 -->
+  <div class="col">
+    <div class="vlabel">Путь 1 · рекомендую</div>
+    <div class="vname">Мини-токен «↑80» в мете</div>
+    <div class="vdesc">Вклад — маленькое моно-число в строке меты, рядом с этапом. Текст, не цвет → ничего не конфликтует. Показываем только у заметных (≥порога), у фона скрыт.</div>
+    <div class="phone">
+      <div class="ph-head">Задачи · сегодня</div>
+      <div class="ph-sub">9:00–12:00</div>
+      <div class="blk" style="--pri:var(--warning);background:rgba(63,182,139,.10)">
+        <span class="cb"></span>
+        <div class="bd"><div class="bn">Созвон с командой ZIMA</div>
+          <div class="bm">09:00–10:00 · <span class="stg"><span class="ring"></span>этап 3</span> · <span class="imp k">↑ 80</span></div></div>
+      </div>
+      <div class="blk" style="--pri:var(--danger);background:rgba(91,141,239,.10)">
+        <span class="cb"></span>
+        <div class="bd"><div class="bn">Анализы — сдать кровь</div>
+          <div class="bm">11:00 · <span class="stg" style="color:var(--danger)"><span class="ring" style="border-color:var(--danger)"></span>этап 1 !</span> · <span class="imp">↑ 45</span></div></div>
+      </div>
+      <div class="blk" style="--pri:transparent;background:var(--card)">
+        <span class="cb"></span>
+        <div class="bd"><div class="bn">Разобрать почту</div>
+          <div class="bm">без времени · фон</div></div>
+      </div>
+    </div>
+    <div class="note"><span class="rec">+ Ноль конфликта цветов, число видно где важно.</span> «↑» = направление к цели. У фоновых скрыт — список не пухнет.</div>
+  </div>
+
+  <!-- 2 -->
+  <div class="col">
+    <div class="vlabel">Путь 2</div>
+    <div class="vname">Кант = важность от AI</div>
+    <div class="vdesc">Переосмыслить: ручной приоритет !1–3 → заменяет AI-важность (из вклада%). Кант УЖЕ это и есть «важность». Срочность = дедлайн. Матрица Эйзенхауэра выходит из существующих каналов, 0 нового на строке.</div>
+    <div class="phone">
+      <div class="ph-head">Задачи · сегодня</div>
+      <div class="ph-sub">кант = важность (AI), red-текст = срочно</div>
+      <div class="blk" style="--pri:var(--ember);background:rgba(63,182,139,.10)">
+        <span class="cb"></span>
+        <div class="bd"><div class="bn">Созвон с командой ZIMA</div>
+          <div class="bm" style="color:var(--danger)">09:00 · важно + срочно</div></div>
+      </div>
+      <div class="blk" style="--pri:var(--ember);background:rgba(91,141,239,.10)">
+        <span class="cb"></span>
+        <div class="bd"><div class="bn">План маркетинга студии</div>
+          <div class="bm">эта неделя · важно, не срочно</div></div>
+      </div>
+      <div class="blk" style="--pri:#3a3b40;background:var(--card)">
+        <span class="cb"></span>
+        <div class="bd"><div class="bn">Разобрать почту</div>
+          <div class="bm">фон</div></div>
+      </div>
+    </div>
+    <div class="annot"><b>Толстый кант ember</b> = высокая важность (AI). Тонкий серый = фон. Красная мета = горит срок.</div>
+    <div class="note"><span class="rec">+ Вообще ничего нового на строке.</span> − Теряешь ручной !1–3 (или оставляешь оба: ручной перебивает AI).</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="col">
+    <div class="vlabel">Путь 3 · дом для числа</div>
+    <div class="vname">Только «Фокус» + Матрица</div>
+    <div class="vdesc">Строка-таймлайн вообще НЕ меняется. Вклад% живёт только в отдельном виде «Фокус» (сортировка) + в детали задачи + опц. матрице. Чисто, но не видно при беглом взгляде на день.</div>
+    <div class="phone">
+      <div class="ph-head">Фокус дня</div>
+      <div class="ph-sub">по вкладу в цели</div>
+      <div class="seclbl">двигает цель · 3</div>
+      <div class="blk" style="--pri:var(--warning);background:var(--ember-soft)"><span class="cb"></span><div class="bd"><div class="bn">Созвон с командой ZIMA</div><div class="bm">этап 3 · <span class="imp k">вклад 80%</span></div></div></div>
+      <div class="blk" style="--pri:var(--danger);background:var(--card)"><span class="cb"></span><div class="bd"><div class="bn">Подготовить договор</div><div class="bm">ZIMA · <span class="imp k">вклад 65%</span></div></div></div>
+      <div class="seclbl">остальное</div>
+      <div class="blk" style="--pri:transparent;background:var(--card)"><span class="cb"></span><div class="bd"><div class="bn">Разобрать почту</div><div class="bm"><span class="imp">15%</span></div></div></div>
+    </div>
+    <div class="note"><span class="rec">+ Таймлайн чист, число в своём доме.</span> Вид «Фокус» = переключатель в табе Задачи (Время / Фокус).</div>
+  </div>
+
+</div>
+</body></html>

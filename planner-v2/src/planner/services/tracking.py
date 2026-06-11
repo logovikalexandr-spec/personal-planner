@@ -5,18 +5,29 @@
 - метрика: ЗАМЕНА (upsert по дню, last-wins).
 - зачёт привычки-счётчика = ГРАДИЕНТ (heat_level 0-4 по доле value/target).
 """
+
 from __future__ import annotations
 
 from datetime import date, timedelta
 
 from sqlalchemy import delete, select
 
-from planner.db.models import Habit, HabitEntry, Metric, MetricEntry
+from planner.db.models import Habit, HabitEntry, Metric, MetricEntry, Project, Task
 
 _HABIT_FIELDS = {
-    "name", "color", "mark_type", "target", "unit", "step",
-    "schedule_kind", "schedule_n", "schedule_days", "goal_date", "goal_total",
-    "archived", "order_index",
+    "name",
+    "color",
+    "mark_type",
+    "target",
+    "unit",
+    "step",
+    "schedule_kind",
+    "schedule_n",
+    "schedule_days",
+    "goal_date",
+    "goal_total",
+    "archived",
+    "order_index",
 }
 _METRIC_FIELDS = {"name", "unit", "good_direction", "color", "archived", "order_index"}
 
@@ -94,9 +105,7 @@ async def delete_habit(session, habit_id: int) -> bool:
 
 # ── отметки привычки ──────────────────────────────────────────────────────── #
 async def _get_entry(session, habit_id: int, day: date) -> HabitEntry | None:
-    q = select(HabitEntry).where(
-        HabitEntry.habit_id == habit_id, HabitEntry.entry_date == day
-    )
+    q = select(HabitEntry).where(HabitEntry.habit_id == habit_id, HabitEntry.entry_date == day)
     return (await session.execute(q)).scalar_one_or_none()
 
 
@@ -159,10 +168,7 @@ async def compute_streak(session, habit: Habit, today: date) -> int:
     rows = await session.execute(
         select(HabitEntry.entry_date, HabitEntry.value).where(HabitEntry.habit_id == habit.id)
     )
-    done_days = {
-        d for (d, v) in rows
-        if habit_is_done(habit.mark_type, v, habit.target)
-    }
+    done_days = {d for (d, v) in rows if habit_is_done(habit.mark_type, v, habit.target)}
     streak = 0
     cur = today
     while cur in done_days:
@@ -203,9 +209,7 @@ async def delete_metric(session, metric_id: int) -> bool:
 
 async def set_metric_value(session, metric_id: int, day: date, value: float) -> MetricEntry:
     """Замер: ЗАМЕНА значения дня (upsert, last-wins)."""
-    q = select(MetricEntry).where(
-        MetricEntry.metric_id == metric_id, MetricEntry.entry_date == day
-    )
+    q = select(MetricEntry).where(MetricEntry.metric_id == metric_id, MetricEntry.entry_date == day)
     e = (await session.execute(q)).scalar_one_or_none()
     if e is None:
         e = MetricEntry(metric_id=metric_id, entry_date=day, value=value)
@@ -228,36 +232,151 @@ async def list_metric_entries(session, metric_id: int, limit: int = 30) -> list[
 
 async def delete_metric_entry(session, metric_id: int, day: date) -> bool:
     res = await session.execute(
-        delete(MetricEntry).where(
-            MetricEntry.metric_id == metric_id, MetricEntry.entry_date == day
-        )
+        delete(MetricEntry).where(MetricEntry.metric_id == metric_id, MetricEntry.entry_date == day)
     )
     await session.flush()
     return res.rowcount > 0
 
 
-# ── ретро недели ──────────────────────────────────────────────────────────── #
-async def week_retro(session, week_start: date) -> dict:
-    """Сводка недели [week_start, +6]: сколько привычко-дней зачтено из запланированных."""
+# ── ретро недели (задачи + привычки) ───────────────────────────────────────── #
+def _habit_tag(week_done: int, streak: int, record: int) -> str | None:
+    if streak >= 5 and streak == record:
+        return f"рекорд {streak}"
+    if week_done >= 6:
+        return "цель близко"
+    if week_done <= 4:
+        return "слабое"
+    return None
+
+
+async def week_review(session, week_start: date, today: date) -> dict:
+    """Полный обзор недели: задачи (по проектам, вклад, просрочка) + привычки."""
     week_end = week_start + timedelta(days=6)
-    habits = await list_habits(session)
-    done = 0
-    for h in habits:
-        rows = await session.execute(
-            select(HabitEntry.entry_date, HabitEntry.value).where(
-                HabitEntry.habit_id == h.id,
-                HabitEntry.entry_date >= week_start,
-                HabitEntry.entry_date <= week_end,
+
+    # — задачи недели: план = due_date в окне (не архив, верхнего уровня) — #
+    planned = list(
+        (
+            await session.execute(
+                select(Task).where(
+                    Task.due_date >= week_start,
+                    Task.due_date <= week_end,
+                    Task.status != "archived",
+                    Task.parent_task_id.is_(None),
+                )
             )
+        ).scalars()
+    )
+    done_tasks = [t for t in planned if t.status == "done"]
+
+    proj_ids = {t.project_id for t in planned if t.project_id is not None}
+    overdue_rows = list(
+        (
+            await session.execute(
+                select(Task)
+                .where(
+                    Task.due_date < today,
+                    Task.status.in_(["todo", "in_progress"]),
+                    Task.parent_task_id.is_(None),
+                )
+                .order_by(Task.due_date)
+            )
+        ).scalars()
+    )
+    proj_ids |= {t.project_id for t in overdue_rows if t.project_id is not None}
+
+    projects = {}
+    if proj_ids:
+        projects = {
+            p.id: p
+            for p in (
+                await session.execute(select(Project).where(Project.id.in_(proj_ids)))
+            ).scalars()
+        }
+
+    by_project: dict[int | None, dict] = {}
+    for t in planned:
+        d = by_project.setdefault(t.project_id, {"done": 0, "total": 0})
+        d["total"] += 1
+        if t.status == "done":
+            d["done"] += 1
+    by_project_list = []
+    for pid, d in by_project.items():
+        p = projects.get(pid) if pid is not None else None
+        by_project_list.append(
+            {
+                "project_id": pid,
+                "name": p.name if p else "Входящие",
+                "color": (p.color if p and getattr(p, "color", None) else "#8A8B91"),
+                "done": d["done"],
+                "total": d["total"],
+            }
         )
-        for (_d, v) in rows:
-            if habit_is_done(h.mark_type, v, h.target):
-                done += 1
-    total = len(habits) * 7
+    by_project_list.sort(key=lambda x: (-x["done"], -x["total"]))
+
+    overdue = [
+        {
+            "id": t.id,
+            "title": t.title,
+            "project": (projects[t.project_id].name if t.project_id in projects else None),
+            "color": (
+                projects[t.project_id].color
+                if t.project_id in projects and getattr(projects[t.project_id], "color", None)
+                else "#8A8B91"
+            ),
+            "days_late": (today - t.due_date).days,
+        }
+        for t in overdue_rows
+    ]
+
+    impact_sum = sum(t.impact or 0 for t in done_tasks)
+    top = max(done_tasks, key=lambda t: t.impact or 0, default=None)
+    top_task = None
+    if top is not None and (top.impact or 0) > 0:
+        top_task = {
+            "title": top.title,
+            "impact": top.impact,
+            "project": (projects[top.project_id].name if top.project_id in projects else None),
+        }
+
+    # — привычки недели — #
+    habits = await list_habits(session)
+    items, done_days = [], 0
+    for h in habits:
+        window = await entries_map(session, h.id, week_start, week_end)
+        wk = [
+            habit_is_done(h.mark_type, window.get(week_start + timedelta(days=i), 0.0), h.target)
+            for i in range(7)
+        ]
+        wd = sum(1 for x in wk if x)
+        done_days += wd
+        streak = await compute_streak(session, h, today)
+        items.append(
+            {
+                "id": h.id,
+                "name": h.name,
+                "color": h.color,
+                "week": wk,
+                "week_done": wd,
+                "streak": streak,
+                "tag": _habit_tag(wd, streak, h.record_streak),
+            }
+        )
+
     return {
         "week_start": week_start.isoformat(),
         "week_end": week_end.isoformat(),
-        "habits": len(habits),
-        "done_days": done,
-        "total_days": total,
+        "tasks": {
+            "done": len(done_tasks),
+            "planned": len(planned),
+            "impact_sum": impact_sum,
+            "by_project": by_project_list,
+            "overdue": overdue,
+            "top_task": top_task,
+        },
+        "habits": {
+            "done_days": done_days,
+            "total_days": len(habits) * 7,
+            "count": len(habits),
+            "items": items,
+        },
     }

@@ -96,7 +96,8 @@ async def test_week_retro(db_session):
     monday = date(2026, 6, 8)  # пн
     for i in range(3):
         await svc.toggle_habit(db_session, h.id, monday + timedelta(days=i))
-    r = await svc.week_retro(db_session, monday)
-    assert r["habits"] == 1
-    assert r["done_days"] == 3
-    assert r["total_days"] == 7
+    r = await svc.week_review(db_session, monday, date(2026, 6, 14))
+    assert r["habits"]["count"] == 1
+    assert r["habits"]["done_days"] == 3
+    assert r["habits"]["total_days"] == 7
+    assert r["tasks"]["done"] == 0  # задач нет

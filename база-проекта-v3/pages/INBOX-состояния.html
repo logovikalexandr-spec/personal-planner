@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INBOX — матрица состояний (Входящие)</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C; --ember:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16); --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,0.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --personal:#C9A24B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 18px 60px}
+  h2{font-size:18px;font-weight:700;margin:26px 0 4px}h2:first-child{margin-top:0}
+  .sub{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:16px}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .fcap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:10px}
+  .fcap b{color:var(--accent)}
+  .fcode{display:inline-block;background:var(--accent);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px}
+  .phone{width:300px;height:600px;background:var(--onyx);border:1px solid var(--hairline);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+  .st{height:36px;display:flex;align-items:center;padding:0 18px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--bone)}
+  .hd{padding:8px 16px 8px;border-bottom:1px solid var(--hairline)}
+  .hd .back{color:var(--accent);font-size:13px;font-weight:600;margin-bottom:3px}
+  .hd .h1row{display:flex;align-items:center;gap:9px}
+  .hd h1{font-size:19px;font-weight:700}
+  .hd .badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--ember);color:#1a120a;font-size:12px;font-weight:700;font-family:"Geist Mono",monospace}
+  .hd .d{font-size:12px;color:var(--steel);margin-top:2px}
+  .body{flex:1;overflow:hidden;position:relative;padding:14px 16px 0}
+
+  /* empty-state (calm) */
+  .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:0 26px;margin-top:-30px}
+  .empty .ic{width:48px;height:48px;color:var(--zima)}
+  .empty .t{font-size:16px;font-weight:600}
+  .empty .s{font-size:13px;color:var(--steel);line-height:1.5}
+  .empty .btn{margin-top:8px;background:var(--accent);color:#1a1209;font-size:14px;font-weight:600;border-radius:11px;padding:11px 20px}
+  .empty .btn.ghost{background:var(--slate);color:var(--bone)}
+
+  /* error empty */
+  .empty .ic.err{color:var(--steel)}
+
+  /* inbox card (для состояния «без подсказки») */
+  .icard{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:13px 14px 12px;margin-bottom:10px;position:relative;overflow:hidden}
+  .icard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--steel);opacity:.5}
+  .icard.suggest::before{background:var(--zima);opacity:1}
+  .itext{font-size:14px;font-weight:500;line-height:1.35;margin-bottom:6px}
+  .src{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;margin-bottom:9px}
+  .src .tag{background:var(--slate);border-radius:6px;padding:2px 7px}
+  .src .dotsep{opacity:.5}
+  .ai{border-radius:9px;padding:7px 9px;margin:0 0 9px;font-size:11.5px;display:flex;gap:7px;align-items:center;background:var(--ember-soft);color:var(--ember)}
+  .ai .bolt{flex:0 0 auto;width:13px;height:13px;fill:var(--ember);stroke:none}
+  .ai .txt{font-weight:600}.ai .txt s{font-weight:500;color:rgba(238,138,60,.7);text-decoration:none}
+  .ai .accept{margin-left:auto;font-size:10.5px;font-weight:700;border:1px solid rgba(238,138,60,.55);border-radius:7px;padding:3px 9px;color:var(--ember);background:none}
+  .acts{display:flex;gap:6px;flex-wrap:wrap}
+  .act{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:500;color:var(--bone);background:var(--slate);border:1px solid var(--hairline);border-radius:9px;padding:6px 9px}
+  .act svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.7}
+  .act.proj{color:var(--ember)}
+  .act.del{color:var(--danger);margin-left:auto;background:none;border-color:transparent}
+
+  /* loading skeleton */
+  .skel{background:var(--slate);border-radius:8px;position:relative;overflow:hidden}
+  .skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.3s infinite}
+  @keyframes sh{100%{transform:translateX(100%)}}
+  .sk-card{border:1px solid var(--hairline);border-radius:14px;padding:13px 14px;margin-bottom:10px;background:var(--card)}
+  .sk-line{height:12px;border-radius:6px}
+
+  .tabs{display:flex;border-top:1px solid var(--hairline);background:var(--smoke);padding:7px 4px 12px;opacity:.5}
+  .tab{flex:1;text-align:center;font-size:10px;color:var(--steel)}.tab.on{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<h2>INBOX «Входящие» — матрица состояний</h2>
+<div class="sub">happy-path (заполненный триаж + подсказки) — в INBOX-inbox.html. Здесь: пусто · без подсказки · скелетон · ошибка.</div>
+
+<div class="row">
+
+  <!-- empty: всё разобрано -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">INBOX·E0</span>пусто · всё разобрано</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Назад</div><div class="h1row"><h1>Входящие</h1></div><div class="d">ничего не висит</div></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 12l5 5L21 5"/><path d="M3 18l5 4 4-4"/></svg>
+          <div class="t">Входящие разобраны</div>
+          <div class="s">Ни одной непойманной мысли. Каждая идея лежит в проекте, на дне или удалена.</div>
+          <div class="btn ghost">+ Записать мысль</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+  <!-- без подсказки: эвристика не угадала -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">INBOX·E1</span>есть идеи · подсказки нет</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Назад</div><div class="h1row"><h1>Входящие</h1><span class="badge">2</span></div><div class="d">разбери вручную</div></div>
+      <div class="body">
+        <div class="icard">
+          <div class="itext">Купить подарок маме</div>
+          <div class="src"><span class="tag">мои</span><span class="dotsep">·</span><span>быстрый захват</span></div>
+          <div class="acts">
+            <div class="act proj"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>в проект ▾</div>
+            <div class="act"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>сегодня</div>
+            <div class="act del"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></div>
+          </div>
+        </div>
+        <div class="icard">
+          <div class="itext">Подумать про отпуск летом</div>
+          <div class="src"><span class="tag">из сессии</span><span class="dotsep">·</span><span>чат · 09.06</span></div>
+          <div class="acts">
+            <div class="act proj"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>в проект ▾</div>
+            <div class="act"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>сегодня</div>
+            <div class="act del"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg></div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:11.5px;color:var(--steel);font-family:'Geist Mono';margin-top:6px;line-height:1.5">эвристика не нашла проект<br>по ключевым словам — разбери сам</div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+  <!-- loading skeleton -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">INBOX·E2</span>загрузка · скелетон</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Назад</div><div class="skel sk-line" style="width:46%;height:18px;margin:3px 0 6px"></div></div>
+      <div class="body">
+        <div class="sk-card">
+          <div class="skel sk-line" style="width:78%;height:14px;margin-bottom:9px"></div>
+          <div class="skel sk-line" style="width:40%;height:10px;margin-bottom:11px"></div>
+          <div style="display:flex;gap:6px"><div class="skel" style="width:74px;height:28px;border-radius:9px"></div><div class="skel" style="width:62px;height:28px;border-radius:9px"></div><div class="skel" style="width:54px;height:28px;border-radius:9px"></div></div>
+        </div>
+        <div class="sk-card">
+          <div class="skel sk-line" style="width:64%;height:14px;margin-bottom:9px"></div>
+          <div class="skel sk-line" style="width:36%;height:10px;margin-bottom:11px"></div>
+          <div class="skel" style="width:100%;height:28px;border-radius:9px;margin-bottom:11px"></div>
+          <div style="display:flex;gap:6px"><div class="skel" style="width:74px;height:28px;border-radius:9px"></div><div class="skel" style="width:62px;height:28px;border-radius:9px"></div></div>
+        </div>
+        <div class="sk-card">
+          <div class="skel sk-line" style="width:70%;height:14px;margin-bottom:9px"></div>
+          <div class="skel sk-line" style="width:32%;height:10px"></div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+  <!-- error -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">INBOX·E3</span>ошибка загрузки</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Назад</div><div class="h1row"><h1>Входящие</h1></div></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic err" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10.3 4l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/><path d="M12 9v5M12 17.5h.01"/></svg>
+          <div class="t">Не удалось загрузить</div>
+          <div class="s">Идеи не пропали — они на сервере. Проверь связь и попробуй ещё.</div>
+          <div class="btn">Повторить</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

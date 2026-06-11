@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Разметка мокапа</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+    --ember-soft:rgba(238,138,60,0.16); --hairline:rgba(255,255,255,0.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;color:var(--bone);font-family:Geist,system-ui,sans-serif;height:100vh;display:flex;overflow:hidden}
+  /* левая зона — мокап + слой разметки */
+  #stage{flex:1;overflow:auto;padding:32px;display:flex;justify-content:center}
+  #frame{position:relative;width:390px;flex:0 0 auto}
+  #frame iframe{width:390px;height:var(--fh,2400px);border:0;background:var(--onyx);border-radius:8px;display:block}
+  #overlay{position:absolute;inset:0;cursor:crosshair}
+  #overlay.off{pointer-events:none;cursor:default}
+  .box{position:absolute;border:2px solid var(--ember);background:var(--ember-soft);border-radius:4px}
+  .pin{position:absolute;min-width:22px;height:22px;padding:0 6px;margin:-11px 0 0 -11px;border-radius:999px;
+       background:var(--ember);color:#1a1209;font-family:"Geist Mono",monospace;font-size:12px;font-weight:600;
+       display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3}
+  /* правая панель */
+  #panel{width:360px;flex:0 0 auto;background:var(--onyx);border-left:1px solid var(--hairline);display:flex;flex-direction:column}
+  #panel header{padding:18px 18px 14px;border-bottom:1px solid var(--hairline)}
+  #panel h1{font-size:16px;font-weight:600;letter-spacing:-.01em}
+  #panel .sub{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-top:4px}
+  .bar{display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--hairline);flex-wrap:wrap}
+  button{font-family:Geist,sans-serif;font-size:13px;font-weight:500;border:1px solid var(--hairline);
+         background:var(--slate);color:var(--bone);padding:7px 12px;border-radius:8px;cursor:pointer}
+  button:hover{border-color:var(--ember)}
+  button.primary{background:var(--ember);color:#1a1209;border-color:var(--ember)}
+  button.on{background:var(--ember-soft);color:var(--ember);border-color:transparent}
+  #list{flex:1;overflow:auto;padding:12px 18px 40px}
+  .note{background:var(--smoke);border:1px solid var(--hairline);border-radius:10px;padding:12px;margin-bottom:10px}
+  .note .h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .note .n{width:22px;height:22px;border-radius:999px;background:var(--ember);color:#1a1209;
+           font-family:"Geist Mono",monospace;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+  .note textarea{width:100%;min-height:54px;resize:vertical;background:var(--slate);color:var(--bone);
+                 border:1px solid var(--hairline);border-radius:8px;padding:8px;font-family:Geist,sans-serif;font-size:14px}
+  .note .del{margin-left:auto;background:none;border:0;color:var(--steel);padding:2px 6px}
+  .note .del:hover{color:#FF5C5C}
+  .empty{color:var(--steel);font-size:13px;text-align:center;margin-top:24px;line-height:1.5}
+  .hint{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);padding:0 18px 12px}
+</style>
+</head>
+<body>
+  <div id="stage"><div id="frame"><iframe id="mock"></iframe><div id="overlay"></div></div></div>
+  <div id="panel">
+    <header>
+      <h1 id="ttl">Разметка</h1>
+      <div class="sub" id="mname"></div>
+    </header>
+    <div class="bar">
+      <button id="drawBtn" class="primary on">Рисовать: вкл</button>
+      <button id="taller">Выше слой</button>
+      <button id="export" class="primary">Экспорт .md</button>
+      <button id="clear">Очистить</button>
+    </div>
+    <div class="hint">Зажми и протяни по мокапу → рамка. Текст пиши в карточке справа. Сохраняется автоматом.</div>
+    <div id="list"></div>
+  </div>
+
+<script>
+  const qs = new URLSearchParams(location.search);
+  const m = qs.get("m") || "pages/P01-segodnya.html";
+  const KEY = "annot:"+m;
+  const mock = document.getElementById("mock");
+  const overlay = document.getElementById("overlay");
+  const frame = document.getElementById("frame");
+  const listEl = document.getElementById("list");
+  mock.src = m;
+  document.getElementById("mname").textContent = m;
+  document.getElementById("ttl").textContent = "Разметка — " + (m.split("/").pop().replace(".html","").toUpperCase());
+
+  let notes = JSON.parse(localStorage.getItem(KEY) || "[]");
+  let fh = +(localStorage.getItem(KEY+":h") || 2400);
+  frame.style.setProperty("--fh", fh+"px");
+
+  const save = () => { localStorage.setItem(KEY, JSON.stringify(notes)); render(); };
+
+  function render(){
+    // рамки + пины
+    overlay.querySelectorAll(".box,.pin").forEach(e=>e.remove());
+    notes.forEach((a,i)=>{
+      const b=document.createElement("div");b.className="box";
+      b.style.left=a.x+"px";b.style.top=a.y+"px";b.style.width=a.w+"px";b.style.height=a.h+"px";
+      overlay.appendChild(b);
+      const p=document.createElement("div");p.className="pin";p.textContent=i+1;
+      p.style.left=a.x+"px";p.style.top=a.y+"px";
+      p.onclick=()=>document.getElementById("note"+i)?.scrollIntoView({behavior:"smooth",block:"center"});
+      overlay.appendChild(p);
+    });
+    // список
+    if(!notes.length){ listEl.innerHTML='<div class="empty">Пометок пока нет.<br>Обведи область на мокапе слева.</div>'; return; }
+    listEl.innerHTML="";
+    notes.forEach((a,i)=>{
+      const d=document.createElement("div");d.className="note";d.id="note"+i;
+      d.innerHTML=`<div class="h"><span class="n">${i+1}</span>
+        <span style="font-family:'Geist Mono',monospace;font-size:11px;color:var(--steel)">${Math.round(a.x)},${Math.round(a.y)} · ${Math.round(a.w)}×${Math.round(a.h)}</span>
+        <button class="del" data-i="${i}">удалить</button></div>
+        <textarea data-i="${i}" placeholder="Что тут изменить / комментарий…">${a.text||""}</textarea>`;
+      listEl.appendChild(d);
+    });
+    listEl.querySelectorAll("textarea").forEach(t=>{
+      t.oninput=e=>{ notes[+e.target.dataset.i].text=e.target.value; localStorage.setItem(KEY,JSON.stringify(notes)); };
+    });
+    listEl.querySelectorAll(".del").forEach(b=>{
+      b.onclick=e=>{ notes.splice(+e.target.dataset.i,1); save(); };
+    });
+  }
+
+  // рисование
+  let drawing=false, sx=0, sy=0, tmp=null;
+  overlay.addEventListener("mousedown",e=>{
+    if(overlay.classList.contains("off"))return;
+    const r=overlay.getBoundingClientRect();
+    sx=e.clientX-r.left; sy=e.clientY-r.top; drawing=true;
+    tmp=document.createElement("div");tmp.className="box";overlay.appendChild(tmp);
+  });
+  window.addEventListener("mousemove",e=>{
+    if(!drawing)return;
+    const r=overlay.getBoundingClientRect();
+    const cx=e.clientX-r.left, cy=e.clientY-r.top;
+    const x=Math.min(sx,cx),y=Math.min(sy,cy),w=Math.abs(cx-sx),h=Math.abs(cy-sy);
+    tmp.style.left=x+"px";tmp.style.top=y+"px";tmp.style.width=w+"px";tmp.style.height=h+"px";
+  });
+  window.addEventListener("mouseup",e=>{
+    if(!drawing)return; drawing=false;
+    const r=overlay.getBoundingClientRect();
+    const cx=e.clientX-r.left, cy=e.clientY-r.top;
+    const x=Math.min(sx,cx),y=Math.min(sy,cy),w=Math.abs(cx-sx),h=Math.abs(cy-sy);
+    tmp.remove();
+    if(w<8||h<8)return; // клик, не рамка
+    notes.push({x,y,w,h,text:""}); save();
+    setTimeout(()=>document.querySelector("#note"+(notes.length-1)+" textarea")?.focus(),50);
+  });
+
+  // тулбар
+  const drawBtn=document.getElementById("drawBtn");
+  drawBtn.onclick=()=>{
+    overlay.classList.toggle("off");
+    const on=!overlay.classList.contains("off");
+    drawBtn.textContent="Рисовать: "+(on?"вкл":"выкл");
+    drawBtn.classList.toggle("on",on);
+  };
+  document.getElementById("taller").onclick=()=>{
+    fh+=600; frame.style.setProperty("--fh",fh+"px"); localStorage.setItem(KEY+":h",fh);
+  };
+  document.getElementById("clear").onclick=()=>{
+    if(confirm("Удалить все пометки этого мокапа?")){ notes=[]; save(); }
+  };
+  document.getElementById("export").onclick=()=>{
+    const name=m.split("/").pop().replace(".html","");
+    let md=`# Разметка — ${name}\n\nМокап: \`${m}\`\nПометок: ${notes.length}\n\n`;
+    notes.forEach((a,i)=>{ md+=`## ${i+1}. область ${Math.round(a.x)},${Math.round(a.y)} (${Math.round(a.w)}×${Math.round(a.h)})\n${a.text||"(без текста)"}\n\n`; });
+    navigator.clipboard?.writeText(md).then(()=>{},()=>{});
+    const blob=new Blob([md],{type:"text/markdown"});
+    const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`razmetka-${name}.md`;a.click();
+    alert("Экспорт: скопирован в буфер + скачан razmetka-"+name+".md\nКинь мне файл/текст — разработаю по пометкам.");
+  };
+
+  render();
+</script>
+</body>
+</html>

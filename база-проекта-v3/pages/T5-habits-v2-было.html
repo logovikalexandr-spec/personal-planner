@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>БЫЛО v2 — перегружено (ряды+кольцо+чипы+рубеж на каждой)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;color:var(--bone);display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .phone{width:390px;height:844px;background:var(--onyx);border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;font-weight:600;flex:0 0 auto}
+  .scroll{flex:1;overflow-y:auto;padding:6px 18px 100px}
+  .scroll::-webkit-scrollbar{display:none}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+  .sub{color:var(--steel);font-size:13px;margin-bottom:16px}
+  .seg{display:flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:12px;padding:3px;margin-bottom:20px}
+  .seg i{flex:1;text-align:center;font-size:13px;font-weight:600;font-style:normal;color:var(--steel);padding:7px 0;border-radius:9px;letter-spacing:.2px}
+  .seg i.on{background:var(--slate);color:var(--bone);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .seclbl{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--steel);margin:4px 2px 10px;display:flex;align-items:center;justify-content:space-between}
+  .secadd{width:24px;height:24px;border-radius:7px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;color:var(--ember);font-size:17px;font-weight:400;line-height:1}
+  .hcard{background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:14px 15px;margin-bottom:12px;position:relative;overflow:hidden}
+  .hcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .hc-row{display:flex;align-items:center;gap:13px}
+  .hc-body{flex:1;min-width:0}
+  .hc-name{font-size:16px;font-weight:600;line-height:1.25;display:flex;align-items:center;gap:7px}
+  .hc-name .sched{font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);font-weight:500;background:var(--slate);border-radius:5px;padding:1px 6px}
+  .hc-streak{font-size:12.5px;color:var(--steel);margin-top:4px;font-family:"Geist Mono",monospace;display:flex;align-items:center;gap:5px}
+  .hc-streak b{color:var(--ember);font-weight:600}
+  .hc-streak .ml{color:var(--steel)}
+  .flame{flex:0 0 auto;color:var(--ember);display:inline-flex}
+  .sring{flex:0 0 auto;position:relative;width:46px;height:46px}
+  .sring svg{transform:rotate(-90deg)}
+  .sring .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--c)}
+  .chk{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:2px solid var(--slate);display:flex;align-items:center;justify-content:center;color:var(--steel)}
+  .chk.done{background:var(--c);border-color:var(--c);color:#0F0F11}
+  .chk svg{width:16px;height:16px}
+  .numbtn{flex:0 0 auto;min-width:58px;height:34px;border-radius:10px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;gap:3px;font-size:14px;font-weight:600;font-family:"Geist Mono",monospace;color:var(--bone)}
+  .wkrow{display:flex;gap:7px;margin-top:12px;align-items:center}
+  .wkrow i{width:13px;height:13px;border-radius:50%;background:#2c2d31;border:1px solid var(--hairline)}
+  .wkrow i.fill{background:var(--c);border-color:var(--c)}
+  .wkrow i.today{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--c)}
+  .wklbl{font-size:10px;color:var(--steel);font-family:"Geist Mono",monospace;margin-left:auto;align-self:center}
+  .pbar{height:7px;border-radius:4px;background:#2c2d31;margin-top:11px;overflow:hidden}
+  .pbar i{display:block;height:100%;background:var(--c);border-radius:4px}
+  .pgoal{font-size:11.5px;color:var(--steel);margin-top:7px;font-family:"Geist Mono",monospace}
+  .pgoal b{color:var(--bone)}
+  .heat{background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:15px 16px;margin-bottom:18px}
+  .heat .htop{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+  .heat .htitle{font-size:13px;font-weight:600}
+  .htabs{display:flex;gap:5px}
+  .htabs i{font-style:normal;font-family:"Geist Mono",monospace;font-size:10px;padding:4px 10px;border-radius:8px;background:var(--slate);color:var(--steel)}
+  .htabs i.on{background:var(--ember);color:#1a1209}
+  .hgrid{display:grid;grid-template-columns:74px repeat(7,1fr);gap:5px;align-items:center}
+  .hgrid .hd{font-size:9.5px;color:var(--steel);font-family:"Geist Mono",monospace;text-align:center}
+  .hgrid .rn{font-size:11px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:4px}
+  .hgrid .cell{aspect-ratio:1;border-radius:4px;background:#222327}
+  .lv0{background:#222327}.lv1{background:rgba(238,138,60,.22)}.lv2{background:rgba(238,138,60,.42)}.lv3{background:rgba(238,138,60,.66)}.lv4{background:var(--ember)}
+  .hleg{display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-top:13px;font-size:10px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .hleg span{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .mcard{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:13px 14px}
+  .mcard.wide{grid-column:1 / -1}
+  .m-lbl{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;letter-spacing:.5px;text-transform:uppercase}
+  .m-val{font-size:22px;font-weight:700;margin-top:5px;letter-spacing:-.02em}
+  .m-val small{font-size:13px;font-weight:500;color:var(--steel)}
+  .m-delta{font-size:12px;font-weight:600;margin-left:6px}
+  .m-delta.good{color:var(--zima)}.m-delta.up{color:var(--health)}
+  .spark{margin-top:9px;display:block}
+  .retro{background:linear-gradient(135deg,#1c1d22,#161417);border:1px solid var(--hairline);border-radius:16px;padding:15px 16px;display:flex;align-items:center;gap:13px;cursor:pointer}
+  .retro .rl{flex:0 0 auto;width:42px;height:42px;border-radius:12px;background:var(--ember-soft);color:var(--ember);display:flex;align-items:center;justify-content:center}
+  .retro .rb{flex:1}.retro .rt{font-size:14.5px;font-weight:600}
+  .retro .rs{font-size:12px;color:var(--steel);margin-top:3px}.retro .rs b{color:var(--bone);font-weight:600}
+  .retro .chev{color:var(--steel);font-size:18px}
+  .stub{margin-top:12px;text-align:center;font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);border:1px dashed var(--hairline);border-radius:10px;padding:11px}
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:78px;background:var(--card);border-top:1px solid var(--hairline);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:14px}
+  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:10px;color:var(--steel)}
+  .tab.active{color:var(--ember)}
+  .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8}
+  .banner{width:330px;font-size:13px;line-height:1.6}
+  .banner h2{font-size:16px;margin-bottom:10px;color:var(--danger)}
+  .banner .row{margin-bottom:10px;padding-left:12px;border-left:2px solid var(--danger)}
+  .banner b{color:var(--danger)}
+</style></head>
+<body>
+
+<div class="phone">
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="scroll">
+    <h1>Привычки</h1>
+    <div class="sub">июнь · нед 23</div>
+    <div class="seg"><i class="on">Привычки</i><i>Метрики</i><i>Ретро</i></div>
+
+    <div class="seclbl">Сегодня · 6 июня <span class="secadd">+</span></div>
+
+    <div class="hcard" style="--c:var(--health)">
+      <div class="hc-row">
+        <div class="sring"><svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#2c2d31" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="var(--health)" stroke-width="4" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="24"/></svg><div class="num" style="color:var(--health)">12</div></div>
+        <div class="hc-body"><div class="hc-name">Зарядка + валик <span class="sched">ежедневно</span></div>
+          <div class="hc-streak"><span class="flame"><svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><path d="M5.5 0S1 3.2 1 7.3 3 12.5 5.5 12.5 10 10.4 10 7.3c0-1.6-.8-2.8-1.5-3.6 0 1.1-.6 1.8-1.3 1.8-.8 0-1.2-.6-1.2-1.6C5.9 2.6 5.5 0 5.5 0z"/></svg></span><b>12 дней</b> подряд <span class="ml">· рубеж 14</span></div></div>
+        <div class="chk done" style="--c:var(--health)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      </div>
+      <div class="wkrow"><i class="fill" style="--c:var(--health)"></i><i class="fill" style="--c:var(--health)"></i><i class="fill" style="--c:var(--health)"></i><i class="fill" style="--c:var(--health)"></i><i class="fill today" style="--c:var(--health)"></i><i></i><i></i><span class="wklbl">5 / 7 за неделю</span></div>
+    </div>
+
+    <div class="hcard" style="--c:var(--zima)">
+      <div class="hc-row">
+        <div class="sring"><svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#2c2d31" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="var(--zima)" stroke-width="4" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="102"/></svg><div class="num" style="color:var(--zima)">8</div></div>
+        <div class="hc-body"><div class="hc-name">Без травы <span class="sched">цель-дата</span></div>
+          <div class="hc-streak"><span class="flame"><svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><path d="M5.5 0S1 3.2 1 7.3 3 12.5 5.5 12.5 10 10.4 10 7.3c0-1.6-.8-2.8-1.5-3.6 0 1.1-.6 1.8-1.3 1.8-.8 0-1.2-.6-1.2-1.6C5.9 2.6 5.5 0 5.5 0z"/></svg></span><b>8 дней</b> <span class="ml">· цель к 22.06</span></div></div>
+        <div class="chk done" style="--c:var(--zima)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      </div>
+      <div class="pbar"><i style="width:50%"></i></div>
+      <div class="pgoal">до ноля травы: <b>8 / 16 дней</b> · осталось 8</div>
+    </div>
+
+    <div class="hcard" style="--c:var(--plan)">
+      <div class="hc-row">
+        <div class="sring"><svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#2c2d31" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="var(--plan)" stroke-width="4" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="30"/></svg><div class="num" style="color:var(--plan)">3</div></div>
+        <div class="hc-body"><div class="hc-name">Спортзал <span class="sched">4×/нед</span></div>
+          <div class="hc-streak"><span class="flame"><svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><path d="M5.5 0S1 3.2 1 7.3 3 12.5 5.5 12.5 10 10.4 10 7.3c0-1.6-.8-2.8-1.5-3.6 0 1.1-.6 1.8-1.3 1.8-.8 0-1.2-.6-1.2-1.6C5.9 2.6 5.5 0 5.5 0z"/></svg></span><b>3 недели</b> <span class="ml">· норма 4/нед</span></div></div>
+        <div class="chk" style="--c:var(--plan)"></div>
+      </div>
+      <div class="wkrow"><i class="fill" style="--c:var(--plan)"></i><i></i><i class="fill" style="--c:var(--plan)"></i><i></i><i class="today" style="--c:var(--plan)"></i><i></i><i></i><span class="wklbl">2 / 4 на этой неделе</span></div>
+    </div>
+
+    <div class="hcard" style="--c:var(--ember)">
+      <div class="hc-row">
+        <div class="sring"><svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#2c2d31" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="var(--ember)" stroke-width="4" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="35"/></svg><div class="num" style="color:var(--ember)">5</div></div>
+        <div class="hc-body"><div class="hc-name">Вода <span class="sched">число · 2 л</span></div>
+          <div class="hc-streak"><span class="flame"><svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><path d="M5.5 0S1 3.2 1 7.3 3 12.5 5.5 12.5 10 10.4 10 7.3c0-1.6-.8-2.8-1.5-3.6 0 1.1-.6 1.8-1.3 1.8-.8 0-1.2-.6-1.2-1.6C5.9 2.6 5.5 0 5.5 0z"/></svg></span><b>5 дней</b> <span class="ml">· рубеж 7</span></div></div>
+        <div class="numbtn">1.4 л</div>
+      </div>
+      <div class="pbar"><i style="width:70%"></i></div>
+      <div class="pgoal">сегодня <b>1.4 / 2 л</b> · 70% нормы</div>
+    </div>
+
+    <div class="hcard" style="--c:var(--steel)">
+      <div class="hc-row">
+        <div class="sring"><svg width="46" height="46" viewBox="0 0 46 46"><circle cx="23" cy="23" r="19" fill="none" stroke="#2c2d31" stroke-width="4"/><circle cx="23" cy="23" r="19" fill="none" stroke="var(--steel)" stroke-width="4" stroke-linecap="round" stroke-dasharray="119.4" stroke-dashoffset="51"/></svg><div class="num" style="color:var(--steel)">4</div></div>
+        <div class="hc-body"><div class="hc-name">Медитация <span class="sched">ежедневно</span></div>
+          <div class="hc-streak"><span class="flame"><svg width="11" height="13" viewBox="0 0 11 13" fill="currentColor"><path d="M5.5 0S1 3.2 1 7.3 3 12.5 5.5 12.5 10 10.4 10 7.3c0-1.6-.8-2.8-1.5-3.6 0 1.1-.6 1.8-1.3 1.8-.8 0-1.2-.6-1.2-1.6C5.9 2.6 5.5 0 5.5 0z"/></svg></span><b>4 дня</b> <span class="ml">· сегодня ещё нет</span></div></div>
+        <div class="chk" style="--c:var(--steel)"></div>
+      </div>
+      <div class="wkrow"><i class="fill" style="--c:var(--steel)"></i><i class="fill" style="--c:var(--steel)"></i><i></i><i class="fill" style="--c:var(--steel)"></i><i class="today" style="--c:var(--steel)"></i><i></i><i></i><span class="wklbl">3 / 7 за неделю</span></div>
+    </div>
+
+    <div class="seclbl">Тепловая карта</div>
+    <div class="heat">
+      <div class="htop"><div class="htitle">Интенсивность · 5 привычек</div><div class="htabs"><i class="on">7 дней</i><i>30 дней</i></div></div>
+      <div class="hgrid">
+        <div class="hd"></div><div class="hd">Пн</div><div class="hd">Вт</div><div class="hd">Ср</div><div class="hd">Чт</div><div class="hd">Пт</div><div class="hd">Сб</div><div class="hd">Вс</div>
+        <div class="rn">Зарядка</div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv0"></div><div class="cell lv0"></div>
+        <div class="rn">Без травы</div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div>
+        <div class="rn">Спортзал</div><div class="cell lv4"></div><div class="cell lv0"></div><div class="cell lv4"></div><div class="cell lv0"></div><div class="cell lv0"></div><div class="cell lv0"></div><div class="cell lv0"></div>
+        <div class="rn">Вода</div><div class="cell lv2"></div><div class="cell lv4"></div><div class="cell lv1"></div><div class="cell lv3"></div><div class="cell lv4"></div><div class="cell lv2"></div><div class="cell lv2"></div>
+        <div class="rn">Медитация</div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv0"></div><div class="cell lv4"></div><div class="cell lv2"></div><div class="cell lv0"></div><div class="cell lv0"></div>
+      </div>
+      <div class="hleg">меньше <span class="lv0"></span><span class="lv1"></span><span class="lv2"></span><span class="lv3"></span><span class="lv4"></span> больше</div>
+    </div>
+
+    <div class="seclbl">Метрики недели <span class="secadd">+</span></div>
+    <div class="mgrid">
+      <div class="mcard"><div class="m-lbl">Вес</div><div class="m-val">78.2<small> кг</small><span class="m-delta good">▼0.4</span></div><svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="0,8 20,7 40,11 60,9 80,14 100,15 120,18" fill="none" stroke="var(--zima)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="mcard"><div class="m-lbl">Сон</div><div class="m-val">6.8<small> ч</small><span class="m-delta up">▲0.5</span></div><svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline points="0,16 20,18 40,13 60,15 80,10 100,12 120,7" fill="none" stroke="var(--health)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="mcard wide"><div class="m-lbl">Настроение</div><div class="m-val">7<small> / 10</small><span class="m-delta up">▲1</span></div><svg class="spark" width="100%" height="26" viewBox="0 0 280 26" preserveAspectRatio="none"><polyline points="0,15 40,17 80,12 120,14 160,9 200,11 240,7 280,8" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    </div>
+
+    <div class="seclbl">Итог недели</div>
+    <div class="retro"><div class="rl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg></div><div class="rb"><div class="rt">Ретро недели</div><div class="rs"><b>12 / 18 привычек</b> · стрик-рекорд: Зарядка 12</div></div><div class="chev">›</div></div>
+    <div class="stub">полный обзор недели — скоро</div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Задачи</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/></svg>Календарь</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h14M4 18h7"/></svg>Гант</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Цели</div>
+    <div class="tab active"><svg viewBox="0 0 24 24"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg>Привычки</div>
+  </div>
+</div>
+
+<div class="banner">
+  <h2>v2 «было» — перегруз</h2>
+  <div class="row">На каждой карточке <b>3 индикатора прогресса сразу</b>: кольцо + ряд точек + (прогресс-бар) — дублируют друг друга.</div>
+  <div class="row">Чип расписания <b>на всех</b>, включая «ежедневно» (по умолчанию — лишнее).</div>
+  <div class="row">Строка стрика длинная: флейм + «12 дней подряд» + <b>«· рубеж 14»</b> — шумит.</div>
+  <div class="row">Ряд недельных точек <b>дублирует heatmap</b> внизу.</div>
+  <div class="row">Итог: высокая карточка, пёстро, глаз не цепляет главное действие.</div>
+</div>
+
+</body></html>

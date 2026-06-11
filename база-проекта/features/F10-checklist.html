@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F10 · Чеклист</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+    --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+    --hairline:rgba(255,255,255,0.07);
+    /* alias-токены под исходный код компонента */
+    --surface-2:#242529; --accent:#EE8A3C;
+    /* проект ZIMA = зелёный #3FB68B (НИКОГДА не ember) */
+    --proj-zima:#3FB68B; --proj-zima-tint:rgba(63,182,139,0.13);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:#2a2a2e;
+    font-family:Geist, sans-serif;
+    color:var(--bone);
+    display:flex; flex-direction:column; align-items:center;
+    gap:14px; padding:40px 16px 80px;
+    min-height:100vh;
+  }
+  .mono{font-family:"Geist Mono", monospace;}
+
+  /* плашка-заголовок над фреймом */
+  .plate{
+    width:390px; display:flex; align-items:baseline; gap:10px;
+    padding:0 6px;
+  }
+  .plate .num{font-family:"Geist Mono", monospace; font-size:13px; color:var(--ember); letter-spacing:.5px;}
+  .plate .name{font-family:"Geist Mono", monospace; font-size:13px; color:var(--steel); letter-spacing:.5px;}
+
+  /* телефон-фрейм */
+  .phone{
+    position:relative;
+    width:390px; min-height:844px;
+    background:var(--onyx);
+    border-radius:28px;
+    overflow:hidden;
+    border:1px solid var(--hairline);
+    display:flex; flex-direction:column;
+  }
+  .phone.short{min-height:auto;}
+
+  /* статусбар */
+  .statusbar{
+    height:44px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 22px; flex-shrink:0;
+  }
+  .statusbar .time{font-family:"Geist Mono", monospace; font-size:14px; color:var(--bone); font-weight:500;}
+  .statusbar .dots{display:flex; gap:5px;}
+  .statusbar .dots i{width:6px; height:6px; border-radius:50%; background:var(--steel);}
+  .statusbar .dots i.on{background:var(--bone);}
+
+  /* top-bar детали задачи */
+  .topbar{
+    display:flex; align-items:center; gap:14px;
+    padding:6px 18px 12px; flex-shrink:0;
+  }
+  .topbar .ic{width:24px; height:24px; color:var(--steel); cursor:pointer;}
+  .topbar .ic svg{width:100%; height:100%;}
+  .topbar .spacer{flex:1;}
+
+  .content{padding:0 18px 24px; flex:1; overflow-y:auto;}
+
+  /* карточка задачи-родителя · проект ZIMA → тинт 0.13, полоса = приоритет (high=danger) */
+  .task-card{
+    background:var(--proj-zima-tint);
+    border-radius:12px;
+    border-left:3px solid var(--danger);
+    padding:16px 16px 14px;
+    margin-bottom:20px;
+  }
+  .task-card .t-row{display:flex; align-items:flex-start; gap:12px;}
+  .task-card .t-box{
+    width:22px; height:22px; border-radius:50%;
+    border:1.5px solid var(--steel);
+    flex-shrink:0; margin-top:1px;
+  }
+  .task-card .t-title{font-size:17px; font-weight:600; line-height:1.3; color:var(--bone);}
+  .task-card .t-meta{
+    display:flex; gap:14px; margin-top:12px; padding-left:34px;
+    font-family:"Geist Mono", monospace; font-size:12px; color:var(--steel);
+  }
+  .task-card .t-meta span{display:inline-flex; align-items:center; gap:5px;}
+  .task-card .t-meta svg{width:13px; height:13px;}
+
+  /* ── ЧЕКЛИСТ (компонент Checklist.tsx) ── */
+  .cl{}
+  .cl-head{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .cl-ring{flex-shrink:0;}
+  .cl-title{font-size:16px; font-weight:600; color:var(--bone);}
+  .cl-count{
+    margin-left:auto;
+    font-family:"Geist Mono", monospace; font-size:13px;
+    color:var(--steel);
+    background:var(--slate); border:1px solid var(--hairline);
+    padding:3px 10px; border-radius:999px;
+  }
+
+  .cl-item{
+    display:flex; align-items:center; gap:12px;
+    /* подзадачи наследуют проект родителя (ZIMA) → тот же тинт 0.13 */
+    background:var(--proj-zima-tint);
+    border-radius:12px;
+    padding:13px 14px;
+    margin-bottom:8px;
+  }
+  .cl-box{
+    width:22px; height:22px; border-radius:50%;
+    border:1.5px solid var(--steel);
+    background:transparent;
+    flex-shrink:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    padding:0;
+  }
+  .cl-box.on{background:var(--ember); border-color:var(--ember);}
+  /* галка на ember-заливке = тёмная on-accent (#1a1209), не #fff */
+  .cl-box svg{width:13px; height:13px; stroke:#1a1209;}
+  .cl-txt{flex:1; font-size:15px; color:var(--bone); line-height:1.35;}
+  .cl-item.dn .cl-txt{color:var(--steel); text-decoration:line-through;}
+  .cl-del{
+    width:20px; height:20px; padding:0;
+    background:transparent; border:none; cursor:pointer;
+    color:var(--steel); opacity:.55; flex-shrink:0;
+  }
+  .cl-del svg{width:100%; height:100%;}
+
+  /* строка добавления */
+  .cl-add{
+    display:flex; align-items:center; gap:12px;
+    background:transparent;
+    border:1px dashed var(--hairline);
+    border-radius:12px;
+    padding:13px 14px;
+    margin-top:4px;
+  }
+  .cl-add-ico{width:20px; height:20px; color:var(--ember); flex-shrink:0; display:flex;}
+  .cl-add-ico svg{width:100%; height:100%;}
+  .cl-add-input{
+    flex:1; background:transparent; border:none; outline:none;
+    font-family:Geist, sans-serif; font-size:15px;
+    color:var(--bone);
+  }
+  .cl-add-input::placeholder{color:var(--steel);}
+  .cl-add .caret{
+    width:1px; height:18px; background:var(--ember);
+    margin-left:-6px; animation:blink 1.1s step-end infinite;
+  }
+  @keyframes blink{50%{opacity:0;}}
+
+  /* bottom tab-bar */
+  .tabbar{
+    display:flex; background:var(--smoke);
+    border-top:1px solid var(--hairline);
+    flex-shrink:0;
+  }
+  .tabbar .tab{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:9px 0 22px; color:var(--steel);
+    font-size:10px; font-weight:500;
+  }
+  .tabbar .tab svg{width:23px; height:23px;}
+  .tabbar .tab.active{color:var(--ember);}
+
+  /* подписи под фреймами */
+  .cap{
+    width:390px; text-align:center;
+    font-family:"Geist Mono", monospace; font-size:12px; color:var(--steel);
+    margin-top:2px; letter-spacing:.3px;
+  }
+  .section-gap{height:26px;}
+
+  /* alt-фреймы (состояния) */
+  .alt-wrap{display:flex; flex-wrap:wrap; gap:26px; justify-content:center; max-width:900px;}
+  .alt-col{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .phone.alt{width:330px; min-height:auto; padding-bottom:18px;}
+
+  /* empty */
+  .cl-empty{
+    text-align:center; padding:30px 10px 18px; color:var(--steel);
+    font-size:14px; line-height:1.5;
+  }
+  .cl-empty .ring-empty{margin:0 auto 14px; display:block;}
+
+  /* primary ember-кнопка (empty / error — ровно одна) */
+  .btn-primary{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--ember); color:#1a1209;
+    border:none; border-radius:12px;
+    font-family:Geist, sans-serif; font-size:15px; font-weight:600;
+    padding:12px 22px; cursor:pointer; margin-top:18px;
+  }
+  .btn-primary svg{width:17px; height:17px;}
+
+  /* error */
+  .cl-error{
+    text-align:center; padding:30px 10px 18px; color:var(--steel);
+    font-size:14px; line-height:1.5;
+  }
+  .cl-error .err-ico{width:30px; height:30px; color:var(--danger); margin:0 auto 12px; display:block;}
+
+  /* skeleton */
+  .sk{
+    background:linear-gradient(90deg, var(--smoke) 25%, var(--slate) 50%, var(--smoke) 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.3s ease-in-out infinite;
+    border-radius:12px;
+  }
+  @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+  .sk-row{height:48px; margin-bottom:8px;}
+  .sk-head{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .sk-ring{width:34px; height:34px; border-radius:50%;}
+  .sk-titlebar{width:90px; height:16px; border-radius:6px;}
+  .fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+  .ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<!-- ─────────────  ОСНОВНОЙ ФРЕЙМ  ───────────── -->
+<div class="plate">
+  <span class="num">F10</span>
+  <span class="name">// Чеклист — подзадачи задачи (прогресс N/M)</span>
+</div>
+
+<div class="phone">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+
+  <div class="topbar">
+    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></span>
+    <span class="spacer" style="flex:1"></span>
+    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></span>
+  </div>
+
+  <div class="content">
+    <!-- задача-родитель -->
+    <div class="task-card">
+      <div class="t-row">
+        <div class="t-box"></div>
+        <div class="t-title">Подготовить квартальный отчёт по ZIMA</div>
+      </div>
+      <div class="t-meta">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>5 июня</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>Высокий</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7"/></svg>ZIMA</span>
+      </div>
+    </div>
+
+    <!-- ЧЕКЛИСТ -->
+    <div class="cl">
+      <div class="cl-head">
+        <!-- прогресс-кольцо: 3/5 = 60% → offset = 94.25*(1-0.6)=37.7 -->
+        <svg class="cl-ring" viewBox="0 0 36 36" width="34" height="34" aria-hidden="true">
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--surface-2)" stroke-width="4"/>
+          <circle cx="18" cy="18" r="15" fill="none" stroke="var(--accent)" stroke-width="4"
+            stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="37.7"
+            transform="rotate(-90 18 18)"/>
+        </svg>
+        <span class="cl-title">Чеклист <span class="ecode">A1</span></span>
+        <span class="cl-count mono">3/5</span>
+      </div>
+
+      <!-- done -->
+      <div class="cl-item dn" style="position:relative;">
+        <button class="cl-box on" role="checkbox" aria-checked="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1a1209" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+        </button>
+        <span class="cl-txt">Свести выручку по мастерам за квартал <span class="ecode">A2</span></span>
+        <button class="cl-del" aria-label="Удалить пункт"><span class="ecode pin">A3</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+      </div>
+
+      <div class="cl-item dn">
+        <button class="cl-box on" role="checkbox" aria-checked="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1a1209" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+        </button>
+        <span class="cl-txt">Сверить расходы с Ledger</span>
+        <button class="cl-del" aria-label="Удалить пункт"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+      </div>
+
+      <div class="cl-item dn">
+        <button class="cl-box on" role="checkbox" aria-checked="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1a1209" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+        </button>
+        <span class="cl-txt">Выгрузить записи из Altegio</span>
+        <button class="cl-del" aria-label="Удалить пункт"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+      </div>
+
+      <!-- todo -->
+      <div class="cl-item">
+        <button class="cl-box" role="checkbox" aria-checked="false"></button>
+        <span class="cl-txt">Посчитать налог за квартал</span>
+        <button class="cl-del" aria-label="Удалить пункт"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+      </div>
+
+      <div class="cl-item">
+        <button class="cl-box" role="checkbox" aria-checked="false"></button>
+        <span class="cl-txt">Собрать слайды для презентации</span>
+        <button class="cl-del" aria-label="Удалить пункт"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+      </div>
+
+      <!-- добавить (активный инпут с курсором) -->
+      <div class="cl-add" style="position:relative;">
+        <span class="ecode pin">A4</span>
+        <span class="cl-add-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        <input class="cl-add-input" placeholder="Добавить пункт" value="">
+        <span class="caret"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- bottom tabs -->
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h4"/></svg>Сегодня</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>Календарь</div>
+    <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Обзор</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>Цели</div>
+    <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>Трекинг</div>
+  </div>
+</div>
+<div class="cap"><span class="fcode">F10·A</span>// основной вид · 3 из 5 выполнено · кольцо 60%</div>
+
+<div class="section-gap"></div>
+
+<!-- ─────────────  МАТРИЦА СОСТОЯНИЙ  ───────────── -->
+<div class="alt-wrap">
+
+  <!-- EMPTY -->
+  <div class="alt-col">
+    <div class="phone alt short">
+      <div class="content" style="padding:22px 18px;">
+        <div class="cl">
+          <div class="cl-head">
+            <svg class="cl-ring" viewBox="0 0 36 36" width="34" height="34" aria-hidden="true">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--surface-2)" stroke-width="4"/>
+            </svg>
+            <span class="cl-title">Чеклист</span>
+          </div>
+          <div class="cl-empty">
+            Пунктов пока нет.<br>Разбей задачу на шаги — прогресс будет двигаться сам.
+            <div style="text-align:center;">
+              <button class="btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1a1209" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                Добавить пункт <span class="ecode">B1</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap" style="width:330px;"><span class="fcode">F10·B</span>// empty · нет пунктов, кольцо пустое (0%)</div>
+  </div>
+
+  <!-- LOADING SKELETON -->
+  <div class="alt-col">
+    <div class="phone alt short">
+      <div class="content" style="padding:22px 18px;">
+        <div class="cl">
+          <div class="sk-head">
+            <div class="sk sk-ring"></div>
+            <div class="sk sk-titlebar"></div>
+          </div>
+          <div class="sk sk-row"></div>
+          <div class="sk sk-row"></div>
+          <div class="sk sk-row" style="width:80%;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cap" style="width:330px;"><span class="fcode">F10·C</span>// loading · скелетоны (без спиннера, DESIGN §7)</div>
+  </div>
+
+  <!-- ALL DONE -->
+  <div class="alt-col">
+    <div class="phone alt short">
+      <div class="content" style="padding:22px 18px;">
+        <div class="cl">
+          <div class="cl-head">
+            <!-- 100% → offset 0 -->
+            <svg class="cl-ring" viewBox="0 0 36 36" width="34" height="34" aria-hidden="true">
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--surface-2)" stroke-width="4"/>
+              <circle cx="18" cy="18" r="15" fill="none" stroke="var(--accent)" stroke-width="4"
+                stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="0"
+                transform="rotate(-90 18 18)"/>
+            </svg>
+            <span class="cl-title">Чеклист <span class="ecode">D1</span></span>
+            <span class="cl-count mono">2/2</span>
+          </div>
+          <div class="cl-item dn" style="position:relative;">
+            <button class="cl-box on" role="checkbox" aria-checked="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#1a1209" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+            </button>
+            <span class="cl-txt">Забронировать переговорку <span class="ecode">D2</span></span>
+            <button class="cl-del"><span class="ecode pin">D3</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+          </div>
+          <div class="cl-item dn">
+            <button class="cl-box on" role="checkbox" aria-checked="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#1a1209" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg>
+            </button>
+            <span class="cl-txt">Разослать приглашения команде</span>
+            <button class="cl-del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+          </div>
+          <div class="cl-add" style="position:relative;">
+            <span class="ecode pin">D4</span>
+            <span class="cl-add-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span>
+            <input class="cl-add-input" placeholder="Добавить пункт" value="">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap" style="width:330px;"><span class="fcode">F10·D</span>// all done · 2/2, кольцо заполнено (100%)</div>
+  </div>
+
+</div>
+
+</body>
+</html>

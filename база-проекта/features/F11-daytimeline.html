@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F11 · DayTimeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  /* алиасы из кода (DayTimeline.tsx использует var(--accent)/--surface-2) */
+  --accent:var(--ember); --surface-2:var(--slate);
+  /* палитра проектов */
+  --proj-zima:#3FB68B; --proj-health:#5B8DEF; --proj-work:#9B8CCB;
+  --hour-h:56px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#2a2a2e;font-family:Geist, sans-serif;color:var(--bone);
+  -webkit-font-smoothing:antialiased;}
+.mono{font-family:"Geist Mono",monospace;}
+body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:36px 16px 60px;}
+
+/* плашка-заголовок над фреймом */
+.cap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);letter-spacing:.04em;
+  text-align:center;margin-bottom:2px;}
+.cap b{color:var(--bone);font-weight:500;}
+
+/* телефон-фрейм */
+.phone{width:390px;min-height:844px;background:var(--onyx);border-radius:28px;overflow:hidden;
+  border:1px solid var(--hairline);position:relative;display:flex;flex-direction:column;}
+.phone.sm{min-height:auto;}
+
+/* статусбар */
+.statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;flex:none;}
+.statusbar .time{font-family:"Geist Mono",monospace;font-size:14px;font-weight:500;}
+.statusbar .dots{display:flex;gap:5px;align-items:center;}
+.statusbar .dots i{width:6px;height:6px;border-radius:50%;background:var(--steel);display:block;}
+.statusbar .dots i:last-child{background:var(--bone);}
+
+/* шапка экрана: дата + сегменты */
+.scr-head{padding:6px 18px 12px;flex:none;}
+.scr-title{display:flex;align-items:baseline;justify-content:space-between;}
+.scr-title h1{font-size:24px;font-weight:600;letter-spacing:-.01em;}
+.scr-title .dow{font-size:13px;color:var(--steel);margin-left:8px;font-weight:400;}
+.scr-title .todaybtn{font-size:13px;color:var(--ember);font-weight:500;}
+.seg{display:flex;gap:6px;margin-top:14px;}
+.chip{font-size:13px;font-weight:500;padding:7px 14px;border-radius:999px;background:var(--slate);
+  border:1px solid var(--hairline);color:var(--steel);}
+.chip.active{background:var(--ember-soft);border-color:transparent;color:var(--ember);}
+
+/* ── таймлайн (порт cal-scroll/cal-grid/cal-hour из DayTimeline.tsx) ── */
+.cal-scroll{flex:1;overflow-y:auto;position:relative;}
+.cal-grid{position:relative;}
+.cal-hour{position:relative;border-top:1px solid var(--hairline);padding-left:56px;}
+.cal-hour:first-child{border-top:none;}
+.cal-hourlabel{position:absolute;left:14px;top:-8px;font-family:"Geist Mono",monospace;
+  font-size:11px;color:var(--steel);background:var(--onyx);padding:0 2px;}
+.cal-hour:first-child .cal-hourlabel{top:6px;}
+
+/* линия «сейчас» */
+.cal-now{position:absolute;left:56px;right:14px;height:2px;background:var(--ember);z-index:5;
+  pointer-events:none;}
+.cal-now::before{content:"";position:absolute;left:-5px;top:-3px;width:8px;height:8px;
+  border-radius:50%;background:var(--ember);}
+.cal-now .nlabel{position:absolute;left:-50px;top:-8px;font-family:"Geist Mono",monospace;
+  font-size:11px;color:var(--ember);}
+
+/* блок задачи: фон = тинт ПРОЕКТА 0.13, полоса слева = приоритет */
+.cal-block{position:absolute;left:56px;right:14px;background:var(--smoke);border-radius:12px;
+  border-left:3px solid transparent;padding:7px 11px;overflow:hidden;cursor:default;
+  display:flex;align-items:flex-start;gap:9px;}
+.cal-block .bbody{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
+.cal-block.done{opacity:.5;}
+.cal-block.done .bt{text-decoration:line-through;color:var(--steel);}
+.cal-block .bt{font-size:13.5px;font-weight:500;line-height:1.25;color:var(--bone);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-block .bm{display:flex;align-items:center;gap:6px;font-family:"Geist Mono",monospace;
+  font-size:11px;color:var(--steel);}
+.cal-block .bm svg{width:12px;height:12px;display:block;flex:none;}
+
+/* единый чекбокс задачи: круг 22px, рамка steel; done = заливка ember + белая галка */
+.cb{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--steel);flex:none;
+  display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.cb svg{width:13px;height:13px;stroke:var(--bone);stroke-width:2.4;display:none;}
+.cb.on{background:var(--ember);border-color:var(--ember);}
+.cb.on svg{display:block;}
+
+/* bottom tab-bar */
+.tabbar{flex:none;background:var(--smoke);border-top:1px solid var(--hairline);
+  display:flex;justify-content:space-around;align-items:center;padding:9px 4px 22px;}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+.tab svg{width:23px;height:23px;}
+.tab span{font-size:10.5px;font-weight:500;color:var(--steel);}
+.tab.active span{color:var(--ember);}
+
+/* FAB */
+.fab{position:absolute;right:18px;bottom:96px;width:54px;height:54px;border-radius:16px;
+  background:var(--ember);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 18px rgba(238,138,60,.28);z-index:8;}
+.fab svg{width:26px;height:26px;stroke:#1a1209;}
+
+/* alt-фреймы */
+.alt-grid{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;align-items:flex-start;}
+.alt-col{display:flex;flex-direction:column;align-items:center;gap:10px;}
+
+/* empty-state */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;padding:0 40px;text-align:center;}
+.empty .glyph{width:46px;height:46px;stroke:var(--steel);opacity:.55;}
+.empty h3{font-size:15px;font-weight:600;color:var(--bone);}
+.empty p{font-size:13px;color:var(--steel);line-height:1.45;}
+
+/* primary-кнопка (empty/error) */
+.btn-primary{margin-top:4px;background:var(--ember);color:#1a1209;font-family:Geist,sans-serif;
+  font-size:13.5px;font-weight:600;padding:10px 20px;border-radius:12px;border:none;}
+
+/* loading skeleton */
+.sk-grid{flex:1;padding:14px 18px 18px 70px;position:relative;}
+.sk-hourcol{position:absolute;left:14px;top:18px;display:flex;flex-direction:column;gap:46px;}
+.sk-hourcol .sk{width:34px;height:11px;border-radius:4px;}
+.sk{background:linear-gradient(90deg,var(--slate) 0%,#2c2d31 50%,var(--slate) 100%);
+  background-size:200% 100%;animation:shimmer 1.4s linear infinite;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sk-block{height:46px;border-radius:12px;margin-bottom:14px;border-left:3px solid var(--hairline);}
+.sk-block.tall{height:80px;}
+
+/* ── грипы ресайза: скрыты по умолчанию, видны у .active (зажат long-press) и у черновика ── */
+.cal-resize{position:absolute;left:0;right:0;height:13px;z-index:3;display:flex;
+  align-items:center;justify-content:center;}
+.cal-resize.top{top:0;}.cal-resize.bottom{bottom:0;}
+.cal-grip{width:26px;height:3px;border-radius:999px;background:var(--ember);opacity:0;}
+.cal-block.active .cal-grip,.cal-draft .cal-grip{opacity:.7;}
+.cal-block.active{z-index:6;box-shadow:0 4px 16px rgba(0,0,0,.45);}
+
+/* ── черновик инлайн-создания: пунктир ember + фон accent-soft (ОТЛИЧЕН от блока) ── */
+.cal-draft{position:absolute;left:56px;right:14px;border-radius:12px;padding:7px 11px;z-index:5;
+  border:1.5px dashed var(--ember);background:var(--ember-soft);display:flex;flex-direction:column;
+  gap:3px;overflow:hidden;}
+.cal-draft.saving{opacity:.6;}
+.cal-draft.error{border-style:solid;border-color:var(--danger);background:rgba(255,92,92,.10);}
+.cal-draft-input{background:transparent;border:0;outline:0;font-family:Geist,sans-serif;
+  font-size:14px;font-weight:500;color:var(--bone);caret-color:var(--ember);min-height:22px;width:100%;}
+.cal-draft-input.ph{color:var(--steel);}
+.cal-draft-time{font-family:"Geist Mono",monospace;font-size:11px;color:var(--ember);}
+.cal-draft-err{display:flex;align-items:center;gap:8px;font-family:"Geist Mono",monospace;
+  font-size:11px;color:var(--danger);}
+.cal-draft-err button{background:var(--danger);color:#1a0808;border:0;border-radius:6px;
+  padding:3px 9px;font-weight:600;font-size:11px;}
+
+/* ── accessory-бар «Готово» над клавиатурой (таб-бар/FAB при черновике СКРЫТЫ) ── */
+.kbd{position:absolute;left:0;right:0;bottom:286px;height:44px;background:var(--smoke);
+  border-top:1px solid var(--hairline);}
+.cal-accessory{position:absolute;left:0;right:0;bottom:330px;z-index:50;display:flex;
+  justify-content:flex-end;padding:8px 14px;background:linear-gradient(transparent,var(--onyx) 45%);}
+.cal-accessory button{min-height:44px;background:var(--ember);color:#1a1209;border:0;
+  border-radius:12px;padding:0 22px;font-size:15px;font-weight:600;}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<!-- ============ ОСНОВНОЙ ВИД ============ -->
+<div class="cap"><span class="fcode">F11·A</span> · ↔ V3 T1·A (ядро) <b>F11 · Таймлайн дня</b> — часовая шкала + блоки задач по времени · наложения = колонки (Apple), грипы только у зажатого</div>
+
+<div class="phone">
+  <!-- статусбар -->
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i></i><i></i><i></i></span>
+  </div>
+
+  <!-- шапка экрана -->
+  <div class="scr-head">
+    <div class="scr-title">
+      <div><h1>Сегодня<span class="dow">ср, 4 июня</span></h1></div>
+    </div>
+    <div class="seg">
+      <span class="chip">Список</span>
+      <span class="chip active">Таймлайн</span>
+    </div>
+  </div>
+
+  <!-- таймлайн -->
+  <div class="cal-scroll">
+    <!-- сетка часов 05:00..23:00 → 19 строк × 56px -->
+    <div class="cal-grid" style="height:1064px;">
+      <!-- часы -->
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">05:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">06:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">07:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">08:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">09:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">10:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">11:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">12:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">13:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">14:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">15:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">16:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">17:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">18:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">19:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">20:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">21:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">22:00</span></div>
+      <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">23:00</span></div>
+
+      <!-- offsetMin = 5*60=300. top = ((start-300)/60)*56 +1 -->
+
+      <!-- 06:30 done — Здоровье(#5B8DEF). low → полоса ember. start 390: ((390-300)/60)*56+1=85; высота под чекбокс → 34 -->
+      <div class="cal-block done" style="top:85px;height:34px;border-left-color:var(--ember);background:rgba(91,141,239,0.13);">
+        <div class="cb on"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+        <div class="bbody">
+          <div class="bt">Утренняя пробежка 5 км<span class="ecode">A1</span></div>
+          <div class="bm"><span>06:30–07:00</span></div>
+        </div>
+      </div>
+
+      <!-- 09:00–10:30 Работа(#9B8CCB). high → полоса danger. start 540: ((540-300)/60)*56+1=225; 90мин → 82 -->
+      <div class="cal-block" style="top:225px;height:82px;border-left-color:var(--danger);background:rgba(155,140,203,0.13);">
+        <div class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+        <div class="bbody">
+          <div class="bt">Созвон с командой Ledger</div>
+          <div class="bm">
+            <span>09:00–10:30</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.5 20a2 2 0 0 0 3 0"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 11:00–11:45 Здоровье(#5B8DEF). medium → полоса warning. start 660: ((660-300)/60)*56+1=337; 45мин → 40 -->
+      <div class="cal-block" style="top:337px;height:40px;border-left-color:var(--warning);background:rgba(91,141,239,0.13);">
+        <div class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+        <div class="bbody">
+          <div class="bt">Анализы — забор крови</div>
+          <div class="bm"><span>11:00–11:45</span></div>
+        </div>
+      </div>
+
+      <!-- ── НАЛОЖЕНИЕ = КОЛОНКИ (Apple): два пересекающихся по времени блока делят ширину пополам ──
+           кластер 13:00–14:30. колонка слева (left:56px) + колонка справа (left:50%); ширина ≈ половина. -->
+      <!-- 13:00–14:30 Работа(#9B8CCB) medium. колонка 0. start 780: ((780-300)/60)*56+1=449; 90мин → 82 -->
+      <div class="cal-block" style="top:449px;height:82px;left:56px;right:auto;width:calc((100% - 70px)/2 - 2px);border-left-color:var(--warning);background:rgba(155,140,203,0.13);">
+        <div class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+        <div class="bbody">
+          <div class="bt">Сверка Ledger<span class="ecode">A2</span></div>
+          <div class="bm"><span>13:00–14:30</span></div>
+        </div>
+      </div>
+      <!-- 13:30–14:00 ZIMA(#3FB68B) high. колонка 1 (правая). start 810: ((810-300)/60)*56+1=477; 30мин → 32 -->
+      <div class="cal-block" style="top:477px;height:32px;left:calc(56px + (100% - 70px)/2 + 4px);right:14px;width:auto;border-left-color:var(--danger);background:rgba(63,182,139,0.13);">
+        <div class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+        <div class="bbody">
+          <div class="bt">Звонок ZIMA<span class="ecode">A3</span></div>
+          <div class="bm"><span>13:30–14:00</span></div>
+        </div>
+      </div>
+
+      <!-- 16:00–17:00 ZIMA(#3FB68B). low → полоса ember. start 960: ((960-300)/60)*56+1=617; 60мин → 54 -->
+      <div class="cal-block" style="top:617px;height:54px;border-left-color:var(--ember);background:rgba(63,182,139,0.13);">
+        <div class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+        <div class="bbody">
+          <div class="bt">ZIMA — звонок с покупателем студии</div>
+          <div class="bm">
+            <span>16:00–17:00</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.5 20a2 2 0 0 0 3 0"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 19:00–20:00 Здоровье(#5B8DEF). medium → полоса warning. start 1140: ((1140-300)/60)*56+1=785; 60мин → 54 -->
+      <div class="cal-block" style="top:785px;height:54px;border-left-color:var(--warning);background:rgba(91,141,239,0.13);">
+        <div class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+        <div class="bbody">
+          <div class="bt">Ужин и валик-протокол</div>
+          <div class="bm">
+            <span>19:00–20:00</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a8 8 0 0 1 14-3M20 15a8 8 0 0 1-14 3"/><path d="M18 3v3.5h-3.5M6 21v-3.5h3.5"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- линия «сейчас» — 09:41. nowMin=581: ((581-300)/60)*56 = 262.27 -->
+      <div class="cal-now" style="top:262px;"><span class="nlabel">9:41<span class="ecode">A4</span></span></div>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <div class="fab">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#1a1209" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+  </div>
+
+  <!-- tab-bar (IA: Сегодня · Календарь · Обзор · Цели · Трекинг) -->
+  <div class="tabbar">
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h4"/></svg>
+      <span>Сегодня</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+      <span>Календарь</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Обзор</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+      <span>Цели</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+      <span>Трекинг</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ИНЛАЙН-СОЗДАНИЕ В ЯЧЕЙКЕ (заменило bottom-sheet по тапу часа) ============ -->
+<div class="cap"><span class="fcode">F11·B</span> · ↔ V3 T1·A (ядро) <b>Инлайн-создание задачи в ячейке</b> — тап пустого часа = блок 1ч с инпутом · удержание = блок едет за пальцем · длину тянешь за края · таб-бар и FAB при черновике СКРЫТЫ</div>
+<div class="alt-grid">
+
+  <!-- DRAFT · editing: инпут автофокус, грипы у краёв, «Готово» над клавиатурой -->
+  <div class="alt-col">
+    <div class="cap mono">черновик: editing (печать)</div>
+    <div class="phone sm">
+      <div class="statusbar"><span class="time">9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="scr-head">
+        <div class="scr-title"><div><h1>Сегодня<span class="dow">ср, 4 июня</span></h1></div></div>
+        <div class="seg"><span class="chip">Список</span><span class="chip active">Таймлайн</span></div>
+      </div>
+      <div class="cal-scroll" style="min-height:560px;">
+        <div class="cal-grid" style="height:560px;">
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">09:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">10:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">11:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">12:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">13:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">14:00</span></div>
+          <!-- 10:00–11:00 черновик (1ч по тапу часа). top=56+1=57 -->
+          <div class="cal-draft" style="top:57px;height:54px;position:relative;">
+            <span class="ecode pin">B1</span>
+            <div class="cal-resize top" style="position:absolute;"><span class="cal-grip"></span><span class="ecode pin" style="top:-4px;right:6px;">B2</span></div>
+            <div class="cal-draft-input">Забрать анализы<span style="color:var(--ember)">|</span></div>
+            <div class="cal-draft-time">10:00–11:00</div>
+            <div class="cal-resize bottom"><span class="cal-grip"></span></div>
+          </div>
+        </div>
+      </div>
+      <!-- клавиатура-плейсхолдер + «Готово» над ней; таб-бар/FAB скрыты -->
+      <div class="cal-accessory"><button>Готово<span class="ecode">B3</span></button></div>
+      <div class="kbd"></div>
+    </div>
+  </div>
+
+  <!-- DRAFT · saving: приглушён, «сохранение…» -->
+  <div class="alt-col">
+    <div class="cap mono">черновик: saving (POST летит)</div>
+    <div class="phone sm">
+      <div class="statusbar"><span class="time">9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="scr-head">
+        <div class="scr-title"><div><h1>Сегодня<span class="dow">ср, 4 июня</span></h1></div></div>
+        <div class="seg"><span class="chip">Список</span><span class="chip active">Таймлайн</span></div>
+      </div>
+      <div class="cal-scroll" style="min-height:560px;">
+        <div class="cal-grid" style="height:560px;">
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">09:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">10:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">11:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">12:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">13:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">14:00</span></div>
+          <div class="cal-draft saving" style="top:57px;height:54px;">
+            <div class="cal-draft-input">Забрать анализы</div>
+            <div class="cal-draft-time">10:00–11:00 · сохранение…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAFT · error: «Не сохранено · Повторить» -->
+  <div class="alt-col">
+    <div class="cap mono">черновик: error (таймаут/сбой)</div>
+    <div class="phone sm">
+      <div class="statusbar"><span class="time">9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="scr-head">
+        <div class="scr-title"><div><h1>Сегодня<span class="dow">ср, 4 июня</span></h1></div></div>
+        <div class="seg"><span class="chip">Список</span><span class="chip active">Таймлайн</span></div>
+      </div>
+      <div class="cal-scroll" style="min-height:560px;">
+        <div class="cal-grid" style="height:560px;">
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">09:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">10:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">11:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">12:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">13:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">14:00</span></div>
+          <div class="cal-draft error" style="top:57px;height:54px;">
+            <div class="cal-draft-input">Забрать анализы</div>
+            <div class="cal-draft-err">Не сохранено<button>Повторить</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ ГРИПЫ РЕСАЙЗА: скрыты / видны (long-press) ============ -->
+<div class="cap"><span class="fcode">F11·C</span> · ↔ V3 T1·A (ядро) <b>Грипы ресайза</b> — по умолчанию скрыты (короткий тап = открыть деталь) · видны только когда карточка зажата (long-press → active)</div>
+<div class="alt-grid">
+
+  <!-- обычный блок: грипов НЕ видно -->
+  <div class="alt-col">
+    <div class="cap mono">обычный блок (грипы скрыты)</div>
+    <div class="phone sm">
+      <div class="statusbar"><span class="time">9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="cal-scroll" style="min-height:300px;">
+        <div class="cal-grid" style="height:300px;">
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">09:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">10:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">11:00</span></div>
+          <div class="cal-block" style="top:1px;height:82px;border-left-color:var(--danger);background:rgba(155,140,203,0.13);">
+            <div class="cal-resize top"><span class="cal-grip"></span></div>
+            <div class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+            <div class="bbody"><div class="bt">Созвон с командой Ledger</div><div class="bm"><span>09:00–10:30</span></div></div>
+            <div class="cal-resize bottom"><span class="cal-grip"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- активный (зажатый) блок: грипы видны + тень -->
+  <div class="alt-col">
+    <div class="cap mono">зажат / active (грипы видны)</div>
+    <div class="phone sm">
+      <div class="statusbar"><span class="time">9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="cal-scroll" style="min-height:300px;">
+        <div class="cal-grid" style="height:300px;">
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">09:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">10:00</span></div>
+          <div class="cal-hour" style="height:56px;"><span class="cal-hourlabel">11:00</span></div>
+          <div class="cal-block active" style="top:1px;height:82px;border-left-color:var(--danger);background:rgba(155,140,203,0.13);">
+            <div class="cal-resize top" style="position:absolute;"><span class="cal-grip"></span><span class="ecode pin" style="top:-4px;right:6px;">C1</span></div>
+            <div class="cb"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4 10-10"/></svg></div>
+            <div class="bbody"><div class="bt">Созвон с командой Ledger</div><div class="bm"><span>09:00–10:30</span></div></div>
+            <div class="cal-resize bottom"><span class="cal-grip"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============ ALT-СОСТОЯНИЯ ============ -->
+<div class="alt-grid">
+
+  <!-- EMPTY: день без задач со временем -->
+  <div class="alt-col">
+    <div class="cap mono"><span class="fcode">F11·D</span> · ↔ V3 T1·A (ядро) состояние: empty (нет задач со временем)</div>
+    <div class="phone sm">
+      <div class="statusbar"><span class="time">9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="scr-head">
+        <div class="scr-title"><div><h1>Сегодня<span class="dow">ср, 4 июня</span></h1></div></div>
+        <div class="seg"><span class="chip">Список</span><span class="chip active">Таймлайн</span></div>
+      </div>
+      <div class="empty" style="min-height:420px;">
+        <svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <h3>На сегодня нет задач со временем</h3>
+        <p>Тап по часу в шкале создаст задачу прямо в ячейке. Или добавь через «+».</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING: скелетон таймлайна -->
+  <div class="alt-col">
+    <div class="cap mono"><span class="fcode">F11·E</span> · ↔ V3 T1·A (ядро) состояние: loading (скелетон)</div>
+    <div class="phone sm">
+      <div class="statusbar"><span class="time">9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="scr-head">
+        <div class="scr-title"><div><h1>Сегодня<span class="dow">ср, 4 июня</span></h1></div></div>
+        <div class="seg"><span class="chip">Список</span><span class="chip active">Таймлайн</span></div>
+      </div>
+      <div class="sk-grid" style="min-height:420px;">
+        <div class="sk-hourcol">
+          <span class="sk"></span><span class="sk"></span><span class="sk"></span>
+          <span class="sk"></span><span class="sk"></span><span class="sk"></span>
+        </div>
+        <div class="sk-block"></div>
+        <div class="sk-block tall"></div>
+        <div class="sk-block"></div>
+        <div class="sk-block tall"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

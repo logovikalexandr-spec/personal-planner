@@ -32,7 +32,9 @@ def render_week(tasks: list[dict], today: date) -> str:
         return "📅 На этой неделе задач нет."
     by_day: dict[str, list[dict]] = {}
     for t in tasks:
-        by_day.setdefault(t["due_date"], []).append(t)
+        d = t.get("due_date")
+        if d:
+            by_day.setdefault(d, []).append(t)
     out = ["📅 Эта неделя"]
     for delta in range(7):
         d = today + timedelta(days=delta)

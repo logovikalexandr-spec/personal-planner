@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P04 · Цели</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  --accent:var(--ember);
+  /* палитра проектов (свой hex, никогда не ember) */
+  --p-zima:#3FB68B; --p-health:#5B8DEF; --p-fin:#C9A24B;
+  --p-work:#9B8CCB; --p-global:#9B6BE0; --p-realty:#4FB0A8; --p-spirit:#C77DA8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#2a2a2e;
+  font-family:Geist, sans-serif;
+  color:var(--bone);
+  -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column; align-items:center;
+  gap:34px; padding:48px 20px 80px;
+}
+.mono{font-family:"Geist Mono", monospace;}
+
+/* caption над фреймом */
+.plate{
+  font-family:"Geist Mono", monospace;
+  font-size:13px; color:var(--steel);
+  letter-spacing:.04em;
+  display:flex; align-items:center; gap:10px;
+}
+.plate b{color:var(--bone); font-weight:500;}
+.plate .num{
+  background:var(--slate); border:1px solid var(--hairline);
+  padding:3px 8px; border-radius:7px; color:var(--ember);
+}
+
+/* телефон */
+.phone{
+  width:390px; min-height:844px;
+  background:var(--onyx);
+  border:1px solid var(--hairline);
+  border-radius:28px; overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+.statusbar{
+  height:44px; flex:0 0 44px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px;
+  font-family:"Geist Mono", monospace; font-size:14px; color:var(--bone);
+}
+.statusbar .dots{display:flex; gap:5px;}
+.statusbar .dots span{width:6px; height:6px; border-radius:50%; background:var(--steel);}
+.statusbar .dots span:last-child{background:var(--bone);}
+
+.screen{flex:1 1 auto; padding:8px 18px 96px; overflow-y:auto;}
+
+/* header */
+.head{display:flex; align-items:center; gap:10px; margin:6px 0 4px;}
+.head h1{font-size:25px; font-weight:600; letter-spacing:-.02em; flex:1;}
+.badge{
+  font-family:"Geist Mono", monospace; font-size:13px; font-weight:500;
+  background:var(--ember-soft); color:var(--ember);
+  min-width:24px; height:24px; padding:0 7px;
+  border-radius:12px;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.add{
+  width:34px; height:34px; border-radius:10px;
+  background:var(--ember); color:#1a1209; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.add svg{width:20px; height:20px;}
+.subhead{color:var(--steel); font-size:13px; margin:0 0 16px;}
+
+/* chips */
+.row{display:flex; align-items:center;}
+.chips{gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+.btn-chip{
+  font-family:inherit; font-size:13.5px; font-weight:500;
+  background:var(--slate); color:var(--bone);
+  border:1px solid var(--hairline);
+  padding:7px 14px; border-radius:999px;
+  cursor:pointer; line-height:1;
+}
+.btn-chip.active{
+  background:var(--ember-soft); color:var(--ember);
+  border-color:transparent;
+}
+
+/* goal cards */
+.list{display:flex; flex-direction:column; gap:12px;}
+.goal{
+  --proj:var(--ember);        /* переопределяется per-card */
+  --prio:transparent;         /* high=danger medium=warning low=ember none=transparent */
+  background:color-mix(in srgb, var(--proj) 13%, var(--smoke));
+  border-radius:12px;
+  border-left:3px solid var(--prio);
+  padding:15px 15px 16px;
+  position:relative;
+}
+.goal .top{display:flex; align-items:flex-start; gap:11px; margin-bottom:13px;}
+.goal .ring{
+  width:34px; height:34px; flex:0 0 34px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--proj);
+}
+.goal .ring svg{width:34px; height:34px;}
+.goal .info{flex:1; min-width:0;}
+.goal .ttl{font-size:15.5px; font-weight:600; line-height:1.3; letter-spacing:-.01em;}
+.goal .sub{
+  color:var(--steel); font-size:12px; margin-top:3px;
+  font-family:"Geist Mono", monospace;
+}
+.goal .pct{
+  font-family:"Geist Mono", monospace; font-size:15px; font-weight:500;
+  color:var(--proj); flex:0 0 auto;
+}
+.goal .pct.done{color:var(--proj);}
+
+/* progress bar ember */
+.bar{
+  height:8px; border-radius:6px;
+  background:var(--slate);
+  overflow:hidden; margin-bottom:12px;
+}
+.bar > i{
+  display:block; height:100%;
+  background:var(--proj);
+  border-radius:6px;
+}
+.bar.full > i{background:var(--proj);}
+
+.goal .foot{
+  display:flex; align-items:center; justify-content:space-between;
+  font-family:"Geist Mono", monospace; font-size:12px; color:var(--steel);
+}
+.goal .foot .ms{display:flex; align-items:center; gap:6px;}
+.goal .foot .ms svg{width:13px; height:13px;}
+.goal .foot .due{color:var(--steel);}
+.goal .foot .due.soon{color:var(--warning);}
+.goal .foot .due.over{color:var(--danger);}
+
+/* completed goal — muted */
+.goal.done .ttl{color:var(--steel);}
+.goal.done .ring{color:var(--steel);}
+.goal.done .pct.done{color:var(--steel);}
+.goal.done .bar.full > i{background:var(--steel);}
+
+/* section label */
+.seclbl{
+  font-family:"Geist Mono", monospace; font-size:11.5px;
+  color:var(--steel); letter-spacing:.05em; text-transform:uppercase;
+  margin:22px 0 11px 2px;
+}
+
+/* tab bar */
+.tabbar{
+  position:absolute; left:0; right:0; bottom:0;
+  height:78px;
+  background:var(--smoke);
+  border-top:1px solid var(--hairline);
+  display:flex; align-items:flex-start; justify-content:space-around;
+  padding-top:11px;
+}
+.tab{display:flex; flex-direction:column; align-items:center; gap:5px;
+  color:var(--steel); font-size:11px; width:60px;}
+.tab svg{width:24px; height:24px;}
+.tab.active{color:var(--ember);}
+
+/* alt frame */
+.alt-wrap{display:flex; flex-direction:column; align-items:center; gap:14px;}
+.alt-cap{
+  font-family:"Geist Mono", monospace; font-size:12px; color:var(--steel);
+  letter-spacing:.03em; text-align:center; max-width:340px;
+}
+.phone.small{min-height:auto;}
+.empty{
+  background:var(--smoke); border-radius:12px;
+  text-align:center; padding:40px 28px;
+  display:flex; flex-direction:column; align-items:center; gap:16px;
+}
+.empty .ico{color:var(--steel); opacity:.7;}
+.empty .ico svg{width:46px; height:46px;}
+.empty .txt{color:var(--steel); font-size:14px; line-height:1.5; max-width:240px;}
+.empty .cta{
+  font-family:inherit; font-size:14px; font-weight:500;
+  background:var(--ember); color:#1a1209; border:none; cursor:pointer;
+  padding:10px 18px; border-radius:10px;
+}
+
+/* skeleton */
+.skel{display:flex; flex-direction:column; gap:12px;}
+.skel .sk{background:var(--smoke); border-radius:12px; padding:15px;}
+.skel .ln{background:var(--slate); border-radius:6px; height:12px;}
+.skel .ln.t{height:15px; width:60%; margin-bottom:11px;}
+.skel .ln.b{height:8px; width:100%; margin-bottom:11px;}
+.skel .ln.f{height:10px; width:40%;}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<!-- ── MAIN FRAME ── -->
+<div class="plate"><span class="fcode">P04·A</span><span class="num">P04</span><b>Цели</b> · трекер прогресса · ↔ V3 T4</div>
+
+<div class="phone">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><span></span><span></span><span></span></span>
+  </div>
+
+  <div class="screen">
+    <div class="head">
+      <h1>Цели</h1>
+      <span class="badge">4</span>
+      <button class="add" aria-label="Новая цель" style="position:relative">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="ecode pin">A1</span>
+      </button>
+    </div>
+    <div class="subhead">Большие намерения. Прогресс растёт от задач.</div>
+
+    <!-- filter chips -->
+    <div class="row chips">
+      <button class="btn-chip active">Активные<span class="ecode">A2</span></button>
+      <button class="btn-chip">Все<span class="ecode">A3</span></button>
+      <button class="btn-chip">Завершённые<span class="ecode">A4</span></button>
+    </div>
+
+    <!-- goal cards -->
+    <div class="list">
+
+      <!-- 64% · здоровье · medium -->
+      <div class="goal" style="--proj:var(--p-health); --prio:var(--warning);">
+        <div class="top">
+          <div class="ring">
+            <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--slate)" stroke-width="3"/><circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="33.9" transform="rotate(-90 18 18)"/></svg>
+          </div>
+          <div class="info">
+            <div class="ttl">Сдать анализы и закрыть протокол<span class="ecode">A5</span></div>
+            <div class="sub">9 / 14 задач · здоровье</div>
+          </div>
+          <span class="pct">64%</span>
+        </div>
+        <div class="bar"><i style="width:64%"></i></div>
+        <div class="foot">
+          <span class="ms">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+            5 вех
+          </span>
+          <span class="due soon">до 15 июня</span>
+        </div>
+      </div>
+
+      <!-- 38% · дело/ZIMA · low -->
+      <div class="goal" style="--proj:var(--p-zima); --prio:var(--ember);">
+        <div class="top">
+          <div class="ring">
+            <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--slate)" stroke-width="3"/><circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="58.4" transform="rotate(-90 18 18)"/></svg>
+          </div>
+          <div class="info">
+            <div class="ttl">Продать студию ZIMA за 1.25M<span class="ecode">A6</span></div>
+            <div class="sub">6 / 16 задач · дело</div>
+          </div>
+          <span class="pct">38%</span>
+        </div>
+        <div class="bar"><i style="width:38%"></i></div>
+        <div class="foot">
+          <span class="ms">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+            8 вех
+          </span>
+          <span class="due">до 31 авг</span>
+        </div>
+      </div>
+
+      <!-- 12% · финансы · high (просрочено) -->
+      <div class="goal" style="--proj:var(--p-fin); --prio:var(--danger);">
+        <div class="top">
+          <div class="ring">
+            <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--slate)" stroke-width="3"/><circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="82.9" transform="rotate(-90 18 18)"/></svg>
+          </div>
+          <div class="info">
+            <div class="ttl">Перевести учёт в Ledger полностью<span class="ecode">A7</span></div>
+            <div class="sub">2 / 17 задач · финансы</div>
+          </div>
+          <span class="pct">12%</span>
+        </div>
+        <div class="bar"><i style="width:12%"></i></div>
+        <div class="foot">
+          <span class="ms">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+            4 вехи
+          </span>
+          <span class="due over">просрочено 2 дня</span>
+        </div>
+      </div>
+
+      <div class="seclbl">Завершённые</div>
+
+      <!-- 100% done · проект жизнь · none -->
+      <div class="goal done" style="--proj:var(--p-global); --prio:transparent;">
+        <div class="top">
+          <div class="ring">
+            <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--slate)" stroke-width="3"/><circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="0" transform="rotate(-90 18 18)"/><path d="M13 18l3.5 3.5L24 14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="info">
+            <div class="ttl">Настроить временну́ю спину .life/история<span class="ecode">A8</span></div>
+            <div class="sub">7 / 7 задач · проект жизнь</div>
+          </div>
+          <span class="pct done">100%</span>
+        </div>
+        <div class="bar full"><i style="width:100%"></i></div>
+        <div class="foot">
+          <span class="ms">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+            3 вехи
+          </span>
+          <span class="due">завершено 1 июня</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- tab bar -->
+  <nav class="tabbar">
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 1.5-1.5M4 12l1 1 1.5-1.5M4 18l1 1 1.5-1.5"/></svg>
+      Сегодня
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+      Календарь
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Обзор
+    </div>
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+      Цели
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+      Трекинг
+    </div>
+  </nav>
+</div>
+
+<!-- ── ALT FRAME: empty state ── -->
+<div class="alt-wrap">
+  <div class="alt-cap"><span class="fcode">P04·B</span>состояние: EMPTY — целей ещё нет (placeholder фазы) · ↔ V3 T4</div>
+  <div class="phone small">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="dots"><span></span><span></span><span></span></span>
+    </div>
+    <div class="screen" style="padding-bottom:24px;">
+      <div class="head">
+        <h1>Цели</h1>
+        <span class="badge" style="background:var(--slate); color:var(--steel)">0</span>
+      </div>
+      <div class="subhead">Большие намерения. Прогресс растёт от задач.</div>
+
+      <div class="empty">
+        <div class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.6"/></svg>
+        </div>
+        <div class="txt">Целей пока нет. Поставь большую цель — задачи будут двигать её прогресс.</div>
+        <button class="cta">Поставить цель<span class="ecode">B1</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ALT FRAME: loading skeleton ── -->
+<div class="alt-wrap">
+  <div class="alt-cap"><span class="fcode">P04·C</span>состояние: LOADING — скелетон карточек (без спиннера) · ↔ V3 T4</div>
+  <div class="phone small">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="dots"><span></span><span></span><span></span></span>
+    </div>
+    <div class="screen" style="padding-bottom:24px;">
+      <div class="head">
+        <h1>Цели</h1>
+      </div>
+      <div class="subhead">Большие намерения. Прогресс растёт от задач.</div>
+      <div class="skel">
+        <div class="sk"><div class="ln t"></div><div class="ln b"></div><div class="ln f"></div></div>
+        <div class="sk"><div class="ln t"></div><div class="ln b"></div><div class="ln f"></div></div>
+        <div class="sk"><div class="ln t"></div><div class="ln b"></div><div class="ln f"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ALT FRAME: error state ── -->
+<div class="alt-wrap">
+  <div class="alt-cap"><span class="fcode">P04·D</span>состояние: ERROR — не удалось загрузить цели · ↔ V3 T4</div>
+  <div class="phone small">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="dots"><span></span><span></span><span></span></span>
+    </div>
+    <div class="screen" style="padding-bottom:24px;">
+      <div class="head">
+        <h1>Цели</h1>
+      </div>
+      <div class="subhead">Большие намерения. Прогресс растёт от задач.</div>
+
+      <div class="empty">
+        <div class="ico">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4"/><circle cx="12" cy="17" r="0.6"/></svg>
+        </div>
+        <div class="txt">Не удалось загрузить цели. Проверь соединение и попробуй ещё раз.</div>
+        <button class="cta">Повторить<span class="ecode">D1</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

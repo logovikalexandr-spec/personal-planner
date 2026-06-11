@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DETAIL «Этап проекта» — функциональные флоу (каждое взаимодействие)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 22px 90px;line-height:1.45}
+  .top{max-width:880px;margin-bottom:8px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--ember)}
+  h2{font-size:18px;font-weight:700;margin:40px 0 5px;letter-spacing:-.02em}
+  .trig{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ember);margin-bottom:15px}
+  .trig b{color:var(--bone)}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .panel{width:330px}
+  .plabel{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+  .note{font-size:12px;color:var(--steel);margin-top:11px;max-width:330px}
+  .note b{color:var(--bone)} .rec{color:var(--zima);font-weight:600} .bad{color:var(--danger)}
+  .arrow{align-self:center;color:var(--steel);font-size:26px;padding:0 2px}
+  .mono{font-family:"Geist Mono",monospace}
+
+  /* поле-карточка (как DETAIL-task) */
+  .field{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:13px 15px;width:330px}
+  .field-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-family:"Geist Mono",monospace;letter-spacing:.6px;text-transform:uppercase;color:var(--steel);margin-bottom:9px}
+  .field-h .edit{color:var(--ember)}
+  /* блок этапа */
+  .stage-field{display:flex;align-items:center;gap:12px}
+  .stage-ring{flex:0 0 auto;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .stage-ring i{width:28px;height:28px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+  .stage-mid{flex:1;min-width:0}
+  .stage-mid .n{font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .stage-mid .m{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:2px}
+  .stage-field .chev{color:var(--steel);display:flex}
+  .stage-field .chev svg{width:18px;height:18px}
+  /* статус-точка / бэйдж late */
+  .late-dot{width:18px;height:18px;border-radius:50%;background:var(--danger);color:#1a0707;font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+  /* плейсхолдер «+ добавить этап» */
+  .stage-add{display:flex;align-items:center;gap:11px;color:var(--steel);font-size:14px;padding:2px 0}
+  .stage-add .pl{width:38px;height:38px;border-radius:50%;border:1.5px dashed var(--hairline);display:flex;align-items:center;justify-content:center;color:var(--ember);flex:0 0 auto}
+  .stage-add .pl svg{width:18px;height:18px}
+  .stage-add b{color:var(--bone);font-weight:600}
+  .stage-add .sub{font-size:11.5px;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:2px}
+
+  /* мини-контекст детали (где блок стоит) */
+  .det{width:330px;background:var(--onyx);border:1px solid var(--hairline);border-radius:20px;overflow:hidden}
+  .det .dhead{display:flex;align-items:center;gap:10px;padding:13px 14px 10px;border-bottom:1px solid var(--hairline)}
+  .det .bk{display:flex;align-items:center;gap:4px;color:var(--ember);font-size:13.5px;font-weight:500}
+  .det .bk svg{width:15px;height:15px}
+  .det .proj{margin-left:auto;display:flex;align-items:center;gap:6px;background:rgba(63,182,139,.13);color:var(--zima);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600}
+  .det .proj .d{width:7px;height:7px;border-radius:50%;background:var(--zima)}
+  .det .dbody{padding:13px 14px 16px}
+  .det .ttl{font-size:18px;font-weight:600;line-height:1.25;margin-bottom:13px;display:flex;gap:11px}
+  .det .cb{width:24px;height:24px;border-radius:50%;border:2px solid var(--warning);flex:0 0 auto;margin-top:2px}
+  .det .innerfield{background:var(--card);border:1px solid var(--hairline);border-radius:13px;padding:12px 13px;margin-bottom:10px}
+  .det .innerfield:last-child{margin-bottom:0}
+  .det .ck-h{display:flex;align-items:center;gap:9px}
+  .det .ck-ring{width:28px;height:28px;border-radius:50%;background:conic-gradient(var(--ember) 0 66%,#2c2d31 66% 100%);display:flex;align-items:center;justify-content:center}
+  .det .ck-ring i{width:20px;height:20px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--ember)}
+  .det .ck-h .t{font-size:13.5px;font-weight:600}
+
+  /* вклад в успех (НОВОЕ) — токен моно NN% + обоснование */
+  .imp-field{display:flex;align-items:center;gap:12px}
+  .imp{color:var(--bone);background:var(--slate);border-radius:7px;padding:3px 9px;font-family:"Geist Mono",monospace;font-size:15px;font-weight:600;letter-spacing:.3px;flex:0 0 auto}
+  .imp.k{color:var(--ember)}
+  .imp.empty{color:var(--steel);font-size:13px}
+  .imp-mid{flex:1;min-width:0}
+  .imp-mid .n{font-size:14px;font-weight:600;line-height:1.35}
+  .imp-mid .n.muted{color:var(--steel);font-weight:500}
+  .imp-mid .why{font-size:12px;color:var(--steel);margin-top:3px;line-height:1.4}
+  .imp-mid .why b{color:var(--zima);font-weight:600}
+
+  /* bottom sheet (выбор этапа) */
+  .sheet{background:#141519;border:1px solid var(--hairline);border-radius:20px;padding:16px 16px 18px;width:330px}
+  .handle{width:36px;height:4px;border-radius:2px;background:var(--slate);margin:0 auto 14px}
+  .sh-title{font-size:17px;font-weight:700;margin-bottom:3px}
+  .sh-sub{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace;margin-bottom:14px}
+  /* строка этапа в шите */
+  .so{display:flex;align-items:center;gap:12px;padding:11px 10px;border-radius:11px;border:1px solid transparent}
+  .so+.so{margin-top:3px}
+  .so.cur{background:var(--ember-soft);border-color:transparent}
+  .so .dot{flex:0 0 auto;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:"Geist Mono"}
+  .so .lbl{flex:1;min-width:0}
+  .so .lbl .n{font-size:14.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+  .so .lbl .s{font-size:11.5px;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:2px}
+  .so .mk{flex:0 0 auto;color:var(--ember);display:flex}
+  .so .mk svg{width:18px;height:18px}
+  .so.done .lbl .n{color:var(--steel)}
+  .sh-foot{margin-top:13px;padding-top:13px;border-top:1px solid var(--hairline);display:flex;flex-direction:column;gap:8px}
+  .sh-foot .ghost{display:flex;align-items:center;gap:9px;color:var(--ember);font-size:14px;font-weight:600;padding:4px 2px}
+  .sh-foot .ghost svg{width:17px;height:17px}
+  .sh-foot .remove{display:flex;align-items:center;gap:9px;color:var(--danger);font-size:14px;font-weight:600;padding:4px 2px}
+  .sh-foot .remove svg{width:17px;height:17px}
+
+  /* dialog */
+  .dlg{background:#1d1e23;border:1px solid var(--hairline);border-radius:16px;padding:18px 16px;width:290px;text-align:center}
+  .dlg .dt{font-size:16px;font-weight:700;margin-bottom:6px}
+  .dlg .dd{font-size:13px;color:var(--steel);margin-bottom:16px;line-height:1.5}
+  .dlg .db{display:flex;gap:9px}.dlg .db>*{flex:1;padding:11px;border-radius:10px;font-weight:600;font-size:14px}
+  .db .cancel{background:var(--slate);color:var(--bone)}
+  .db .del{background:var(--danger);color:#fff}
+
+  /* legend */
+  .leg{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;margin:6px 0 2px;display:flex;gap:18px;flex-wrap:wrap}
+  .leg span{display:inline-flex;align-items:center;gap:6px}
+  .leg i{width:11px;height:11px;border-radius:50%;display:inline-block}
+</style></head>
+<body>
+
+<div class="top">
+  <h1>DETAIL «Этап проекта» — функциональные флоу</h1>
+  <p>Блок этапа в детали задачи: каждое касание. <b>Зелёное</b> = рекомендация/успех, <b>красное</b> = деструктив. Модель: <span class="mono">Task.stage_id → Stage{order_index, name, status: done|current|future|late, progress}</span>. Цвет метки: <b>current=ember</b> · <b>late=danger «!»</b> · <b>future=steel</b> · done=zima. Это контракт Фазы 2.</p>
+  <div class="leg" style="margin-top:9px">
+    <span><i style="background:var(--ember)"></i>current — текущий этап</span>
+    <span><i style="background:var(--danger)"></i>late — просрочен «!»</span>
+    <span><i style="background:var(--steel)"></i>future — впереди</span>
+    <span><i style="background:var(--zima)"></i>done — завершён</span>
+  </div>
+</div>
+
+<!-- 1 -->
+<h2>1 · Задача С этапом → блок в детали (где стоит)</h2>
+<div class="trig"><b>Где:</b> поле «Этап проекта» в детали, сразу под атрибутами, над чеклистом. <b>Что:</b> кольцо n/m + «Этап N · имя» + «Проект · до DD» + chevron «сменить ›».</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">контекст: место блока в детали</div>
+    <div class="det">
+      <div class="dhead">
+        <span class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Задачи</span>
+        <span class="proj"><span class="d"></span>Продать ZIMA</span>
+      </div>
+      <div class="dbody">
+        <div class="ttl"><span class="cb"></span><span>Созвон с командой ZIMA</span></div>
+        <!-- блок этапа: current -->
+        <div class="innerfield">
+          <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+          <div class="stage-field">
+            <div class="stage-ring" style="background:conic-gradient(var(--ember) 0 60%,#2c2d31 60% 100%)"><i style="color:var(--ember)">3/5</i></div>
+            <div class="stage-mid"><div class="n">Этап 3 · Переговоры</div><div class="m">Продать ZIMA · до 25 июня</div></div>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+          </div>
+        </div>
+        <!-- чеклист (контекст, ниже этапа) -->
+        <div class="innerfield">
+          <div class="ck-h"><div class="ck-ring"><i>2/3</i></div><div class="t">Чеклист · 2 из 3</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Блок = поле, не метка.</b> Тапается весь ряд (или chevron) → шит выбора. Кольцо показывает позицию этапа в проекте (3 из 5), цвет current=ember. Стоит <span class="rec">над чеклистом</span> — этап задаёт «куда эта задача в цели», чеклист — «как её сделать».</div>
+</div>
+
+<!-- 2 -->
+<h2>2 · Цвет блока по статусу этапа (current / late / future)</h2>
+<div class="trig"><b>Что:</b> один и тот же блок красится по <span class="mono">Stage.status</span>. Это отображение, не действие.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">current — ember</div>
+    <div class="field">
+      <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+      <div class="stage-field">
+        <div class="stage-ring" style="background:conic-gradient(var(--ember) 0 60%,#2c2d31 60% 100%)"><i style="color:var(--ember)">3/5</i></div>
+        <div class="stage-mid"><div class="n">Этап 3 · Переговоры</div><div class="m">Продать ZIMA · до 25 июня</div></div>
+        <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="width:auto"><div class="plabel">late — danger «!»</div>
+    <div class="field">
+      <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+      <div class="stage-field">
+        <div class="stage-ring" style="background:conic-gradient(var(--danger) 0 45%,#2c2d31 45% 100%)"><i style="color:var(--danger)">2/5</i></div>
+        <div class="stage-mid"><div class="n">Этап 2 · Оценка<span class="late-dot">!</span></div><div class="m" style="color:var(--danger)">Продать ZIMA · просрочен 3 дня</div></div>
+        <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="width:auto"><div class="plabel">future — steel</div>
+    <div class="field">
+      <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+      <div class="stage-field">
+        <div class="stage-ring" style="background:conic-gradient(var(--steel) 0 0%,#2c2d31 0 100%)"><i style="color:var(--steel)">4/5</i></div>
+        <div class="stage-mid"><div class="n" style="color:var(--bone)">Этап 4 · Сделка</div><div class="m">Продать ZIMA · с 26 июня</div></div>
+        <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>current</b> — кольцо/число ember (по умолчанию активный этап). <b>late</b> — danger + значок «!» в имени + красная подпись «просрочен N дней». <b>future</b> — кольцо пустое (steel), число steel, подпись «с DD». <span class="rec">Один акцент-правило соблюдено:</span> ember только для current, остальное — служебные danger/steel.</div>
+
+<!-- 3 -->
+<h2>3 · Задача БЕЗ этапа → плейсхолдер «+ добавить этап»</h2>
+<div class="trig"><b>Когда:</b> <span class="mono">task.stage_id == null</span>. <b>Что:</b> вместо блока — кнопка-строка добавления.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">плейсхолдер (нет этапа)</div>
+    <div class="field">
+      <div class="field-h"><span>Этап проекта</span></div>
+      <div class="stage-add">
+        <span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>
+        <div><b>Привязать к этапу</b><div class="sub">задача пока вне этапов проекта</div></div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto"><div class="plabel">тап → тот же шит выбора (см. 4)</div>
+    <div class="field">
+      <div class="field-h"><span>Этап проекта</span></div>
+      <div class="stage-add" style="opacity:.5">
+        <span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>
+        <div><b>Привязать к этапу</b><div class="sub">открываю шит…</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Когда у задачи нет этапа, поле не исчезает — оно зовёт привязать. <span class="rec">Та же кнопка открывает тот же шит выбора, что и chevron «сменить».</span> Если у задачи вообще нет проекта — поле «Этап» скрыто целиком (этап существует только внутри проекта).</div>
+</div>
+
+<!-- 4 -->
+<h2>4 · Тап chevron «сменить ›» → шит выбора этапа</h2>
+<div class="trig"><b>Где:</b> тап по блоку/chevron (или по плейсхолдеру). <b>Что:</b> снизу выезжает шит со списком этапов проекта; текущий помечен галкой.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">шит «этап проекта»</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Этап проекта</div>
+      <div class="sh-sub">Продать ZIMA · 5 этапов</div>
+      <!-- done -->
+      <div class="so done">
+        <span class="dot" style="background:rgba(63,182,139,.16);color:var(--zima)">1</span>
+        <div class="lbl"><div class="n">Подготовка</div><div class="s">завершён · 12 задач</div></div>
+      </div>
+      <div class="so done">
+        <span class="dot" style="background:rgba(63,182,139,.16);color:var(--zima)">2</span>
+        <div class="lbl"><div class="n">Оценка</div><div class="s">завершён · 8 задач</div></div>
+      </div>
+      <!-- current (выбран) -->
+      <div class="so cur">
+        <span class="dot" style="background:var(--ember);color:#1a1209">3</span>
+        <div class="lbl"><div class="n" style="color:var(--ember)">Переговоры</div><div class="s">текущий · до 25 июня · 4 задачи</div></div>
+        <span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      </div>
+      <!-- future -->
+      <div class="so">
+        <span class="dot" style="background:var(--slate);color:var(--steel)">4</span>
+        <div class="lbl"><div class="n">Сделка</div><div class="s">впереди · с 26 июня</div></div>
+      </div>
+      <div class="so">
+        <span class="dot" style="background:var(--slate);color:var(--steel)">5</span>
+        <div class="lbl"><div class="n">Передача</div><div class="s">впереди</div></div>
+      </div>
+      <div class="sh-foot">
+        <span class="remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>Убрать этап у задачи</span>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Список = все этапы проекта по порядку.</b> done — зелёный номер, future — серый, текущий выбор — ember-фон + галка. Поздний этап (late) пометился бы danger-номером. Тап по любой строке = выбрать. Внизу — <span class="bad">«Убрать этап»</span> (если этап уже стоял). <span class="rec">Создавать этап тут нельзя — этапы живут в проекте/Ганте (T3b/T4d).</span></div>
+</div>
+
+<!-- 5 -->
+<h2>5 · Выбрать другой этап → блок обновился</h2>
+<div class="trig"><b>Где:</b> тап по строке «4 · Сделка». <b>Что:</b> шит закрывается, блок перерисован на новый этап. Без подтверждения — обратимо.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">было: Этап 3 · Переговоры</div>
+    <div class="field">
+      <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+      <div class="stage-field">
+        <div class="stage-ring" style="background:conic-gradient(var(--ember) 0 60%,#2c2d31 60% 100%)"><i style="color:var(--ember)">3/5</i></div>
+        <div class="stage-mid"><div class="n">Этап 3 · Переговоры</div><div class="m">Продать ZIMA · до 25 июня</div></div>
+        <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto"><div class="plabel">стало: Этап 4 · Сделка (future)</div>
+    <div class="field">
+      <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+      <div class="stage-field">
+        <div class="stage-ring" style="background:conic-gradient(var(--steel) 0 0%,#2c2d31 0 100%)"><i style="color:var(--steel)">4/5</i></div>
+        <div class="stage-mid"><div class="n" style="color:var(--bone)">Этап 4 · Сделка</div><div class="m">Продать ZIMA · с 26 июня</div></div>
+        <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+      </div>
+    </div>
+  </div>
+  <div class="note">Выбор записывает <span class="mono">task.stage_id = 4</span>, шит закрывается, блок мгновенно перекрашивается под статус нового этапа (тут future → steel). <span class="rec">Без диалога — смена этапа обратима</span> (можно вернуть тем же шитом). Прогресс проекта/Ганта пересчитается.</div>
+</div>
+
+<!-- 6 -->
+<h2>6 · Убрать этап у задачи (деструктив-lite) → плейсхолдер</h2>
+<div class="trig"><b>Где:</b> «Убрать этап» внизу шита. <b>Что:</b> подтверждение → блок становится плейсхолдером «+ добавить».</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">подтверждение</div>
+    <div class="dlg"><div class="dt">Убрать этап?</div><div class="dd">Задача останется в проекте «Продать ZIMA», но перестанет считаться в прогрессе этапа. Саму задачу это не удалит.</div><div class="db"><span class="cancel">Отмена</span><span class="del">Убрать</span></div></div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto"><div class="plabel">после: снова плейсхолдер</div>
+    <div class="field">
+      <div class="field-h"><span>Этап проекта</span></div>
+      <div class="stage-add">
+        <span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>
+        <div><b>Привязать к этапу</b><div class="sub">задача пока вне этапов проекта</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><span class="mono">task.stage_id = null</span>. <span class="rec">Лёгкое подтверждение, не «навсегда»</span> — данные задачи целы, теряется лишь связь с этапом (обратимо привязкой). Текст честно поясняет последствие для прогресса. После — поле возвращается в состояние «без этапа» (флоу 3).</div>
+</div>
+
+<!-- 7 -->
+<h2>7 · Edge: у проекта НЕТ этапов → шит пустой</h2>
+<div class="trig"><b>Когда:</b> проект есть, но <span class="mono">Stage[]</span> пуст. <b>Что:</b> шит показывает пусто-состояние «сначала создай этап».</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">шит без этапов</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Этап проекта</div>
+      <div class="sh-sub">Продать ZIMA · этапов пока нет</div>
+      <div style="text-align:center;padding:24px 12px 10px">
+        <div style="width:48px;height:48px;border-radius:14px;background:var(--ember-soft);color:var(--ember);display:flex;align-items:center;justify-content:center;margin:0 auto 13px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18M3 12h18M3 17h10"/></svg></div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:5px">В проекте ещё нет этапов</div>
+        <div style="font-size:12.5px;color:var(--steel);line-height:1.5;max-width:250px;margin:0 auto 16px">Этапы создаются в самом проекте — в «Цели» или на Ганте. Привязать задачу можно после.</div>
+        <div style="background:var(--ember);color:#1a1209;border-radius:11px;padding:12px;text-align:center;font-weight:700;font-size:14.5px">Открыть проект «Продать ZIMA»</div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><span class="rec">Не тупик:</span> шит честно говорит, что этапы живут в проекте (T4d-detail / T3b-gantt), и даёт кнопку перейти туда. Привязка к этапу из задачи — только когда этапы уже есть. Соответствует ZERO-AFK: ничего не генерится, только навигация.</div>
+</div>
+
+<!-- 8 -->
+<h2>8 · Блок «Вклад в успех» — два состояния (оценено / нет)</h2>
+<div class="trig"><b>Где:</b> поле «Вклад в успех» в детали, сразу под «Этап проекта». <b>Что:</b> токен моно <span class="mono">NN%</span> + строка-обоснование. Модель: <span class="mono">Task.impact: int 0–100 | null</span>. В детали показываем <b>ВСЕГДА</b> (порог 30 действует только в списках). ZERO-AFK: число пишет интерактивный Claude в чате через write-API — не кнопка live-AI.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">оценено: impact = 80</div>
+    <div class="field">
+      <div class="field-h"><span>Вклад в успех</span><span class="mono" style="color:var(--steel)">оценил ИИ</span></div>
+      <div class="imp-field">
+        <span class="imp k">80%</span>
+        <div class="imp-mid">
+          <div class="n">Ключевой шаг к продаже студии</div>
+          <div class="why">Двигает <b>этап «Переговоры»</b>: без согласованной вилки цены сделка не идёт.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="panel" style="width:auto"><div class="plabel">не оценено: impact = null</div>
+    <div class="field">
+      <div class="field-h"><span>Вклад в успех</span></div>
+      <div class="imp-field">
+        <span class="imp empty">—</span>
+        <div class="imp-mid">
+          <div class="n muted">Ещё не оценено</div>
+          <div class="why">Обсуди с ассистентом в чате — он проставит вклад.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Оценено</b> — токен ember <span class="mono">80%</span> (число + % справа, без стрелки) + короткое обоснование от Claude, опирающееся на этап/цель. <b>Не оценено</b> (<span class="mono">impact==null</span>) — серый «—» + «ещё не оценено · обсуди с ассистентом». <span class="rec">Не кнопка генерации:</span> это подсказка-направление, само приложение LLM не зовёт (ZERO-AFK). Цвет токена — служебный (bone/steel на slate), <span class="rec">не лезет в цвет-систему строки</span> (кант/фон/этап). В детали порог НЕ действует — даже вклад 12% виден тут, чтобы число объяснялось.</div>
+</div>
+
+</body></html>

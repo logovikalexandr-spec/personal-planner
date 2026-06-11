@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inline-ячейка — аннотированная спека (мокап + описание рядом)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+    --hairline:rgba(255,255,255,.07); --hour-h:56px; --p-zima:#3FB68B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#1b1b1e;color:var(--bone);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:32px 0 80px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+  h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .sub{color:var(--steel);font-family:"Geist Mono",monospace;font-size:13px;margin-top:6px;line-height:1.6}
+  .panel{background:var(--smoke);border:1px solid var(--hairline);border-radius:14px;padding:18px 20px;margin:22px 0}
+  .panel h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+  .kv{display:grid;grid-template-columns:130px 1fr;gap:6px 16px;font-size:14px;line-height:1.55}
+  .kv .k{color:var(--steel);font-family:"Geist Mono",monospace;font-size:12.5px}
+  .kv b{color:var(--bone)}
+  .frame{display:flex;gap:26px;align-items:flex-start;margin:26px 0;padding:22px;background:var(--smoke);border:1px solid var(--hairline);border-radius:16px}
+  .phone{width:300px;flex:0 0 300px;height:520px;background:var(--onyx);border:1px solid var(--hairline);border-radius:24px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .status{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-family:"Geist Mono",monospace;font-size:11px;color:var(--bone)}
+  .head{padding:6px 14px 9px;border-bottom:1px solid var(--hairline)}
+  .head h3{font-size:18px;font-weight:700}.head .d{color:var(--steel);font-size:12px}
+  .grid{flex:1;overflow:hidden;position:relative;padding:0 12px}
+  .gi{position:relative}
+  .hour{height:var(--hour-h);border-top:1px solid var(--hairline);position:relative}
+  .hl{position:absolute;top:-7px;left:0;font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);background:var(--onyx);padding-right:5px}
+  .hint{position:absolute;left:42px;right:8px;top:110px;text-align:center;color:var(--steel);font-size:12px;font-family:"Geist Mono",monospace;line-height:1.5}
+  .draft{position:absolute;left:42px;right:8px;border-radius:9px;border:1.5px dashed var(--accent);background:var(--accent-soft);padding:7px 9px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+  .draft .ti{color:var(--steel);font-size:13px;font-weight:500}
+  .draft .ti.filled{color:var(--bone)}
+  .draft .tm{font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--accent)}
+  .caret{display:inline-block;width:1.5px;height:13px;background:var(--accent);vertical-align:-2px;animation:bl 1s steps(1) infinite}
+  @keyframes bl{50%{opacity:0}}
+  .block{position:absolute;left:42px;right:8px;border-radius:9px;background:var(--slate);border-left:3px solid transparent;padding:6px 9px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+  .block .bt{font-size:13px;font-weight:500}.block .bm{font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--steel)}
+  .err{position:absolute;left:42px;right:8px;border-radius:9px;border:1.5px solid var(--danger);background:rgba(255,92,92,.10);padding:7px 9px;display:flex;flex-direction:column;gap:4px}
+  .err .bt{font-size:13px;font-weight:500}.err .re{font-family:"Geist Mono",monospace;font-size:10.5px;color:var(--danger)}
+  .err .re b{background:var(--danger);color:#1a0808;border-radius:5px;padding:2px 7px}
+  .finger{position:absolute;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.22);border:1.5px solid rgba(255,255,255,.5)}
+  .kb{position:absolute;left:0;right:0;bottom:0;height:150px;background:#1c1c1f;border-top:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;color:var(--steel);font-family:"Geist Mono",monospace;font-size:11px}
+  .done-bar{position:absolute;left:0;right:0;bottom:150px;display:flex;justify-content:flex-end;padding:7px 12px}
+  .done-bar b{background:var(--accent);color:#1a1209;border-radius:9px;padding:7px 15px;font-size:12px;font-weight:600}
+  /* spec panel рядом */
+  .spec{flex:1 1 auto;min-width:0}
+  .spec .tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-family:"Geist Mono",monospace;font-size:11px;border-radius:999px;padding:2px 10px;margin-bottom:10px}
+  .spec h3{font-size:17px;font-weight:600;margin-bottom:12px}
+  .spec dl{display:grid;grid-template-columns:118px 1fr;gap:9px 14px;font-size:13.5px;line-height:1.5}
+  .spec dt{color:var(--steel);font-family:"Geist Mono",monospace;font-size:12px}
+  .spec dd b{color:var(--accent)}
+  .spec .edge{margin-top:13px;font-size:12.5px;color:var(--steel);background:var(--onyx);border-left:2px solid var(--warning);border-radius:0 8px 8px 0;padding:8px 12px;line-height:1.55}
+  .spec .edge b{color:var(--warning)}
+  code{font-family:"Geist Mono",monospace;font-size:12px;background:var(--onyx);padding:1px 5px;border-radius:4px;color:var(--accent)}
+</style></head>
+<body><div class="wrap">
+
+  <h1>Inline-создание задачи в ячейке — аннотированная спека</h1>
+  <div class="sub">Мокап + описание окна и фич РЯДОМ с каждым состоянием. Apple-стиль, заменяет bottom-sheet по тапу часа.<br>Читается слева-направо как поток: покой → жест → черновик → ввод → создано (+ edge: отмена / ошибка).</div>
+
+  <!-- МОДЕЛЬ -->
+  <div class="panel">
+    <h2>Модель — единый контракт</h2>
+    <div class="kv">
+      <span class="k">Жест</span><span><b>Тап</b> пустоты = блок 1ч на снапнутом часе · <b>протяжка</b> = start→end (снап 15 мин на отпускании).</span>
+      <span class="k">Что вводим</span><span>Только <b>название + время</b>. Быстро, на месте.</span>
+      <span class="k">Всё прочее</span><span>Проект / приоритет / напоминания / повтор / сабтаски / чеклист / заметки — <b>тап по блоку → TaskDetail</b> (уже есть, Волна 2). Новой формы НЕ делаем.</span>
+      <span class="k">Коммит</span><span><code>Enter</code> или <code>Готово</code> с непустым текстом → POST <code>{title, due_date=today, due_time, end_time}</code> → блок становится обычным.</span>
+      <span class="k">Отмена</span><span>Пустой текст + (тап-вне / <code>Escape</code> / смена таба) → черновик исчезает, ничего не создаётся.</span>
+      <span class="k">Reuse</span><span>y↔минуты (<code>PX_PER_MIN</code>,<code>offsetMin</code>), <code>snap15</code>, <code>clamp</code>, <code>hhmm</code>, гаситель скролла, pointer-capture — всё из DayTimeline. Новое: draft-state без id + инлайн-input + POST.</span>
+    </div>
+  </div>
+
+  <!-- 1 IDLE -->
+  <div class="frame">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="head"><h3>Сегодня</h3><div class="d">вторник, 9 июня</div></div>
+      <div class="grid"><div class="gi">
+        <div class="hour"><span class="hl">08:00</span></div><div class="hour"><span class="hl">09:00</span></div>
+        <div class="hour"><span class="hl">10:00</span></div><div class="hour"><span class="hl">11:00</span></div>
+        <div class="hour"><span class="hl">12:00</span></div><div class="hour"><span class="hl">13:00</span></div>
+        <div class="hint">Тап по сетке — задача на 1 час.<br>Протяжка — своя длительность.</div>
+      </div></div>
+    </div>
+    <div class="spec">
+      <span class="tag">1 · ПОКОЙ</span>
+      <h3>Пустая сетка</h3>
+      <dl>
+        <dt>Окно</dt><dd>Таймлайн дня (как сейчас). Пустые часы кликабельны.</dd>
+        <dt>Подсказка</dt><dd>Тонкий хинт в пустой области: «тап = 1ч, протяжка = своя длина». Гаснет когда есть хоть один блок или черновик.</dd>
+        <dt>Что доступно</dt><dd><b>тап</b> по часу → состояние 2 · <b>протяжка</b> по сетке → состояние 3 · скролл вертикально — как обычно.</dd>
+      </dl>
+      <div class="edge"><b>Edge:</b> тап по <b>существующему</b> блоку = открыть его (TaskDetail), НЕ создать. Различаем: жест начат на пустом <code>.cal-hour</code> vs на <code>.cal-block</code>.</div>
+    </div>
+  </div>
+
+  <!-- 2 TAP -->
+  <div class="frame">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="head"><h3>Сегодня</h3><div class="d">вторник, 9 июня</div></div>
+      <div class="grid"><div class="gi">
+        <div class="hour"><span class="hl">08:00</span></div><div class="hour"><span class="hl">09:00</span></div>
+        <div class="hour"><span class="hl">10:00</span></div><div class="hour"><span class="hl">11:00</span></div>
+        <div class="draft" style="top:57px;height:54px">
+          <span class="ti">Новая задача<span class="caret"></span></span>
+          <span class="tm">09:00–10:00</span>
+        </div>
+        <div class="finger" style="top:72px;left:140px"></div>
+      </div></div>
+      <div class="done-bar"><b>Готово</b></div>
+      <div class="kb">клавиатура</div>
+    </div>
+    <div class="spec">
+      <span class="tag">2 · ТАП → ЧЕРНОВИК 1ч</span>
+      <h3>Блок-черновик + инлайн-ввод</h3>
+      <dl>
+        <dt>Триггер</dt><dd>Тап (без сдвига) по пустому часу.</dd>
+        <dt>Окно</dt><dd>На снапнутом часе появляется <b>пунктирный ember-блок</b> 1ч. Внутри — текст-инпут с автофокусом, плейсхолдер «Новая задача», курсор мигает. Подпись времени <code>09:00–10:00</code>.</dd>
+        <dt>Клавиатура</dt><dd>Поднимается. Блок авто-скроллится <b>над клавиатурой</b>, фон залочен (паттерн scroll-lock уже есть). Над клавой — кнопка <b>Готово</b>.</dd>
+        <dt>Доступно</dt><dd>печатать имя · <code>Enter</code>/<code>Готово</code> → коммит (сост.4) · тап-вне/<code>Escape</code> при пустом → отмена.</dd>
+      </dl>
+      <div class="edge"><b>Edge:</b> второй тап по другому часу при открытом пустом черновике → старый исчезает, новый на новом месте (один черновик за раз). Если в старом был текст — сначала коммит, потом новый.</div>
+    </div>
+  </div>
+
+  <!-- 3 DRAG -->
+  <div class="frame">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="head"><h3>Сегодня</h3><div class="d">вторник, 9 июня</div></div>
+      <div class="grid"><div class="gi">
+        <div class="hour"><span class="hl">08:00</span></div><div class="hour"><span class="hl">09:00</span></div>
+        <div class="hour"><span class="hl">10:00</span></div><div class="hour"><span class="hl">11:00</span></div>
+        <div class="hour"><span class="hl">12:00</span></div>
+        <div class="draft" style="top:57px;height:110px">
+          <span class="ti">Новая задача<span class="caret"></span></span>
+          <span class="tm">09:00–11:00 · 2 ч</span>
+        </div>
+        <div class="finger" style="top:156px;left:140px"></div>
+      </div></div>
+    </div>
+    <div class="spec">
+      <span class="tag">3 · ПРОТЯЖКА → СВОЯ ДЛИНА</span>
+      <h3>Растягиваемый черновик</h3>
+      <dl>
+        <dt>Триггер</dt><dd>Палец нажал на пустой час и потянул (сдвиг &gt; порога <code>CANCEL_PX</code>) → это создание-протяжкой, не скролл.</dd>
+        <dt>Поведение</dt><dd>Верх = точка старта, низ следует за пальцем <b>непрерывно</b> (без рывков). Подпись времени обновляется live: <code>09:00–11:00 · 2 ч</code>.</dd>
+        <dt>Отпускание</dt><dd>Снап обоих концов к 15 мин. Появляется инпут с автофокусом (как сост.2).</dd>
+      </dl>
+      <div class="edge"><b>Edge:</b> протяжка <b>вверх</b> → start/end меняются местами (нормализация). Длина &lt; 15 мин → трактуем как тап = 1ч. Тянул за нижний край экрана → авто-скролл сетки + clamp до конца дня.</div>
+    </div>
+  </div>
+
+  <!-- 4 COMMITTED -->
+  <div class="frame">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="head"><h3>Сегодня</h3><div class="d">вторник, 9 июня</div></div>
+      <div class="grid"><div class="gi">
+        <div class="hour"><span class="hl">08:00</span></div><div class="hour"><span class="hl">09:00</span></div>
+        <div class="hour"><span class="hl">10:00</span></div><div class="hour"><span class="hl">11:00</span></div>
+        <div class="hour"><span class="hl">12:00</span></div>
+        <div class="block" style="top:57px;height:110px">
+          <span class="bt">Созвон с командой</span><span class="bm">09:00–11:00</span>
+        </div>
+      </div></div>
+    </div>
+    <div class="spec">
+      <span class="tag">4 · СОЗДАНО</span>
+      <h3>Обычный блок (это и есть твой вопрос)</h3>
+      <dl>
+        <dt>Переход</dt><dd>Имя введено + <code>Enter</code>/<code>Готово</code> → POST → черновик превращается в <b>обычный блок</b>, клавиатура уходит.</dd>
+        <dt>Вид</dt><dd>Сплошной (не пунктир): фон = тинт проекта (пока нет проекта → серый <code>--surface-2</code>), кант слева = приоритет (пока none → нет канта).</dd>
+        <dt>Тап по блоку</dt><dd><b>→ TaskDetail</b>: проект, приоритет, напоминания, повтор, сабтаски, чеклист, заметки. Тот же экран, что у любой задачи — настраиваешь как обычно.</dd>
+        <dt>Края / тело</dt><dd>Ресайз времени за края, перенос long-press — жесты уже работают.</dd>
+      </dl>
+      <div class="edge"><b>Согласованность:</b> после создания блок НЕ отличается от созданных через композер/quick-add. Один тип сущности — одно поведение везде (закон PATTERNS.md).</div>
+    </div>
+  </div>
+
+  <!-- 5 ERROR -->
+  <div class="frame">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="head"><h3>Сегодня</h3><div class="d">вторник, 9 июня</div></div>
+      <div class="grid"><div class="gi">
+        <div class="hour"><span class="hl">08:00</span></div><div class="hour"><span class="hl">09:00</span></div>
+        <div class="hour"><span class="hl">10:00</span></div><div class="hour"><span class="hl">11:00</span></div>
+        <div class="hour"><span class="hl">12:00</span></div>
+        <div class="err" style="top:57px;height:64px">
+          <span class="bt">Созвон с командой</span>
+          <span class="re">Не сохранено · <b>Повторить</b></span>
+        </div>
+      </div></div>
+    </div>
+    <div class="spec">
+      <span class="tag">5 · EDGE — POST УПАЛ</span>
+      <h3>Ошибка сохранения</h3>
+      <dl>
+        <dt>Триггер</dt><dd>Сеть/сервер не ответил на создание.</dd>
+        <dt>Поведение</dt><dd>Блок <b>остаётся</b> с введённым текстом и временем (ничего не потеряно), красная рамка, строка «Не сохранено · <b>Повторить</b>».</dd>
+        <dt>Доступно</dt><dd><b>Повторить</b> → новый POST · тап-вне = оставить черновик (не теряем) или отменить — уточнить в спеке.</dd>
+      </dl>
+      <div class="edge"><b>Почему так:</b> терять напечатанное при сетевом сбое = худший UX. Оптимистично НЕ показываем как «создано», пока сервер не подтвердил id.</div>
+    </div>
+  </div>
+
+  <!-- 4.5 SAVING -->
+  <div class="frame">
+    <div class="phone">
+      <div class="status"><span>9:41</span><span>•••</span></div>
+      <div class="head"><h3>Сегодня</h3><div class="d">вторник, 9 июня</div></div>
+      <div class="grid"><div class="gi">
+        <div class="hour"><span class="hl">08:00</span></div><div class="hour"><span class="hl">09:00</span></div>
+        <div class="hour"><span class="hl">10:00</span></div><div class="hour"><span class="hl">11:00</span></div>
+        <div class="hour"><span class="hl">12:00</span></div>
+        <div class="block" style="top:57px;height:110px;opacity:.6">
+          <span class="bt">Созвон с командой</span><span class="bm">09:00-11:00 · сохранение…</span>
+        </div>
+      </div></div>
+    </div>
+    <div class="spec">
+      <span class="tag">4.5 · SAVING</span>
+      <h3>Идёт сохранение (POST летит)</h3>
+      <dl>
+        <dt>Вид</dt><dd>Блок приглушён (opacity .6), подпись «сохранение…». Без яркого спиннера. Инпут и «Готово» disabled.</dd>
+        <dt>Блокировки</dt><dd>Тап по блоку <b>НЕ открывает</b> (нет id → no-op). Повторный коммит заблокирован → <b>нет двойного POST</b>.</dd>
+        <dt>Выход</dt><dd>ok → обычный блок (сост.4, micro-pulse) · fail/таймаут 5с → ERROR (сост.5).</dd>
+      </dl>
+      <div class="edge"><b>Почему критично:</b> без видимого SAVING юзер думает «не сработало», тапает ещё → дубль-задача. Приглушение = «принято, погоди».</div>
+    </div>
+  </div>
+
+</div></body></html>

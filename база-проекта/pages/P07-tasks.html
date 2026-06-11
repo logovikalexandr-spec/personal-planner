@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P07 · Задачи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  --accent:var(--ember);
+  --on-accent:#1a1209;
+  --s4:16px;
+  /* палитра проектов */
+  --p-zima:#3FB68B; --p-health:#5B8DEF; --p-finance:#C9A24B;
+  --p-work:#9B8CCB; --p-goals:#9B6BE0; --p-realty:#4FB0A8; --p-spirit:#C77DA8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#2a2a2e;
+  font-family:Geist, sans-serif;
+  color:var(--bone);
+  -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column; align-items:center;
+  gap:34px; padding:48px 20px 80px;
+}
+.mono{font-family:"Geist Mono", monospace;}
+
+/* caption над фреймом */
+.plate{
+  font-family:"Geist Mono", monospace;
+  font-size:13px; color:var(--steel);
+  letter-spacing:.04em;
+  display:flex; align-items:center; gap:10px;
+}
+.plate b{color:var(--bone); font-weight:500;}
+.plate .num{
+  background:var(--slate); border:1px solid var(--hairline);
+  padding:3px 8px; border-radius:7px; color:var(--ember);
+}
+.cap{
+  font-family:"Geist Mono", monospace;
+  font-size:12px; color:var(--steel);
+  letter-spacing:.04em; margin-top:-18px;
+}
+
+/* телефон */
+.phone{
+  width:390px; min-height:844px;
+  background:var(--onyx);
+  border:1px solid var(--hairline);
+  border-radius:28px; overflow:hidden;
+  position:relative;
+  display:flex; flex-direction:column;
+}
+.phone.short{min-height:auto;}
+.statusbar{
+  height:44px; flex:0 0 44px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px;
+  font-family:"Geist Mono", monospace; font-size:14px; color:var(--bone);
+}
+.statusbar .dots{display:flex; gap:5px;}
+.statusbar .dots span{width:6px; height:6px; border-radius:50%; background:var(--steel);}
+.statusbar .dots span:last-child{background:var(--bone);}
+
+/* экран */
+.screen{flex:1; overflow-y:auto; padding:0 16px 96px;}
+.screen-hero{padding:8px 0 16px;}
+.screen-hero h1{font-size:30px; font-weight:700; letter-spacing:-.02em;}
+
+/* список */
+.list{display:flex; flex-direction:column; gap:8px;}
+
+/* группа-заголовок проекта (демо-группировка) */
+.group-head{
+  display:flex; align-items:center; gap:8px;
+  padding:14px 4px 8px; font-size:13px; color:var(--steel);
+  font-weight:500;
+}
+.group-head .gcount{font-family:"Geist Mono", monospace; color:var(--steel);}
+.group-head .gdot{width:8px; height:8px; border-radius:50%;}
+
+/* строка задачи */
+.task-swipe{position:relative;}
+.task-row{
+  position:relative; z-index:2;
+  display:flex; gap:12px; align-items:flex-start;
+  background:var(--smoke);
+  border-radius:12px;
+  padding:14px var(--s4);
+}
+.task-row.prio-high{border-left:3px solid var(--danger); padding-left:calc(var(--s4) - 3px);}
+.task-row.prio-medium{border-left:3px solid var(--warning); padding-left:calc(var(--s4) - 3px);}
+.task-row.prio-low{border-left:3px solid var(--ember); padding-left:calc(var(--s4) - 3px);}
+
+/* фон задачи = тинт ПРОЕКТА (alpha 0.13); без проекта → --smoke */
+.task-row.p-work{background:rgba(155,140,203,0.13);}
+.task-row.p-health{background:rgba(91,141,239,0.13);}
+.task-row.p-zima{background:rgba(63,182,139,0.13);}
+.task-row.p-finance{background:rgba(201,162,75,0.13);}
+.task-row.p-goals{background:rgba(155,107,224,0.13);}
+.task-row.p-realty{background:rgba(79,176,168,0.13);}
+.task-row.p-spirit{background:rgba(199,125,168,0.13);}
+
+/* чекбокс — круг 22px */
+.checkbox{
+  flex:0 0 22px; width:22px; height:22px; border-radius:50%;
+  border:1.5px solid var(--steel);
+  display:flex; align-items:center; justify-content:center;
+  margin-top:1px; cursor:pointer;
+}
+.checkbox.done{background:var(--ember); border-color:var(--ember);}
+.checkbox.done svg{width:13px; height:13px; stroke:var(--on-accent); stroke-width:2.6;}
+.checkbox.wontdo{border-color:var(--steel);}
+.cb-wontdo svg{width:13px; height:13px; stroke:var(--steel);}
+
+.grow{flex:1; min-width:0;}
+.grow .title{font-size:15px; line-height:1.35; color:var(--bone);}
+.title-done{color:var(--steel); text-decoration:line-through; text-decoration-color:var(--steel);}
+.meta{font-family:"Geist Mono", monospace; font-size:13px; margin-top:3px; color:var(--steel);}
+.meta.overdue{color:var(--danger);}
+.muted{color:var(--steel);}
+
+/* select-circle (multi-select alt) */
+.select-circle{
+  flex:0 0 22px; width:22px; height:22px; margin-top:1px;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.select-circle svg{width:22px; height:22px;}
+
+/* select head bar */
+.select-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 4px 12px; font-size:14px;
+}
+.select-head .select-x{background:none; border:none; color:var(--steel); font-size:14px; cursor:pointer; font-family:inherit;}
+.select-head .select-n{color:var(--bone); font-weight:600;}
+.select-head .select-all{background:none; border:none; color:var(--ember); font-size:14px; cursor:pointer; font-family:inherit;}
+.task-row.is-selected{outline:1.5px solid var(--ember-soft);}
+
+/* секция Выполнено и Не делать */
+.closed-section{margin-top:18px;}
+.closed-head{
+  width:100%; display:flex; align-items:center; gap:8px;
+  background:none; border:none; cursor:pointer;
+  color:var(--steel); font-size:14px; font-family:inherit;
+  padding:8px 4px;
+}
+.closed-chev{display:flex; transition:transform 160ms;}
+.closed-chev.open{transform:rotate(90deg);}
+.closed-chev svg{width:16px; height:16px;}
+.closed-count{color:var(--steel);}
+
+/* свайп-слот (alt-демо): левый слот действий открыт */
+.swipe-actions{
+  position:absolute; top:0; bottom:0; z-index:1;
+  display:flex;
+}
+.swipe-actions.right{right:0;}
+.swipe-actions.left{left:0;}
+.swipe-btn{
+  width:62px; border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+  font-size:11px; font-family:inherit; color:var(--bone);
+}
+.swipe-btn svg{width:18px; height:18px; stroke:var(--bone);}
+.swipe-btn.date{background:var(--slate); color:var(--bone);}
+.swipe-btn.date svg{stroke:var(--bone);}
+.swipe-btn.move{background:var(--steel);}
+.swipe-btn.move svg{stroke:var(--onyx);}
+.swipe-btn.move{color:var(--onyx);}
+.swipe-btn.del{background:var(--danger); border-radius:0 12px 12px 0;}
+.swipe-btn.done{background:var(--ember); border-radius:12px 0 0 12px; color:var(--on-accent);}
+.swipe-btn.done svg{stroke:var(--on-accent);}
+.task-row.swiped{transform:translateX(-186px);}
+.task-row.swiped-r{transform:translateX(80px);}
+
+/* batch-панель */
+.batchbar{
+  position:absolute; left:14px; right:14px; bottom:74px; z-index:30;
+  background:var(--slate); border:1px solid var(--hairline);
+  border-radius:16px;
+  display:flex; justify-content:space-around; align-items:center;
+  padding:10px 6px;
+}
+.batchbar button{
+  background:none; border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  color:var(--bone); font-size:11px; font-family:inherit;
+}
+.batchbar button svg{width:20px; height:20px; stroke:var(--bone);}
+.batchbar button.danger{color:var(--danger);}
+.batchbar button.danger svg{stroke:var(--danger);}
+
+/* FAB */
+.fab{
+  position:absolute; right:18px; bottom:90px; z-index:25;
+  width:56px; height:56px; border-radius:18px;
+  background:var(--ember); border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 20px rgba(0,0,0,.4);
+}
+.fab svg{width:26px; height:26px; stroke:var(--on-accent); stroke-width:2.2;}
+
+/* empty */
+.empty{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; padding:90px 24px; text-align:center;
+}
+.empty .ring{
+  width:64px; height:64px; border-radius:50%;
+  border:1.5px solid var(--hairline);
+  display:flex; align-items:center; justify-content:center;
+}
+.empty .ring svg{width:26px; height:26px; stroke:var(--steel);}
+.empty p{color:var(--steel); font-size:15px; max-width:220px; line-height:1.5;}
+.btn-primary{
+  background:var(--ember); color:var(--on-accent); border:none; cursor:pointer;
+  font-family:inherit; font-size:15px; font-weight:600;
+  padding:12px 22px; border-radius:12px;
+}
+
+/* skeleton */
+.sk-row{
+  display:flex; gap:12px; align-items:center;
+  background:var(--smoke); border-radius:12px; padding:14px 16px;
+}
+.sk-cb{width:22px; height:22px; border-radius:50%; background:var(--slate);}
+.sk-lines{flex:1; display:flex; flex-direction:column; gap:8px;}
+.sk-bar{height:11px; border-radius:5px; background:var(--slate);}
+.sk-shimmer{
+  background:linear-gradient(90deg, var(--slate) 0%, #2e2f34 50%, var(--slate) 100%);
+  background-size:200% 100%; animation:sh 1.3s ease-in-out infinite;
+}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* tab-bar */
+.tabbar{
+  position:absolute; left:0; right:0; bottom:0; z-index:20;
+  height:64px; background:var(--smoke);
+  border-top:1px solid var(--hairline);
+  display:flex;
+}
+.tabbar button{
+  flex:1; background:none; border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  color:var(--steel); font-size:11px; font-family:inherit; position:relative;
+}
+.tabbar button svg{width:23px; height:23px;}
+.tabbar button.active{color:var(--ember);}
+.tab-badge{
+  position:absolute; top:8px; left:calc(50% + 6px);
+  min-width:16px; height:16px; padding:0 4px;
+  background:var(--ember); color:var(--on-accent); border-radius:8px;
+  font-size:10px; font-family:"Geist Mono",monospace;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* scrim для alt-фрейма со слотом — не нужен; держим базу */
+
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<!-- ============ ОСНОВНОЙ ФРЕЙМ ============ -->
+<div class="plate"><span class="fcode">P07·A</span><span class="num">P07</span> <b>Задачи</b> · список с группами, приоритет-кантами, чекбоксами · ↔ V3 T1·D (вид Список)</div>
+
+<div class="phone">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><span></span><span></span><span></span></span>
+  </div>
+
+  <div class="screen">
+    <div class="screen-hero"><h1>Задачи</h1></div>
+
+    <!-- Группа: Работа -->
+    <div class="group-head">
+      <span class="gdot" style="background:var(--p-work)"></span>
+      <span>Работа<span class="ecode">A1</span></span>
+      <span class="gcount">· 3</span>
+    </div>
+    <div class="list">
+      <!-- high -->
+      <div class="task-swipe"><div class="task-row p-work prio-high" style="position:relative"><span class="ecode pin">A3</span>
+        <div class="checkbox" role="button" aria-label="done"></div>
+        <div class="grow">
+          <div class="title">Отправить договор клиенту до конца дня<span class="ecode">A2</span></div>
+          <div class="meta overdue">3 июн · 17:00</div>
+        </div>
+      </div></div>
+      <!-- medium -->
+      <div class="task-swipe"><div class="task-row p-work prio-medium">
+        <div class="checkbox" role="button"></div>
+        <div class="grow">
+          <div class="title">Подготовить смету по ремонту студии</div>
+          <div class="meta">5 июн</div>
+        </div>
+      </div></div>
+      <!-- low -->
+      <div class="task-swipe"><div class="task-row p-work prio-low">
+        <div class="checkbox" role="button"></div>
+        <div class="grow">
+          <div class="title">Разобрать почту во входящих</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Группа: Здоровье -->
+    <div class="group-head">
+      <span class="gdot" style="background:var(--p-health)"></span>
+      <span>Здоровье</span>
+      <span class="gcount">· 2</span>
+    </div>
+    <div class="list">
+      <div class="task-swipe"><div class="task-row p-health prio-medium">
+        <div class="checkbox" role="button"></div>
+        <div class="grow">
+          <div class="title">Сдать анализы крови (по протоколу)</div>
+          <div class="meta">15 июн · 08:30</div>
+        </div>
+      </div></div>
+      <div class="task-swipe"><div class="task-row p-health">
+        <div class="checkbox" role="button"></div>
+        <div class="grow">
+          <div class="title">Валик-протокол на диафрагму, 10 минут</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- Группа: Финансы -->
+    <div class="group-head">
+      <span class="gdot" style="background:var(--p-finance)"></span>
+      <span>Финансы</span>
+      <span class="gcount">· 1</span>
+    </div>
+    <div class="list">
+      <div class="task-swipe"><div class="task-row p-finance">
+        <div class="checkbox" role="button"></div>
+        <div class="grow">
+          <div class="title">Купить билеты в Брно на выходные</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- секция Выполнено и Не делать -->
+    <div class="closed-section">
+      <button class="closed-head">
+        <span class="closed-chev open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+        <span>Выполнено и Не делать<span class="ecode">A4</span></span>
+        <span class="closed-count mono">· 2</span>
+      </button>
+      <div class="list" style="margin-top:8px">
+        <div class="task-swipe"><div class="task-row is-done">
+          <div class="checkbox done" role="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></div>
+          <div class="grow">
+            <div class="title title-done">Записаться к стоматологу</div>
+          </div>
+        </div></div>
+        <div class="task-swipe"><div class="task-row is-wontdo">
+          <div class="checkbox wontdo" role="button"><span class="cb-wontdo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l14 14M5 19L19 5"/></svg></span></div>
+          <div class="grow">
+            <div class="title title-done">Перенести встречу на следующую неделю</div>
+            <div class="muted mono" style="font-size:13px;margin-top:2px">Не делать</div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" aria-label="Добавить задачу"><span class="ecode pin">A5</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="var(--on-accent)" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
+
+  <!-- tab-bar -->
+  <nav class="tabbar">
+    <button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h4"/></svg>
+      <span>Сегодня</span>
+      <span class="tab-badge">2</span>
+    </button>
+    <button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+      <span>Календарь</span>
+    </button>
+    <button class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Обзор</span>
+    </button>
+    <button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+      <span>Цели</span>
+    </button>
+    <button>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+      <span>Трекинг</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ============ ALT 1: режим выбора + batch-панель + открытый свайп-слот ============ -->
+<div class="cap"><span class="fcode">P07·B</span>ALT · multi-select (long-press) + batch-панель · свайп-слот действий открыт · ↔ V3 T1·D (вид Список)</div>
+<div class="phone short">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><span></span><span></span><span></span></span>
+  </div>
+  <div class="screen" style="padding-bottom:0; flex:none">
+    <div class="select-head">
+      <button class="select-x">Отмена</button>
+      <span class="select-n">Выбрано: 2<span class="ecode">B1</span></span>
+      <button class="select-all">Выбрать всё</button>
+    </div>
+    <div class="list">
+      <!-- выбранная строка -->
+      <div class="task-swipe"><div class="task-row p-work prio-high is-selected">
+        <div class="select-circle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" fill="var(--ember)" stroke="none"/><path d="M8 12l3 3 5-5" stroke="var(--on-accent)" stroke-width="2.4"/></svg></div>
+        <div class="grow">
+          <div class="title">Отправить договор клиенту до конца дня<span class="ecode">B2</span></div>
+          <div class="meta overdue">3 июн · 17:00</div>
+        </div>
+      </div></div>
+      <!-- не выбрана -->
+      <div class="task-swipe"><div class="task-row p-work prio-medium">
+        <div class="select-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg></div>
+        <div class="grow">
+          <div class="title">Подготовить смету по ремонту студии</div>
+          <div class="meta">5 июн</div>
+        </div>
+      </div></div>
+      <!-- выбранная строка -->
+      <div class="task-swipe"><div class="task-row p-finance is-selected">
+        <div class="select-circle"><svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" fill="var(--ember)" stroke="none"/><path d="M8 12l3 3 5-5" stroke="var(--on-accent)" stroke-width="2.4"/></svg></div>
+        <div class="grow">
+          <div class="title">Купить билеты в Брно на выходные</div>
+        </div>
+      </div></div>
+
+      <!-- строка со свайпом влево: открыт слот Дата / В список / Удалить -->
+      <div class="task-swipe">
+        <div class="swipe-actions right"><span class="ecode pin">B4</span>
+          <button class="swipe-btn date"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg><span>Дата</span></button>
+          <button class="swipe-btn move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg><span>В список</span></button>
+          <button class="swipe-btn del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg><span>Удалить</span></button>
+        </div>
+        <div class="task-row p-health prio-medium swiped">
+          <div class="select-circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg></div>
+          <div class="grow">
+            <div class="title">Сдать анализы крови (по протоколу)<span class="ecode">B3</span></div>
+            <div class="meta">15 июн · 08:30</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- batch-панель -->
+    <div class="batchbar" style="position:relative; margin:18px 0 8px"><span class="ecode pin">B5</span>
+      <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg><span>Дата</span></button>
+      <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg><span>В список</span></button>
+      <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg><span>Приоритет</span></button>
+      <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg><span>Готово</span></button>
+      <button class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg><span>Удалить</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ALT 2: empty + skeleton ============ -->
+<div class="cap"><span class="fcode">P07·C</span>ALT · пустой список + загрузка (скелетон) · ↔ V3 T1·D (вид Список)</div>
+<div class="phone short">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><span></span><span></span><span></span></span>
+  </div>
+  <div class="screen" style="padding-bottom:24px; flex:none">
+    <div class="screen-hero"><h1>Задачи</h1></div>
+    <!-- empty -->
+    <div class="empty">
+      <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l2 2 3-3M4 12l2 2 3-3M4 18l2 2 3-3M13 6h7M13 12h7M13 18h7"/></svg></div>
+      <p>Пока нет задач. Добавьте первую, чтобы начать.</p>
+      <button class="btn-primary">Добавить задачу<span class="ecode">C1</span></button>
+    </div>
+    <!-- skeleton -->
+    <div class="cap" style="margin:8px 0 10px">состояние загрузки<span class="ecode">C2</span></div>
+    <div class="list">
+      <div class="sk-row"><div class="sk-cb sk-shimmer"></div><div class="sk-lines"><div class="sk-bar sk-shimmer" style="width:72%"></div><div class="sk-bar sk-shimmer" style="width:40%"></div></div></div>
+      <div class="sk-row"><div class="sk-cb sk-shimmer"></div><div class="sk-lines"><div class="sk-bar sk-shimmer" style="width:55%"></div></div></div>
+      <div class="sk-row"><div class="sk-cb sk-shimmer"></div><div class="sk-lines"><div class="sk-bar sk-shimmer" style="width:64%"></div><div class="sk-bar sk-shimmer" style="width:30%"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ALT 3: ошибка загрузки ============ -->
+<div class="cap"><span class="fcode">P07·D</span>ALT · ошибка загрузки · ↔ V3 T1·D (вид Список)</div>
+<div class="phone short">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><span></span><span></span><span></span></span>
+  </div>
+  <div class="screen" style="padding-bottom:24px; flex:none">
+    <div class="screen-hero"><h1>Задачи</h1></div>
+    <div class="empty">
+      <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg></div>
+      <p>Не удалось загрузить задачи. Проверьте соединение.</p>
+      <button class="btn-primary">Повторить<span class="ecode">D1</span></button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

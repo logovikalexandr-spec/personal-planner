@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T4 Цели — функциональные флоу (каждое взаимодействие)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* :root — 1:1 из T5-flows.html (единый визуальный язык) */
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --ok:#3FB68B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 22px 90px;line-height:1.45}
+  .top{max-width:880px;margin-bottom:8px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--ember)}
+  h2{font-size:18px;font-weight:700;margin:40px 0 5px;letter-spacing:-.02em}
+  .trig{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ember);margin-bottom:15px}
+  .trig b{color:var(--bone)}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .panel{width:330px}
+  .plabel{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+  .note{font-size:12px;color:var(--steel);margin-top:11px;max-width:340px}
+  .note b{color:var(--bone)} .rec{color:var(--zima);font-weight:600} .bad{color:var(--danger)}
+  .arrow{align-self:center;color:var(--steel);font-size:26px;padding:0 2px}
+  .mono{font-family:"Geist Mono",monospace}
+
+  /* карта проекта (из T4-celi.html) */
+  .pcard{background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:15px 16px;position:relative;overflow:hidden;width:300px}
+  .pcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .pcard.press{outline:2px solid var(--ember);outline-offset:1px}
+  .pc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .pc-name{font-size:16px;font-weight:600;line-height:1.25}
+  .pc-name s{font-weight:400;font-size:12px;color:var(--steel);text-decoration:none}
+  .ring{flex:0 0 auto;text-align:center}
+  .ring .v{font-size:19px;font-weight:700;color:var(--c)}
+  .ring .l{font-size:9px;color:var(--steel);letter-spacing:.5px}
+  .pc-meta{font-size:12px;color:var(--steel);margin:5px 0 11px;font-family:"Geist Mono",monospace}
+  .stages{display:flex;gap:4px;margin-bottom:10px;align-items:center}
+  .stages i{flex:1;height:6px;border-radius:3px;background:#2c2d31}
+  .stages i.on{background:var(--c)}
+  .next{font-size:12.5px;color:var(--steel)}
+  .next b{color:var(--bone);font-weight:600}
+  .ai{border-radius:10px;padding:9px 11px;margin-top:11px;font-size:12.5px;line-height:1.4;display:flex;gap:7px;align-items:flex-start}
+  .ai .ic{flex:0 0 auto;font-weight:700}
+  .ai.fast{background:var(--ember-soft);color:var(--ember)}
+  .ai.risk{background:rgba(255,92,92,.12);color:var(--danger)}
+  .ai.info{background:rgba(91,141,239,.12);color:var(--health)}
+
+  /* деталь проекта (из T4d-celi-detail.html) */
+  .det{width:330px;background:var(--onyx);border:1px solid var(--hairline);border-radius:20px;overflow:hidden}
+  .det .nav{display:flex;align-items:center;gap:12px;padding:13px 15px 9px;color:var(--steel)}
+  .det .nav .bk{color:var(--ember);font-size:15px}
+  .det .nav .ttl{font-size:12px;font-family:"Geist Mono",monospace;margin-left:auto}
+  .det .body{padding:2px 15px 18px;max-height:560px;overflow:hidden}
+  .hero{display:flex;gap:14px;align-items:center;margin-bottom:8px}
+  .hero h1{font-size:19px;font-weight:700;line-height:1.15;flex:1}
+  .hero .price{font-size:11.5px;color:var(--steel);font-weight:400;margin-top:2px}
+  .donut{flex:0 0 auto;width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--c) 0 var(--p,72%),#2c2d31 0);display:flex;align-items:center;justify-content:center;position:relative}
+  .donut .inner{width:50px;height:50px;border-radius:50%;background:var(--onyx);display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .donut .v{font-size:16px;font-weight:700;color:var(--c)}
+  .donut .l{font-size:8px;color:var(--steel)}
+  .herometa{display:flex;gap:7px;margin:10px 0 16px;font-size:11px;font-family:"Geist Mono",monospace;flex-wrap:wrap}
+  .chip{background:var(--card);border:1px solid var(--hairline);border-radius:8px;padding:5px 9px;color:var(--steel)}
+  .chip b{color:var(--bone)}
+  .chip.up{color:var(--ok);border-color:rgba(63,182,139,.3)}
+  .chip.edit{color:var(--ember);border-color:rgba(238,138,60,.3)}
+  .sec{margin-bottom:16px}
+  .sec-h{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--steel);margin:0 2px 9px;display:flex;justify-content:space-between}
+  .sec-h .act{color:var(--ember);text-transform:none;letter-spacing:0}
+
+  /* карточки ai_notes 3 типов */
+  .notecard{border-radius:12px;padding:11px 13px;margin-bottom:8px;font-size:13px;line-height:1.45;border:1px solid transparent}
+  .notecard .nh{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center}
+  .notecard .nd{color:var(--steel);font-weight:400}
+  .notecard.accelerate{background:var(--ember-soft);border-color:rgba(238,138,60,.25)}
+  .notecard.accelerate .nh{color:var(--ember)}
+  .notecard.risk{background:rgba(255,92,92,.1);border-color:rgba(255,92,92,.25)}
+  .notecard.risk .nh{color:var(--danger)}
+  .notecard.info{background:rgba(91,141,239,.1);border-color:rgba(91,141,239,.22)}
+  .notecard.info .nh{color:var(--health)}
+
+  /* этапы */
+  .stage{background:var(--card);border:1px solid var(--hairline);border-radius:14px;margin-bottom:8px;overflow:hidden}
+  .stage.cur{border-color:rgba(238,138,60,.35)}
+  .st-h{display:flex;align-items:center;gap:11px;padding:12px 13px}
+  .st-num{flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:var(--slate);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--steel)}
+  .st-num.done{background:var(--ok);color:#06281c}
+  .st-num.now{background:var(--ember);color:#1a1209}
+  .st-num.late{background:var(--danger);color:#fff}
+  .st-mid{flex:1;min-width:0}
+  .st-name{font-size:14px;font-weight:600}
+  .st-meta{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:1px}
+  .st-meta.late{color:var(--danger)}
+  .st-pct{font-size:13px;font-weight:700;color:var(--c)}
+  .st-bar{height:5px;border-radius:3px;background:#2c2d31;margin:0 13px 12px;overflow:hidden}
+  .st-bar i{display:block;height:100%;background:var(--c);border-radius:3px}
+  .st-cev{margin-left:auto;color:var(--steel);font-size:16px}
+
+  .newstage{width:100%;background:var(--ember-soft);color:var(--ember);border:1px dashed var(--ember);border-radius:13px;padding:12px;font-size:13.5px;font-weight:600;font-family:inherit;text-align:center}
+
+  /* bottom sheet (из T5) */
+  .sheet{background:#141519;border:1px solid var(--hairline);border-radius:20px;padding:16px 16px 18px;width:330px}
+  .handle{width:36px;height:4px;border-radius:2px;background:var(--slate);margin:0 auto 14px}
+  .sh-title{font-size:17px;font-weight:700;margin-bottom:4px}
+  .sh-sub{font-size:12px;color:var(--steel);margin-bottom:14px}
+  .fld{margin-bottom:13px}
+  .fld .lab{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+  .inp{background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:11px 12px;font-size:14px;color:var(--bone)}
+  .inp.ph{color:var(--steel)}
+  .seg{display:flex;background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:3px}
+  .seg i{flex:1;text-align:center;font-style:normal;font-size:12.5px;font-weight:600;color:var(--steel);padding:8px 0;border-radius:8px}
+  .seg i.on{background:var(--card);color:var(--bone);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .two{display:flex;gap:9px}.two>*{flex:1}
+  .cta{background:var(--ember);color:#1a1209;border-radius:11px;padding:13px;text-align:center;font-weight:700;font-size:15px;margin-top:6px}
+  .cta.ghost{background:var(--slate);color:var(--bone)}
+  .stepperow{display:flex;align-items:center;gap:12px;justify-content:center;margin:2px 0 4px}
+  .pm{width:42px;height:42px;border-radius:12px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--bone)}
+  .val{font-size:28px;font-weight:700;font-family:"Geist Mono";min-width:90px;text-align:center}
+  .val small{font-size:13px;color:var(--steel)}
+
+  /* список этапов для выбора (шит) */
+  .pick{display:flex;align-items:center;gap:11px;padding:11px 12px;background:var(--card);border:1px solid var(--hairline);border-radius:11px;margin-bottom:8px}
+  .pick .pn{flex:0 0 auto;width:22px;height:22px;border-radius:7px;background:var(--slate);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--steel)}
+  .pick .pn.done{background:var(--ok);color:#06281c}.pick .pn.now{background:var(--ember);color:#1a1209}
+  .pick .pname{flex:1;font-size:13.5px;font-weight:600}
+  .pick .ppct{font-size:11px;color:var(--steel);font-family:"Geist Mono"}
+
+  /* dialog */
+  .dlg{background:#1d1e23;border:1px solid var(--hairline);border-radius:16px;padding:18px 16px;width:290px}
+  .dlg .dt{font-size:16px;font-weight:700;margin-bottom:6px}
+  .dlg .dd{font-size:13px;color:var(--steel);margin-bottom:16px;line-height:1.5}
+  .dlg .db{display:flex;gap:9px}.dlg .db>*{flex:1;padding:11px;border-radius:10px;font-weight:600;font-size:14px;text-align:center}
+  .db .cancel{background:var(--slate);color:var(--bone)}
+  .db .ok{background:var(--ember);color:#1a1209}
+
+  /* zero-afk выноска */
+  .zbox{background:rgba(155,107,224,.1);border:1px solid rgba(155,107,224,.3);border-radius:12px;padding:11px 13px;font-size:12px;color:#c3aef0;max-width:340px;margin-top:11px;line-height:1.5}
+  .zbox b{color:#d8c8f7}
+</style></head>
+<body>
+
+<div class="top">
+  <h1>T4 «Цели» — функциональные флоу</h1>
+  <p>Каждое касание: обзор-пульс → проект → деталь. <b>Зелёное</b> = поведение по умолчанию, <b>красное</b> = деструктив/осторожно, <b>фиолетовое</b> = ZERO-AFK (записал ассистент в чате, не live-LLM в приложении).</p>
+</div>
+
+<!-- 1 -->
+<h2>1 · Тап по карточке проекта → деталь</h2>
+<div class="trig"><b>Где:</b> тап в любое место карточки. <b>Что:</b> открывается полный экран проекта (T4d).</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">триггер · карточка из пульса</div>
+    <div class="pcard" style="--c:var(--zima)">
+      <div class="pc-top">
+        <div class="pc-name">Продать студию ZIMA<br><s>за 1.25M CZK</s></div>
+        <div class="ring"><div class="v">72%</div><div class="l">ШАНС</div></div>
+      </div>
+      <div class="pc-meta">срок: до 15 авг · осталось 9 нед · этап 3 / 5</div>
+      <div class="stages"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div>
+      <div class="next">След. веха: <b>Переговоры с покупателем</b></div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">деталь проекта (T4d)</div>
+    <div class="det">
+      <div class="nav"><span class="bk">‹ Цели</span><span class="ttl">проект</span></div>
+      <div class="body" style="--c:var(--zima)">
+        <div class="hero">
+          <div style="flex:1"><h1>Продать студию ZIMA</h1><div class="price">за 1.25M CZK · тату-студия, Прага</div></div>
+          <div class="donut" style="--p:72%"><div class="inner"><div class="v">72%</div><div class="l">ШАНС</div></div></div>
+        </div>
+        <div class="herometa">
+          <div class="chip up"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M6 15l6-6 6 6"/></svg> +5% / нед</div>
+          <div class="chip">срок <b>15 авг</b></div>
+          <div class="chip">осталось <b>9 нед</b></div>
+          <div class="chip">этап <b>3/5</b></div>
+        </div>
+        <div class="sec"><div class="sec-h"><span>Заметки ИИ</span></div>
+          <div class="notecard accelerate"><div class="nh"><span style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Ускорить</span><span class="nd mono">9 июн</span></div>Параллелить юр.проверку с переговорами — выигрыш ~2 недели.</div>
+        </div>
+        <div class="sec"><div class="sec-h"><span>Этапы</span><span>3/5</span></div>
+          <div class="stage cur"><div class="st-h"><div class="st-num now">3</div><div class="st-mid"><div class="st-name">Переговоры с покупателем</div><div class="st-meta">текущий · до 25 июня</div></div><div class="st-pct">60%</div></div><div class="st-bar"><i style="width:60%"></i></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>Деталь несёт:</b> кольцо %вероятности, дельту за неделю, срок (target_date), осталось недель (weeks_left), карточки заметок ИИ, список этапов с progress. <span class="rec">Всё, что глубже карточки, живёт тут.</span></div>
+
+<!-- 2 -->
+<h2>2 · Hero детали — %вероятности + срок + weeks_left (отображение, не расчёт)</h2>
+<div class="trig"><b>Где:</b> верх детали. <b>Что:</b> поля модели Project как данные. Тап по чипу = ручной override.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">hero · поля проекта</div>
+    <div class="det" style="height:auto">
+      <div class="body" style="--c:var(--health);padding-top:14px;max-height:none">
+        <div class="hero">
+          <div style="flex:1"><h1>Закрыть протокол здоровья</h1><div class="price">опора «тело» · цель года</div></div>
+          <div class="donut" style="--c:var(--health);--p:64%"><div class="inner"><div class="v">64%</div><div class="l">ШАНС</div></div></div>
+        </div>
+        <div class="herometa">
+          <div class="chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M6 9l6 6 6-6"/></svg> −3% / нед</div>
+          <div class="chip">срок <b>22 июня</b></div>
+          <div class="chip">осталось <b>1.5 нед</b></div>
+          <div class="chip edit"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M14 4l6 6M3 21l1-5L16 4l4 4L8 20l-5 1z"/></svg> править</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">тап «<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M14 4l6 6M3 21l1-5L16 4l4 4L8 20l-5 1z"/></svg> править» → override срока/%</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Править вручную</div>
+      <div class="sh-sub">Перебивает оценку ассистента до следующего разбора.</div>
+      <div class="fld"><div class="lab">Срок (target_date)</div><div class="inp">22 июня 2026</div></div>
+      <div class="fld"><div class="lab">Шанс успеха, %</div>
+        <div class="stepperow"><span class="pm">−</span><span class="val">64<small> %</small></span><span class="pm">+</span></div>
+      </div>
+      <div class="fld"><div class="lab">Источник</div><div class="seg"><i>Оценка ИИ</i><i class="on">Ручной</i></div></div>
+      <div class="cta">Сохранить</div>
+    </div>
+  </div>
+</div>
+<div class="zbox"><b>ZERO-AFK:</b> 64% и «22 июня» — это <b>отображение</b> того, что записал интерактивный Claude в чате через write-API. В приложении НЕТ кнопки «AI рассчитай» и нет live-генерации. Владелец может <b>перебить вручную</b> (источник переключается на «Ручной») — тогда дельта-стрелка и пересчёт замораживаются до следующего разбора в чате.</div>
+
+<!-- 3 -->
+<h2>3 · Список этапов с progress · тап этапа</h2>
+<div class="trig"><b>Где:</b> блок «Этапы». <b>Что:</b> Stage{order_index, status, progress, is_milestone}. Тап = раскрыть/перейти.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">этапы (done / current / late / future)</div>
+    <div class="det" style="height:auto"><div class="body" style="--c:var(--zima);padding-top:14px;max-height:none">
+      <div class="stage"><div class="st-h"><div class="st-num done">✓</div><div class="st-mid"><div class="st-name">Оценка и упаковка студии</div><div class="st-meta">закрыт · 12–28 мая</div></div><span class="st-cev">›</span></div></div>
+      <div class="stage"><div class="st-h"><div class="st-num done">✓</div><div class="st-mid"><div class="st-name">Поиск покупателей</div><div class="st-meta">закрыт · 28 мая – 6 июня</div></div><span class="st-cev">›</span></div></div>
+      <div class="stage cur"><div class="st-h"><div class="st-num now">3</div><div class="st-mid"><div class="st-name">Переговоры с покупателем <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="color:var(--ember);vertical-align:0"><path d="M12 2l10 10-10 10L2 12z"/></svg></div><div class="st-meta">текущий · до 25 июня</div></div><div class="st-pct">60%</div></div><div class="st-bar"><i style="width:60%"></i></div></div>
+      <div class="stage"><div class="st-h"><div class="st-num late">!</div><div class="st-mid"><div class="st-name">Договор + юр.проверка</div><div class="st-meta late">просрочен старт · ~3 нед</div></div><span class="st-cev">›</span></div></div>
+      <div class="stage"><div class="st-h"><div class="st-num">5</div><div class="st-mid"><div class="st-name">Передача дел и активов</div><div class="st-meta">впереди</div></div><span class="st-cev">›</span></div></div>
+      <button class="newstage">+ Добавить этап</button>
+    </div></div>
+  </div>
+  <div class="note">
+    <b>Статусы (status):</b> <span style="color:var(--ok)">✓ done</span> · <span style="color:var(--ember)">N now (current, прогресс-бар)</span> · <span style="color:var(--danger)">! late (просрочен старт)</span> · <span style="color:var(--steel)">N future</span>.<br>
+    <b><svg width="11" height="11" viewBox="0 0 24 24" fill="var(--ember)" style="vertical-align:-1px"><path d="M12 2l10 10-10 10L2 12z"/></svg> = is_milestone</b> (веха). Текущий раскрыт с <b>progress</b>-баром. Тап future/done = перейти к этапу/задачам этапа.
+  </div>
+</div>
+
+<!-- 4 -->
+<h2>4 · Тап «+ Добавить этап» → шит создания этапа</h2>
+<div class="trig"><b>Где:</b> кнопка снизу списка этапов. <b>Что:</b> шит-конструктор этапа.</div>
+<div class="row">
+  <div class="panel">
+    <div class="plabel">шит «новый этап»</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Новый этап</div>
+      <div class="sh-sub">Проект «Продать студию ZIMA»</div>
+      <div class="fld"><div class="lab">Название</div><div class="inp ph">Напр. «Передача дел»</div></div>
+      <div class="two">
+        <div class="fld"><div class="lab">Порядок</div><div class="inp">6</div></div>
+        <div class="fld"><div class="lab">Дедлайн</div><div class="inp ph">опц.</div></div>
+      </div>
+      <div class="fld"><div class="lab">Это веха (milestone)?</div><div class="seg"><i class="on">Обычный</i><i><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M12 2l10 10-10 10L2 12z"/></svg> Веха</i></div></div>
+      <div class="cta">Создать этап</div>
+    </div>
+  </div>
+  <div class="note"><b>Минимум:</b> имя + порядок. Дедлайн опционален (тогда нет «просрочен»). <b>Веха</b> = ставит флажок <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--ember)" style="vertical-align:-1px"><path d="M12 2l10 10-10 10L2 12z"/></svg> и точку на Ганте/календаре. <span class="rec">progress этапа считается от закрытых задач этапа — не вводится руками.</span> Новый этап встаёт в конец как future.</div>
+</div>
+
+<!-- 5 -->
+<h2>5 · Карточки заметок ИИ (ai_notes) — 3 типа, разные цвета</h2>
+<div class="trig"><b>Где:</b> блок «Заметки ИИ» в детали. <b>Что:</b> ai_notes[{date,type,text}] как лента. type красит карточку.</div>
+<div class="row">
+  <div class="panel" style="width:340px">
+    <div class="plabel">accelerate · risk · info</div>
+    <div class="notecard accelerate"><div class="nh"><span style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Ускорить · accelerate</span><span class="nd mono">9 июн</span></div>Параллелить юр.проверку с переговорами — выигрыш ~2 недели. Собрать пакет документов заранее.</div>
+    <div class="notecard risk"><div class="nh"><span style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>Риск · risk</span><span class="nd mono">9 июн</span></div>Покупатель А без депозита — может уйти. Закрыть письмо о намерениях до встречи Б.</div>
+    <div class="notecard info"><div class="nh"><span style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Контекст · info</span><span class="nd mono">6 июн</span></div>Этап «Поиск» закрыт раньше срока. Шанс поднят до 72%. Критический путь — юр.проверка.</div>
+  </div>
+  <div class="note">
+    <b>type → цвет:</b> <span style="color:var(--ember)">accelerate = ember</span> (как ускорить) · <span style="color:var(--danger)">risk = красный</span> (что угрожает) · <span style="color:var(--health)">info = синий</span> (контекст/обновление). Каждая с датой. Лента сверху-вниз, свежее выше.
+  </div>
+</div>
+<div class="zbox"><b>ZERO-AFK:</b> заметки ИИ <b>не генерятся в приложении</b>. Их пишет интерактивный Claude в чате (разбор статуса ~раз в петлю) через write-API; экран только <b>отображает</b> накопленный массив <code>ai_notes</code>. Нет кнопки «обновить AI» с live-вызовом модели — обновление инициирует владелец в чате командой «обсуди проект».</div>
+
+<!-- 6 -->
+<h2>6 · Тап по этапу → Гант / деталь этапа</h2>
+<div class="trig"><b>Где:</b> тап по строке этапа (chevron ›). <b>Что:</b> переход к этапу — задачи этапа или его полоса в Ганте.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">тап этапа → меню перехода</div>
+    <div class="stage cur press" style="width:300px;margin-bottom:10px"><div class="st-h"><div class="st-num now">3</div><div class="st-mid"><div class="st-name">Переговоры с покупателем</div><div class="st-meta">текущий · до 25 июня · 60%</div></div></div></div>
+    <div class="dlg" style="width:300px;text-align:left">
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 2px;font-size:14px;border-bottom:1px solid var(--hairline)"><span style="color:var(--steel)">▸</span>Открыть задачи этапа</div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 2px;font-size:14px;border-bottom:1px solid var(--hairline)"><span style="color:var(--steel)">▸</span>Показать в Ганте <span class="mono" style="margin-left:auto;color:var(--steel);font-size:11px">T3b</span></div>
+      <div style="display:flex;align-items:center;gap:11px;padding:9px 2px;font-size:14px"><span style="color:var(--ember);display:inline-flex"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6M3 21l1-5L16 4l4 4L8 20l-5 1z"/></svg></span>Сдвинуть срок этапа</div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">«задачи этапа» — раскрыт (Task.stage_id)</div>
+    <div class="stage cur" style="width:300px"><div class="st-h"><div class="st-num now">3</div><div class="st-mid"><div class="st-name">Переговоры с покупателем</div><div class="st-meta">текущий · 2/4 задач</div></div><div class="st-pct">60%</div></div>
+      <div class="st-bar"><i style="width:60%"></i></div>
+      <div style="border-top:1px solid var(--hairline);padding:4px 13px 10px">
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px"><span style="width:18px;height:18px;border-radius:50%;background:var(--ok);flex:0 0 auto"></span><span style="color:var(--steel);text-decoration:line-through">Подготовить презентацию</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px"><span style="width:18px;height:18px;border-radius:50%;background:var(--ok);flex:0 0 auto"></span><span style="color:var(--steel);text-decoration:line-through">Встреча с покупателем А</span></div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px"><span style="width:18px;height:18px;border-radius:50%;border:2px solid var(--steel);flex:0 0 auto"></span>Согласовать цену <span class="mono" style="margin-left:auto;color:var(--steel);font-size:11px">12 июн</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note">Тап этапа даёт выбор: <b>задачи этапа</b> (открывает список Task где stage_id=этот) или <b>полоса в Ганте</b> (T3b). Задачи этапа = реальные to-do, видны и в «Задачах»/«Сегодня». <span class="rec">«Сдвинуть срок» = ручной override дат этапа.</span></div>
+
+<!-- 7 -->
+<h2>7 · Тап «+ Новый проект» → разобрать с ассистентом (ZERO-AFK)</h2>
+<div class="trig"><b>Где:</b> кнопка внизу пульса. <b>Что:</b> НЕ форма с «AI рассчитай», а отправка в чат-разбор.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">тап «+ Новый проект»</div>
+    <button class="newstage" style="width:300px;margin-bottom:10px">+ Новый проект — разобрать с ИИ</button>
+    <div class="dlg" style="width:300px">
+      <div class="dt">Новый проект</div>
+      <div class="dd">Большую цель мы разбираем в чате: вместе зададим срок, этапы и оценим шанс. Карточка появится заполненной.</div>
+      <div class="db"><span class="cancel">Черновик вручную</span><span class="ok">Открыть чат</span></div>
+    </div>
+  </div>
+  <div class="note"><b>Два пути:</b> «Открыть чат» = разбор с Claude (рекомендуемый, заполнит вероятность/срок/этапы/заметки). «Черновик вручную» = пустая карточка-болванка, поля заполнишь сам, AI-блоки пустые до разбора. <span class="rec">Цель года/квартала из .life → сюда как проект.</span></div>
+</div>
+<div class="zbox"><b>ZERO-AFK:</b> создание проекта не дёргает LLM из приложения. «Разобрать с ИИ» = открыть диалог с интерактивным Claude (в Telegram/чате), который через write-API запишет <code>success_probability</code>, <code>target_date</code>, этапы и первые <code>ai_notes</code>. Приложение — только трекинг и отображение.</div>
+
+<!-- 8 -->
+<h2>8 · Деструктив: удалить / архивировать проект</h2>
+<div class="trig"><b>Где:</b> ⋯ в навигации детали → меню. <b>Что:</b> архив (мягко) / удалить (с подтверждением).</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">подтверждение удаления</div>
+    <div class="dlg"><div class="dt">Удалить «Продать студию ZIMA»?</div><div class="dd">Проект, все этапы, привязка задач и заметки ИИ удалятся навсегда. Задачи останутся, но потеряют этап. Отменить нельзя.</div><div class="db"><span class="cancel">Отмена</span><span class="ok" style="background:var(--danger);color:#fff">Удалить</span></div></div>
+  </div>
+  <div class="note"><span class="rec">Сначала предлагаем «Архивировать»</span> (проект прячется из пульса, история и заметки сохраняются, можно вернуть). <b>Удалить</b> — безвозвратно, с честным текстом про потерю привязок. Задачи не удаляются вместе с проектом, только теряют stage_id. Деструктив всегда с подтверждением (правило проекта).</div>
+</div>
+
+</body></html>

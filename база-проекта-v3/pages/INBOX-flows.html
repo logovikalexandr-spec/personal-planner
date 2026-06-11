@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>INBOX «Входящие» — функциональные флоу (каждое взаимодействие)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --personal:#C9A24B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 22px 90px;line-height:1.45}
+  .top{max-width:880px;margin-bottom:8px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--ember)}
+  h2{font-size:18px;font-weight:700;margin:40px 0 5px;letter-spacing:-.02em}
+  .trig{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ember);margin-bottom:15px}
+  .trig b{color:var(--bone)}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .panel{width:330px}
+  .plabel{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+  .note{font-size:12px;color:var(--steel);margin-top:11px;max-width:330px}
+  .note b{color:var(--bone)} .rec{color:var(--zima);font-weight:600} .bad{color:var(--danger)}
+  .arrow{align-self:center;color:var(--steel);font-size:26px;padding:0 2px}
+  .mono{font-family:"Geist Mono",monospace}
+
+  /* inbox card — из INBOX-inbox.html */
+  .icard{background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:14px 15px 13px;position:relative;overflow:hidden;width:330px}
+  .icard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--steel);opacity:.5}
+  .icard.suggest::before{background:var(--zima);opacity:1}
+  .icard.gone::before{background:var(--zima);opacity:1}
+  .itext{font-size:15px;font-weight:500;line-height:1.35;margin-bottom:7px}
+  .src{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--steel);font-family:"Geist Mono",monospace;margin-bottom:11px}
+  .src .tag{background:var(--slate);border-radius:6px;padding:2px 7px;letter-spacing:.3px}
+  .src .dotsep{opacity:.5}
+
+  /* AI suggestion block — ⚡ = SVG-молния (НЕ emoji) */
+  .ai{border-radius:10px;padding:9px 11px;margin:0 0 11px;font-size:12.5px;line-height:1.4;display:flex;gap:8px;align-items:center;background:var(--ember-soft);color:var(--ember)}
+  .ai .bolt{flex:0 0 auto;width:15px;height:15px;fill:var(--ember);stroke:none}
+  .ai .txt{font-weight:600}
+  .ai .txt s{font-weight:500;color:rgba(238,138,60,.7);text-decoration:none}
+  .ai .accept{margin-left:auto;font-size:11px;font-weight:700;border:1px solid rgba(238,138,60,.55);border-radius:8px;padding:4px 11px;color:var(--ember);background:none;font-family:inherit;flex:0 0 auto}
+  .ai .edit{font-size:11px;font-weight:500;color:rgba(238,138,60,.75);padding:4px 2px;flex:0 0 auto}
+
+  /* quick action chips */
+  .acts{display:flex;gap:7px;flex-wrap:wrap}
+  .act{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:500;color:var(--bone);background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:7px 11px}
+  .act svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.7}
+  .act.proj{color:var(--ember)}
+  .act.del{color:var(--danger);margin-left:auto;background:none;border-color:transparent}
+  .act.on{background:var(--ember-soft);color:var(--ember);border-color:transparent}
+
+  /* swipe reveal */
+  .swwrap{position:relative;border-radius:16px;overflow:hidden;width:330px}
+  .swact{position:absolute;right:0;top:0;bottom:0;display:flex}
+  .swact div{width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;color:#fff;font-family:"Geist Mono"}
+  .swact svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8}
+  .swact .proj{background:var(--zima)} .swact .today{background:var(--ember)} .swact .del{background:var(--danger)}
+  .icard.shift{transform:translateX(-192px)}
+
+  /* destination card (результат принятия — задача в проекте/этапе) */
+  .dest{width:330px;background:var(--onyx);border:1px solid var(--hairline);border-radius:18px;overflow:hidden}
+  .dest .dh{padding:13px 15px 6px;border-bottom:1px solid var(--hairline)}
+  .dest .dh .pj{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
+  .dest .dh .pj i{width:10px;height:10px;border-radius:3px;display:block;flex:0 0 auto}
+  .dest .dh .stg{font-size:11.5px;color:var(--steel);font-family:"Geist Mono";margin-top:5px}
+  .dest .dh .stg b{color:var(--zima)}
+  .dest .tk{display:flex;align-items:center;gap:11px;padding:13px 15px}
+  .dest .tk .ck{flex:0 0 auto;width:20px;height:20px;border-radius:50%;border:2px solid var(--slate)}
+  .dest .tk .tn{font-size:14.5px;font-weight:500}
+  .dest .tk.new{background:var(--ember-soft)}
+  .dest .tk.new .ck{border-color:var(--ember)}
+  .dest .tk .badge-new{margin-left:auto;font-size:9.5px;font-weight:700;font-family:"Geist Mono";color:var(--zima);background:rgba(63,182,139,.14);border-radius:5px;padding:3px 6px;letter-spacing:.3px}
+
+  /* bottom sheet — выбор проекта/этапа */
+  .sheet{background:#141519;border:1px solid var(--hairline);border-radius:20px;padding:16px 16px 18px;width:330px}
+  .handle{width:36px;height:4px;border-radius:2px;background:var(--slate);margin:0 auto 14px}
+  .sh-title{font-size:17px;font-weight:700;margin-bottom:4px}
+  .sh-sub{font-size:12px;color:var(--steel);margin-bottom:14px;font-family:"Geist Mono"}
+  .opt{display:flex;align-items:center;gap:11px;padding:12px 12px;border-radius:11px;background:var(--card);border:1px solid var(--hairline);margin-bottom:8px}
+  .opt i{width:11px;height:11px;border-radius:3px;display:block;flex:0 0 auto}
+  .opt .on-t{font-size:14.5px;font-weight:600}
+  .opt .on-s{font-size:11px;color:var(--steel);font-family:"Geist Mono";margin-top:2px}
+  .opt.sel{background:var(--ember-soft);border-color:transparent}
+  .opt.sel .check{margin-left:auto;color:var(--ember);width:18px;height:18px;flex:0 0 auto}
+  .opt .check{margin-left:auto;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.4}
+  .opt .ai-pin{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:var(--ember);font-family:"Geist Mono"}
+  .opt .ai-pin svg{width:12px;height:12px;fill:var(--ember);stroke:none}
+  .cta{background:var(--ember);color:#1a1209;border-radius:11px;padding:13px;text-align:center;font-weight:700;font-size:15px;margin-top:6px}
+  .cta.ghost{background:var(--slate);color:var(--bone)}
+
+  /* dialog */
+  .dlg{background:#1d1e23;border:1px solid var(--hairline);border-radius:16px;padding:18px 16px;width:290px;text-align:center}
+  .dlg .dt{font-size:16px;font-weight:700;margin-bottom:6px}
+  .dlg .dd{font-size:13px;color:var(--steel);margin-bottom:16px;line-height:1.5}
+  .dlg .db{display:flex;gap:9px}.dlg .db>*{flex:1;padding:11px;border-radius:10px;font-weight:600;font-size:14px}
+  .db .cancel{background:var(--slate);color:var(--bone)}
+  .db .del{background:var(--danger);color:#fff}
+
+  /* toast / undo */
+  .toast{display:flex;align-items:center;gap:10px;background:#1d1e23;border:1px solid var(--hairline);border-radius:12px;padding:11px 13px;width:330px;font-size:13px}
+  .toast .ti{flex:0 0 auto;width:18px;height:18px;color:var(--zima);stroke:currentColor;fill:none;stroke-width:2}
+  .toast .undo{margin-left:auto;color:var(--ember);font-weight:700;font-size:13px;flex:0 0 auto}
+</style></head>
+<body>
+
+<div class="top">
+  <h1>INBOX «Входящие» — функциональные флоу</h1>
+  <p>Каждое касание карточки-идеи. <b>Зелёное</b> = рекомендация (куда улетает идея), <b>красное</b> = деструктив. <b>⚡ = SVG-молния</b>, не emoji. Подсказку проект+этап даёт дешёвая эвристика (keyword→проект) ИЛИ Claude в чате — в UI НЕТ live-LLM-вызова. Это контракт Фазы 2.</p>
+</div>
+
+<!-- 1 -->
+<h2>1 · Карточка-идея С подсказкой → блок «⚡ → проект, этап»</h2>
+<div class="trig"><b>Где:</b> карточка, у которой заполнены <span class="mono">suggested_project_id + suggested_stage_id</span>. <b>Что:</b> над чипами появляется блок-гипотеза с молнией и кнопкой «Принять».</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">идея с подсказкой (эвристика keyword→ZIMA)</div>
+    <div class="icard suggest">
+      <div class="itext">Позвонить юристу по ZIMA про договор</div>
+      <div class="src"><span class="tag">мои</span><span class="dotsep">·</span><span>заметка · 11.06</span></div>
+      <div class="ai">
+        <svg class="bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
+        <span class="txt">проект ZIMA <s>· этап 4 «Юр. сопровождение»</s></span>
+        <button class="accept">Принять</button>
+      </div>
+      <div class="acts">
+        <div class="act proj"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>в проект ▾</div>
+        <div class="act"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>на сегодня</div>
+        <div class="act"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>дата</div>
+        <div class="act del"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>удалить</div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    Подсказка = <b>гипотеза</b>, не приговор. Молния <span class="mono">⚡</span> рисуется SVG-путём (без emoji). Текст: проект ярко + этап приглушённо. <span class="rec">«Принять» в один тап раскладывает идею (см. 2).</span> Можно поправить вручную через чипы — подсказка не блокирует ручной разбор.
+  </div>
+</div>
+
+<!-- 2 -->
+<h2>2 · Тап «Принять» → идея становится задачей в проекте/этапе</h2>
+<div class="trig"><b>Где:</b> кнопка «Принять» в блоке-подсказке. <b>Что:</b> idea списывается из Inbox (status разобрано), <span class="mono">InboxItem.raw_content</span> → новая Task с <span class="mono">stage_id = suggested_stage_id</span>. Хаптик, тост с «Отменить».</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">до · идея в инбоксе</div>
+    <div class="icard suggest">
+      <div class="itext">Позвонить юристу по ZIMA про договор</div>
+      <div class="src"><span class="tag">мои</span><span class="dotsep">·</span><span>заметка</span></div>
+      <div class="ai">
+        <svg class="bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
+        <span class="txt">проект ZIMA <s>· этап 4</s></span>
+        <button class="accept">Принять</button>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">после · задача легла в этап 4 проекта ZIMA</div>
+    <div class="dest">
+      <div class="dh">
+        <div class="pj"><i style="background:var(--zima)"></i>ZIMA · продажа студии</div>
+        <div class="stg">Этап 4 · <b>Юр. сопровождение</b> · 3 задачи</div>
+      </div>
+      <div class="tk new">
+        <span class="ck"></span>
+        <span class="tn">Позвонить юристу по ZIMA про договор</span>
+        <span class="badge-new">из inbox</span>
+      </div>
+      <div class="tk" style="border-top:1px solid var(--hairline)">
+        <span class="ck"></span><span class="tn" style="color:var(--steel)">Подготовить пакет документов</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note"><span class="rec">Зелёная вспышка строки</span> = «приземлилось». Бейдж «из inbox» помечает происхождение. Тост 5 сек с «Отменить» (см. 8) — если эвристика промахнулась, один тап вернёт идею в Inbox. Счётчик бейджа Inbox 4 → 3.</div>
+
+<!-- 3 -->
+<h2>3 · Идея БЕЗ подсказки → ручной разбор чипами</h2>
+<div class="trig"><b>Где:</b> карточка, где <span class="mono">suggested_project_id = null</span> (эвристика не нашла keyword, Claude не размечал). <b>Что:</b> блока-молнии нет — только серый кант + ручные чипы.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">без подсказки · нейтральная (серый кант)</div>
+    <div class="icard">
+      <div class="itext">Купить подарок маме</div>
+      <div class="src"><span class="tag">мои</span><span class="dotsep">·</span><span>быстрый захват</span></div>
+      <div class="acts">
+        <div class="act proj"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>в проект ▾</div>
+        <div class="act"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>на сегодня</div>
+        <div class="act"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>дата</div>
+        <div class="act del"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>удалить</div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Нет молнии = система честно не угадала. <span class="rec">Кант серый</span> (vs зелёный у подсказанных) — глазом видно, что разбирать вручную. Все 4 чипа доступны и тут, и у подсказанных. «в проект ▾» открывает шит выбора (см. 4).</div>
+</div>
+
+<!-- 4 -->
+<h2>4 · Тап «в проект ▾» → шит выбора проекта и этапа</h2>
+<div class="trig"><b>Где:</b> чип «в проект ▾» (на любой карточке). <b>Что:</b> снизу выезжает шит. Если есть подсказка — её строка <b>преднажата</b> (⚡-метка); если нет — выбор с нуля.</div>
+<div class="row">
+  <div class="panel">
+    <div class="plabel">шит выбора · этап подсказан → преднажат</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Куда положить</div>
+      <div class="sh-sub">«Позвонить юристу по ZIMA»</div>
+      <div class="opt">
+        <i style="background:var(--zima)"></i>
+        <div><div class="on-t">ZIMA · продажа студии</div><div class="on-s">5 этапов · до 30.09</div></div>
+        <span class="ai-pin"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>предложен</span>
+      </div>
+      <div class="opt sel" style="margin-left:18px">
+        <i style="background:var(--zima)"></i>
+        <div><div class="on-t">Этап 4 · Юр. сопровождение</div><div class="on-s">текущий · 3 задачи</div></div>
+        <svg class="check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <div class="opt" style="margin-left:18px">
+        <i style="background:var(--zima)"></i>
+        <div><div class="on-t">Этап 5 · Передача</div><div class="on-s">будущий</div></div>
+      </div>
+      <div class="cta">Положить в этап 4</div>
+    </div>
+  </div>
+  <div class="note"><b>Двухуровневый выбор:</b> проект → его этапы (с отступом). Подсказанный проект помечен <span class="mono">⚡предложен</span> и его этап уже выбран — <span class="rec">тап по CTA подтверждает за секунду</span>. Можно перевыбрать любой этап. Список проектов прокручивается; внизу «+ Новый проект».</div>
+</div>
+
+<!-- 5 -->
+<h2>5 · Быстрые чипы: на сегодня · дата</h2>
+<div class="trig"><b>Где:</b> чипы «на сегодня» / «дата». <b>Что:</b> «на сегодня» — мгновенно (без шита), идея → задача с датой today, БЕЗ проекта. «дата» — мини-календарь.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">тап «на сегодня» · чип активируется, идея уходит</div>
+    <div class="icard">
+      <div class="itext">Купить подарок маме</div>
+      <div class="src"><span class="tag">мои</span><span class="dotsep">·</span><span>быстрый захват</span></div>
+      <div class="acts">
+        <div class="act proj"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>в проект ▾</div>
+        <div class="act on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>на сегодня</div>
+        <div class="act"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>дата</div>
+        <div class="act del"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>удалить</div>
+      </div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel">
+    <div class="plabel">тап «дата» → мини-календарь</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Когда</div>
+      <div class="sh-sub">«Купить подарок маме»</div>
+      <div class="acts" style="margin-bottom:14px">
+        <span class="act on">Сегодня</span><span class="act">Завтра</span><span class="act">Выходные</span><span class="act">Без даты</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px;font-family:'Geist Mono';font-size:10px;color:var(--steel);text-align:center">
+        <span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span>С</span><span>В</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px">
+        <span style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--steel);border-radius:7px">9</span>
+        <span style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;border-radius:7px;background:var(--ember);color:#1a1209;font-weight:700">11</span>
+        <span style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--bone);border-radius:7px">12</span>
+        <span style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--bone);border-radius:7px">13</span>
+        <span style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--bone);border-radius:7px">14</span>
+        <span style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--bone);border-radius:7px">15</span>
+        <span style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--bone);border-radius:7px">16</span>
+      </div>
+      <div class="cta" style="margin-top:14px">Назначить на 11 июня</div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>«на сегодня»</b> — самый частый путь: один тап, задача в «Задачи · сегодня», без проекта (можно привязать позже). <b>«дата»</b> — пресеты + календарь. <span class="rec">Идея в обоих случаях покидает Inbox.</span> Привязка к проекту — отдельный путь (чип «в проект»), даты и проекты независимы.</div>
+
+<!-- 6 -->
+<h2>6 · Свайп влево по строке → действия прямо в строке</h2>
+<div class="trig"><b>Где:</b> смах карточки влево. <b>Что:</b> открываются 3 действия: в проект (зелёный) · на сегодня (ember) · удалить (красный). Те же, что чипы — быстрее для серийной разборки.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">свайп влево → действия в строке</div>
+    <div class="swwrap">
+      <div class="swact">
+        <div class="proj"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Проект</div>
+        <div class="today"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Сегодня</div>
+        <div class="del"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>Удал.</div>
+      </div>
+      <div class="icard shift" style="position:relative">
+        <div class="itext">Идея: раздел сверки баланса в Ledger</div>
+        <div class="src"><span class="tag">из сессии</span><span class="dotsep">·</span><span>чат · 02.06</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><span class="rec">Свайп = серийный режим</span>: разбираешь стопку, не раскрывая чипы. «Сегодня» и «Удалить» срабатывают сразу; «Проект» открывает шит (см. 4). Полный свайп до края = действие по умолчанию (на сегодня). Удаление через свайп — с подтверждением (см. 7).</div>
+</div>
+
+<!-- 7 -->
+<h2>7 · Удаление идеи → подтверждение (деструктив)</h2>
+<div class="trig"><b>Где:</b> чип/свайп «удалить». <b>Что:</b> нативный <b>tg.showConfirm</b>. Идея не раскладывается — стирается.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">диалог подтверждения</div>
+    <div class="dlg"><div class="dt">Удалить идею?</div><div class="dd">«Купить подарок маме» удалится из Входящих навсегда. В проект или задачу не попадёт.</div><div class="db"><span class="cancel">Отмена</span><span class="del">Удалить</span></div></div>
+  </div>
+  <div class="note"><b>Удалить</b> = идея исчезает, никуда не раскладываясь — поэтому с подтверждением (правило проекта: деструктив подтверждаем). Альтернатива «отложить»: не удалять, а просто оставить в Inbox — он не давит на цифрах. <span class="bad">Без корзины:</span> удалённую идею не вернуть (в отличие от «Принять» с «Отменить»).</div>
+</div>
+
+<!-- 8 -->
+<h2>8 · После разбора → тост «Отменить» (мягкий откат)</h2>
+<div class="trig"><b>Где:</b> после «Принять» / «на сегодня» / «в проект». <b>Что:</b> тост 5 сек внизу — если эвристика/выбор промахнулись, вернуть идею в Inbox одним тапом.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">тост после «Принять»</div>
+    <div class="toast">
+      <svg class="ti" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+      <span>В проект <b style="color:var(--bone)">ZIMA · этап 4</b></span>
+      <span class="undo">Отменить</span>
+    </div>
+  </div>
+  <div class="note"><span class="rec">Сеть безопасности для ZERO-AFK-эвристики:</span> подсказку дала не-LLM-логика — она может ошибиться. Тост 5 сек ловит промах без диалога. «Отменить» возвращает идею в Inbox с прежней подсказкой. После таймаута — разбор финален (но задачу всё ещё можно перенести в её проекте).</div>
+</div>
+
+<!-- 9 -->
+<h2>9 · Edge: последняя идея разобрана → Inbox опустел</h2>
+<div class="trig"><b>Что:</b> разобрал/удалил последнюю карточку — экран не должен стать «пустой ошибкой», а спокойно показать «всё чисто».</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">последняя уходит → пусто (см. INBOX-состояния)</div>
+    <div class="icard gone" style="opacity:.4">
+      <div class="itext" style="text-decoration:line-through;color:var(--steel)">Идея: раздел сверки баланса в Ledger</div>
+      <div class="src"><span class="tag" style="background:rgba(63,182,139,.14);color:var(--zima)">→ Ledger</span><span class="dotsep">·</span><span>разобрано</span></div>
+    </div>
+  </div>
+  <div class="note">Карточка гаснет (fade+collapse), бейдж Inbox 1 → 0 (исчезает). Экран переходит в <b>пустое спокойное состояние</b> «Входящие разобраны» — детально в <span class="mono">INBOX-состояния.html</span>. <span class="rec">Цель GTD: довести Inbox до нуля</span> — это праздник, а не «нет данных».</div>
+</div>
+
+</body></html>

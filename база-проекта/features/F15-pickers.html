@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F15 — Пикеры (дата / приоритет / проект / тег)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#2a2a2e;
+  font-family:Geist, sans-serif;
+  color:var(--bone);
+  display:flex;flex-direction:column;align-items:center;
+  padding:40px 16px 80px;gap:14px;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"Geist Mono", monospace;}
+
+/* заголовок-плашка */
+.plate{
+  font-family:"Geist Mono", monospace;
+  font-size:12px;letter-spacing:.06em;color:var(--steel);
+  text-transform:uppercase;text-align:center;margin-bottom:2px;
+}
+.plate b{color:var(--bone);font-weight:600;}
+
+/* телефон-фрейм */
+.phone{
+  position:relative;
+  width:390px;min-height:844px;
+  background:var(--onyx);
+  border-radius:28px;overflow:hidden;
+  border:1px solid var(--hairline);
+  box-shadow:0 24px 60px rgba(0,0,0,0.45);
+}
+.phone.small{min-height:520px;}
+
+/* статусбар */
+.statusbar{
+  height:46px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;color:var(--bone);font-size:14px;
+}
+.statusbar .dots{display:flex;gap:5px;align-items:center;}
+.statusbar .dots i{width:6px;height:6px;border-radius:50%;background:var(--steel);display:block;}
+.statusbar .dots .bar{width:22px;height:11px;border:1px solid var(--steel);border-radius:3px;position:relative;}
+.statusbar .dots .bar::after{content:"";position:absolute;inset:2px;width:11px;background:var(--steel);border-radius:1px;}
+
+/* фоновый экран (подложка composer) */
+.screen{padding:0 16px;}
+.screen-head{display:flex;align-items:center;gap:10px;padding:6px 4px 14px;}
+.screen-head h1{font-size:21px;font-weight:600;}
+.screen-head .date{margin-left:auto;font-size:13px;color:var(--steel);}
+
+.task-row{
+  background:var(--smoke);border-radius:12px;
+  display:flex;align-items:center;gap:12px;
+  padding:13px 14px;margin-bottom:8px;position:relative;
+  overflow:hidden;
+  border-left:3px solid transparent;
+}
+/* фон = тинт проекта (alpha .13), полоса слева = приоритет */
+.task-row.proj-health{background:rgba(91,141,239,0.13);}   /* Здоровье #5B8DEF */
+.task-row.proj-work{background:rgba(155,140,203,0.13);}    /* Планировщик/Работа #9B8CCB */
+.task-row.prio-high{border-left-color:var(--danger);}
+.task-row.prio-medium{border-left-color:var(--warning);}
+.task-row.prio-low{border-left-color:var(--ember);}
+.chk{
+  width:22px;height:22px;border-radius:50%;
+  border:1.5px solid var(--steel);flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+}
+.chk.done{background:var(--ember);border-color:var(--ember);}
+.chk.done svg{stroke:#1a1209;}
+.task-row .ttl{flex:1;font-size:15px;}
+.task-row.done .ttl{color:var(--steel);text-decoration:line-through;}
+.task-row .meta{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace;}
+
+/* composer mini (подложка) */
+.composer{
+  background:var(--smoke);border-radius:16px;padding:14px;margin-top:6px;
+  border:1px solid var(--hairline);
+}
+.composer .field{font-size:16px;color:var(--bone);margin-bottom:14px;}
+.composer .field .caret{display:inline-block;width:1.5px;height:18px;background:var(--ember);vertical-align:-3px;margin-left:1px;}
+.composer .field .ph{color:var(--steel);}
+.composer .toolbar{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--slate);border:1px solid var(--hairline);
+  border-radius:999px;padding:7px 12px;font-size:13px;color:var(--bone);
+}
+.chip.active{background:var(--ember-soft);border-color:transparent;color:var(--ember);}
+.chip svg{width:15px;height:15px;}
+.chip.active svg{stroke:var(--ember);}
+.composer .send{
+  margin-left:auto;width:38px;height:38px;border-radius:10px;
+  background:var(--ember);display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+}
+.composer .send svg{stroke:#fff;width:18px;height:18px;}
+
+/* scrim + sheet */
+.scrim{
+  position:absolute;inset:0;background:rgba(0,0,0,0.5);
+  display:flex;align-items:flex-end;
+}
+.sheet{
+  width:100%;background:var(--smoke);
+  border-radius:18px 18px 0 0;
+  border-top:1px solid var(--hairline);
+  padding:8px 10px 24px;
+}
+.sheet-grip{width:36px;height:4px;border-radius:2px;background:var(--hairline);margin:6px auto 8px;}
+.menu-head{padding:6px 12px 10px;font-size:16px;font-weight:600;}
+
+.picker-row{
+  width:100%;display:flex;align-items:center;gap:12px;
+  background:transparent;border:none;color:var(--bone);
+  padding:12px;border-radius:12px;font-size:15px;font-family:inherit;
+  text-align:left;cursor:pointer;
+}
+.picker-row.selected{background:var(--ember-soft);}
+.picker-row .lbl{flex:1;}
+.picker-row.selected .lbl{color:var(--ember);}
+.picker-check{color:var(--ember);font-size:16px;font-weight:700;}
+.flag{width:20px;height:20px;flex:0 0 auto;}
+.drawer-ico{width:20px;display:flex;justify-content:center;}
+.picker-add{color:var(--steel);}
+.picker-add .drawer-ico{color:var(--steel);font-size:20px;line-height:1;}
+
+/* skeleton */
+.picker-skel-row{height:44px;border-radius:12px;margin:6px 2px;}
+.skeleton{
+  background:linear-gradient(90deg,var(--slate) 25%,rgba(255,255,255,0.05) 37%,var(--slate) 63%);
+  background-size:400% 100%;animation:shimmer 1.4s ease infinite;
+}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.picker-state{padding:28px 12px;text-align:center;}
+.muted{color:var(--steel);font-size:14px;margin-bottom:14px;}
+.btn-ghost{
+  background:transparent;border:1px solid var(--hairline);color:var(--bone);
+  padding:9px 18px;border-radius:10px;font-size:14px;font-family:inherit;cursor:pointer;
+}
+
+/* tag picker */
+.tag-input-row{display:flex;gap:8px;padding:4px 12px 0;}
+.input{
+  flex:1;background:var(--slate);border:1px solid var(--hairline);
+  border-radius:10px;padding:11px 13px;color:var(--bone);font-size:14px;font-family:inherit;
+}
+.input::placeholder{color:var(--steel);}
+.btn-sq{
+  width:42px;background:var(--slate);border:1px solid var(--hairline);
+  border-radius:10px;color:var(--bone);font-size:20px;cursor:pointer;
+}
+.tag-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:14px 12px 0;}
+.btn-chip{
+  background:var(--slate);border:1px solid var(--hairline);
+  border-radius:999px;padding:8px 13px;font-size:13px;color:var(--bone);
+  font-family:inherit;cursor:pointer;
+}
+.btn-chip.active{background:var(--ember-soft);border-color:transparent;color:var(--ember);}
+.btn-block{
+  width:calc(100% - 24px);margin:18px 12px 0;
+  background:var(--ember);color:#fff;border:none;
+  border-radius:10px;padding:13px;font-size:15px;font-weight:600;
+  font-family:inherit;cursor:pointer;
+}
+
+/* tab-bar */
+.tabbar{
+  position:absolute;left:0;right:0;bottom:0;height:64px;
+  background:var(--smoke);border-top:1px solid var(--hairline);
+  display:flex;align-items:center;justify-content:space-around;
+  padding-bottom:6px;z-index:1;
+}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--steel);font-size:10px;}
+.tab.active{color:var(--ember);}
+.tab svg{width:22px;height:22px;}
+
+.caption{
+  font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);
+  letter-spacing:.04em;text-align:center;margin:4px 0 2px;
+}
+.alt-grid{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;align-items:flex-start;}
+.alt-col{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<div class="plate"><b>F15</b> · Пикеры — дата / приоритет / проект / тег</div>
+
+<!-- ОСНОВНОЙ ФРЕЙМ: приоритет-пикер открыт -->
+<div class="phone">
+  <div class="statusbar">
+    <span class="mono">9:41</span>
+    <span class="dots"><i></i><i></i><i></i><span class="bar"></span></span>
+  </div>
+
+  <!-- подложка: экран Сегодня + открытый composer -->
+  <div class="screen">
+    <div class="screen-head">
+      <h1>Сегодня</h1>
+      <span class="date mono">ср, 4 июня</span>
+    </div>
+
+    <div class="task-row done">
+      <span class="kant low"></span>
+      <span class="chk done"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span>
+      <span class="ttl">Сдать анализы крови</span>
+    </div>
+    <div class="task-row">
+      <span class="kant high"></span>
+      <span class="chk"></span>
+      <span class="ttl">Созвон с командой Ledger</span>
+      <span class="meta">14:00</span>
+    </div>
+
+    <!-- composer с активным чипом приоритета -->
+    <div class="composer">
+      <div class="field">Купить валик для спины<span class="caret"></span></div>
+      <div class="toolbar">
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>Сегодня</span>
+        <span class="chip active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>Приоритет</span>
+        <span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/></svg>Здоровье</span>
+        <span class="send"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 19V5M6 11l6-6 6 6"/></svg></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIM + приоритет-пикер (открыт) -->
+  <div class="scrim">
+    <div class="sheet">
+      <div class="sheet-grip"></div>
+      <button class="picker-row selected">
+        <svg class="flag" viewBox="0 0 24 24" fill="none" stroke="#ff5c5c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="#ff5c5c"/></svg>
+        <span class="lbl">Высокий приоритет<span class="ecode">E1</span></span>
+        <span class="picker-check">✓</span>
+      </button>
+      <button class="picker-row">
+        <svg class="flag" viewBox="0 0 24 24" fill="none" stroke="#ffb02e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="#ffb02e"/></svg>
+        <span class="lbl">Средний приоритет<span class="ecode">E2</span></span>
+      </button>
+      <button class="picker-row">
+        <svg class="flag" viewBox="0 0 24 24" fill="none" stroke="#ee8a3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="#ee8a3c"/></svg>
+        <span class="lbl">Низкий приоритет<span class="ecode">E3</span></span>
+      </button>
+      <button class="picker-row">
+        <svg class="flag" viewBox="0 0 24 24" fill="none" stroke="#8a8b91" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>
+        <span class="lbl">Без приоритета<span class="ecode">E4</span></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- tab-bar -->
+  <div class="tabbar">
+    <span class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h4"/></svg>Сегодня</span>
+    <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>Календарь</span>
+    <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Обзор</span>
+    <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>Цели</span>
+    <span class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>Трекинг</span>
+  </div>
+</div>
+
+<div class="caption"><span class="fcode">F15·E</span>приоритет-пикер — открыт над composer</div>
+
+<!-- ALT-БЛОКИ: проект-пикер (норма / skeleton / error) + тег-пикер -->
+<div class="caption">МАТРИЦА СОСТОЯНИЙ — ПРОЕКТ-ПИКЕР · ТЕГ-ПИКЕР</div>
+<div class="alt-grid">
+
+  <!-- проект-пикер: норма -->
+  <div class="alt-col">
+    <div class="phone small">
+      <div class="statusbar"><span class="mono">9:41</span><span class="dots"><i></i><i></i><i></i><span class="bar"></span></span></div>
+      <div class="scrim" style="position:relative;height:100%;min-height:460px;">
+        <div class="sheet">
+          <div class="sheet-grip"></div>
+          <div class="menu-head">Проект</div>
+          <button class="picker-row selected"><span class="drawer-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--ember)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l2.5-7A2 2 0 0 1 7.4 5h9.2a2 2 0 0 1 1.9 1.3L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></svg></span><span class="lbl">Входящие<span class="ecode">A1</span></span><span class="picker-check">✓</span></button>
+          <button class="picker-row"><span class="drawer-ico">•</span><span class="lbl">Здоровье<span class="ecode">A2</span></span></button>
+          <button class="picker-row" style="padding-left:28px;"><span class="drawer-ico">•</span><span class="lbl">Протокол спины<span class="ecode">A3</span></span></button>
+          <button class="picker-row"><span class="drawer-ico">•</span><span class="lbl">Ledger</span></button>
+          <button class="picker-row"><span class="drawer-ico">•</span><span class="lbl">ZIMA</span></button>
+          <button class="picker-row picker-add"><span class="drawer-ico">+</span><span class="lbl">Новый проект<span class="ecode">A4</span></span></button>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span class="fcode">F15·A</span>default — Входящие выбран</div>
+  </div>
+
+  <!-- проект-пикер: skeleton loading -->
+  <div class="alt-col">
+    <div class="phone small">
+      <div class="statusbar"><span class="mono">9:41</span><span class="dots"><i></i><i></i><i></i><span class="bar"></span></span></div>
+      <div class="scrim" style="position:relative;height:100%;min-height:460px;">
+        <div class="sheet">
+          <div class="sheet-grip"></div>
+          <div class="menu-head">Проект</div>
+          <div aria-busy="true">
+            <div class="skeleton picker-skel-row"></div>
+            <div class="skeleton picker-skel-row"></div>
+            <div class="skeleton picker-skel-row"></div>
+            <div class="skeleton picker-skel-row"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span class="fcode">F15·B</span>loading — скелетон (без спиннера)</div>
+  </div>
+
+  <!-- проект-пикер: error -->
+  <div class="alt-col">
+    <div class="phone small">
+      <div class="statusbar"><span class="mono">9:41</span><span class="dots"><i></i><i></i><i></i><span class="bar"></span></span></div>
+      <div class="scrim" style="position:relative;height:100%;min-height:460px;">
+        <div class="sheet">
+          <div class="sheet-grip"></div>
+          <div class="menu-head">Проект</div>
+          <div class="picker-state">
+            <div class="muted">Не удалось загрузить проекты</div>
+            <button class="btn-ghost">Повторить<span class="ecode">C1</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span class="fcode">F15·C</span>error — retry</div>
+  </div>
+
+  <!-- тег-пикер -->
+  <div class="alt-col">
+    <div class="phone small">
+      <div class="statusbar"><span class="mono">9:41</span><span class="dots"><i></i><i></i><i></i><span class="bar"></span></span></div>
+      <div class="scrim" style="position:relative;height:100%;min-height:460px;">
+        <div class="sheet">
+          <div class="sheet-grip"></div>
+          <div class="menu-head">Теги</div>
+          <div class="tag-input-row" style="position:relative;">
+            <input class="input" placeholder="Новый тег..." readonly>
+            <span class="ecode pin" style="top:-7px;right:48px;">D1</span>
+            <button class="btn-sq" style="position:relative;">+<span class="ecode pin">D2</span></button>
+          </div>
+          <div class="tag-wrap">
+            <button class="btn-chip active">#важное<span class="ecode">D3</span></button>
+            <button class="btn-chip">#дом</button>
+            <button class="btn-chip active">#тело<span class="ecode">D4</span></button>
+            <button class="btn-chip">#быстрое</button>
+            <button class="btn-chip">#финансы</button>
+          </div>
+          <button class="btn-block">Готово<span class="ecode">D5</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="caption"><span class="fcode">F15·D</span>тег-пикер — multi-select чипы</div>
+  </div>
+
+</div>
+
+</body>
+</html>

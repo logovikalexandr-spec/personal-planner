@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DETAIL «Этап проекта» — матрица состояний</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--onyx:#0F0F11;--smoke:#1A1B1F;--card:#16171b;--slate:#242529;--bone:#F4F4F5;--steel:#8A8B91;--accent:#EE8A3C;--accent-soft:rgba(238,138,60,0.13);--danger:#FF5C5C;--warning:#FFB02E;--hairline:rgba(255,255,255,0.07);--zima:#3FB68B;--health:#5B8DEF;--plan:#9B6BE0}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 18px 60px}
+  .top{max-width:880px;margin-bottom:18px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);line-height:1.6}
+  .top p b{color:var(--accent)}
+  h2{font-size:18px;font-weight:700;margin:30px 0 4px}
+  .sub{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:16px}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .fcap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:10px}
+  .fcap b{color:var(--accent)}
+  .fcode{display:inline-block;background:var(--accent);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px}
+  .phone{width:300px;height:600px;background:var(--onyx);border:1px solid var(--hairline);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+  .st{height:36px;display:flex;align-items:center;padding:0 18px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--bone)}
+  /* nav детали */
+  .nav{display:flex;align-items:center;gap:8px;padding:6px 14px 10px;border-bottom:1px solid var(--hairline)}
+  .nav .bk{display:flex;align-items:center;gap:4px;color:var(--accent);font-size:13px;font-weight:500}
+  .nav .bk svg{width:14px;height:14px}
+  .nav .proj{margin-left:auto;display:flex;align-items:center;gap:6px;background:rgba(63,182,139,.13);color:var(--zima);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}
+  .nav .proj .d{width:7px;height:7px;border-radius:50%;background:var(--zima)}
+  .body{flex:1;overflow:hidden;position:relative;padding:13px 14px}
+  .ttl{font-size:18px;font-weight:600;line-height:1.25;margin-bottom:13px;display:flex;gap:11px}
+  .ttl .cb{width:24px;height:24px;border-radius:50%;border:2px solid var(--warning);flex:0 0 auto;margin-top:2px}
+  /* поле этапа */
+  .field{background:var(--card);border:1px solid var(--hairline);border-radius:13px;padding:12px 13px;margin-bottom:10px}
+  .field-h{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-family:"Geist Mono",monospace;letter-spacing:.6px;text-transform:uppercase;color:var(--steel);margin-bottom:9px}
+  .field-h .edit{color:var(--accent)}
+  .stage-field{display:flex;align-items:center;gap:11px}
+  .stage-ring{flex:0 0 auto;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+  .stage-ring i{width:27px;height:27px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700}
+  .stage-mid{flex:1;min-width:0}
+  .stage-mid .n{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+  .stage-mid .m{font-size:11.5px;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:2px}
+  .stage-field .chev{color:var(--steel);display:flex}.stage-field .chev svg{width:17px;height:17px}
+  .late-dot{width:16px;height:16px;border-radius:50%;background:var(--danger);color:#1a0707;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+  /* плейсхолдер */
+  .stage-add{display:flex;align-items:center;gap:11px;color:var(--steel);font-size:13.5px}
+  .stage-add .pl{width:36px;height:36px;border-radius:50%;border:1.5px dashed var(--hairline);display:flex;align-items:center;justify-content:center;color:var(--accent);flex:0 0 auto}
+  .stage-add .pl svg{width:17px;height:17px}
+  .stage-add b{color:var(--bone);font-weight:600;font-size:14px}
+  .stage-add .s{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:2px}
+  /* контекст-чеклист под этапом */
+  .ctxfield{background:var(--card);border:1px solid var(--hairline);border-radius:13px;padding:12px 13px;display:flex;align-items:center;gap:9px}
+  .ck-ring{width:27px;height:27px;border-radius:50%;background:conic-gradient(var(--accent) 0 66%,#2c2d31 66% 100%);display:flex;align-items:center;justify-content:center}
+  .ck-ring i{width:19px;height:19px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:8.5px;font-weight:700;color:var(--accent)}
+  .ctxfield .t{font-size:13px;font-weight:600}
+  /* skeleton */
+  .skel{background:var(--slate);border-radius:8px;position:relative;overflow:hidden}
+  .skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.3s infinite}
+  @keyframes sh{100%{transform:translateX(100%)}}
+  .sk-line{height:13px;border-radius:6px}
+  .sk-block{border-radius:12px}
+  .sk-ring{width:36px;height:36px;border-radius:50%;flex:0 0 auto}
+  /* shit-фрейм внутри телефона (для пустого шита) */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+  .sheet{position:absolute;left:8px;right:8px;bottom:8px;background:#141519;border:1px solid var(--hairline);border-radius:18px;padding:14px 14px 16px}
+  .handle{width:34px;height:4px;border-radius:2px;background:var(--slate);margin:0 auto 12px}
+  .sh-title{font-size:16px;font-weight:700;margin-bottom:2px}
+  .sh-sub{font-size:11.5px;color:var(--steel);font-family:"Geist Mono",monospace;margin-bottom:6px}
+  .sh-empty{text-align:center;padding:16px 8px 6px}
+  .sh-empty .ei{width:46px;height:46px;border-radius:13px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+  .sh-empty .et{font-size:14.5px;font-weight:600;margin-bottom:5px}
+  .sh-empty .ed{font-size:12px;color:var(--steel);line-height:1.5;max-width:230px;margin:0 auto 14px}
+  .sh-empty .btn{background:var(--accent);color:#1a1209;border-radius:11px;padding:11px;font-weight:700;font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>DETAIL «Этап проекта» — матрица состояний</h1>
+  <p>Поле «Этап проекта» в детали задачи (под атрибутами, над чеклистом). Покрыто: <b>без этапа</b> (плейсхолдер) · с этапом <b>current / late / future</b> · шит выбора когда <b>у проекта нет этапов</b> · <b>загрузка</b> детали. Цвет: current=ember · late=danger «!» · future=steel · done=zima.</p>
+</div>
+
+<h2>Поле этапа (DETAIL·B) — варианты статуса</h2>
+<div class="sub">happy-path (current) есть в основном мокапе DETAIL-task. Здесь все статусы + «нет этапа».</div>
+<div class="row">
+
+  <!-- без этапа -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">DETAIL·B</span>задача БЕЗ этапа · плейсхолдер</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="nav"><span class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Задачи</span><span class="proj"><span class="d"></span>Продать ZIMA</span></div>
+      <div class="body">
+        <div class="ttl"><span class="cb"></span><span>Уточнить юр.статус помещения</span></div>
+        <div class="field">
+          <div class="field-h"><span>Этап проекта</span></div>
+          <div class="stage-add">
+            <span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>
+            <div><b>Привязать к этапу</b><div class="s">задача вне этапов проекта</div></div>
+          </div>
+        </div>
+        <div class="ctxfield"><div class="ck-ring"><i>0/2</i></div><div class="t">Чеклист · 0 из 2</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- current -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">DETAIL·B</span>с этапом · current (ember)</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="nav"><span class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Задачи</span><span class="proj"><span class="d"></span>Продать ZIMA</span></div>
+      <div class="body">
+        <div class="ttl"><span class="cb"></span><span>Созвон с командой ZIMA</span></div>
+        <div class="field">
+          <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+          <div class="stage-field">
+            <div class="stage-ring" style="background:conic-gradient(var(--accent) 0 60%,#2c2d31 60% 100%)"><i style="color:var(--accent)">3/5</i></div>
+            <div class="stage-mid"><div class="n">Этап 3 · Переговоры</div><div class="m">до 25 июня</div></div>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+          </div>
+        </div>
+        <div class="ctxfield"><div class="ck-ring"><i>2/3</i></div><div class="t">Чеклист · 2 из 3</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- late -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">DETAIL·B</span>с этапом · late (danger «!»)</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="nav"><span class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Задачи</span><span class="proj"><span class="d"></span>Продать ZIMA</span></div>
+      <div class="body">
+        <div class="ttl"><span class="cb"></span><span>Свести финпоказатели за год</span></div>
+        <div class="field">
+          <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+          <div class="stage-field">
+            <div class="stage-ring" style="background:conic-gradient(var(--danger) 0 45%,#2c2d31 45% 100%)"><i style="color:var(--danger)">2/5</i></div>
+            <div class="stage-mid"><div class="n">Этап 2 · Оценка<span class="late-dot">!</span></div><div class="m" style="color:var(--danger)">просрочен 3 дня</div></div>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+          </div>
+        </div>
+        <div class="ctxfield"><div class="ck-ring"><i>1/4</i></div><div class="t">Чеклист · 1 из 4</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- future -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">DETAIL·B</span>с этапом · future (steel)</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="nav"><span class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Задачи</span><span class="proj"><span class="d"></span>Продать ZIMA</span></div>
+      <div class="body">
+        <div class="ttl"><span class="cb"></span><span>Подготовить договор-черновик</span></div>
+        <div class="field">
+          <div class="field-h"><span>Этап проекта</span><span class="edit">сменить ›</span></div>
+          <div class="stage-field">
+            <div class="stage-ring" style="background:conic-gradient(var(--steel) 0 0%,#2c2d31 0 100%)"><i style="color:var(--steel)">4/5</i></div>
+            <div class="stage-mid"><div class="n" style="color:var(--bone)">Этап 4 · Сделка</div><div class="m">с 26 июня</div></div>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+          </div>
+        </div>
+        <div class="ctxfield"><div class="ck-ring"><i>0/3</i></div><div class="t">Чеклист · 0 из 3</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<h2>Шит выбора этапа (DETAIL·B2) · загрузка</h2>
+<div class="sub">happy-path шита (список этапов) — во flows. Здесь edge: проект без этапов + загрузка детали.</div>
+<div class="row">
+
+  <!-- шит: у проекта нет этапов -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">DETAIL·B2</span>шит · у проекта НЕТ этапов</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="nav"><span class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Задачи</span><span class="proj"><span class="d"></span>Запуск сайта</span></div>
+      <div class="body" style="filter:saturate(.7)">
+        <div class="ttl"><span class="cb"></span><span>Собрать тексты на лендинг</span></div>
+        <div class="field">
+          <div class="field-h"><span>Этап проекта</span></div>
+          <div class="stage-add">
+            <span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></span>
+            <div><b>Привязать к этапу</b><div class="s">задача вне этапов проекта</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <div class="sh-title">Этап проекта</div>
+        <div class="sh-sub">Запуск сайта · этапов пока нет</div>
+        <div class="sh-empty">
+          <div class="ei"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18M3 12h18M3 17h10"/></svg></div>
+          <div class="et">В проекте ещё нет этапов</div>
+          <div class="ed">Этапы создаются в проекте — в «Цели» или на Ганте. Привязать задачу можно после.</div>
+          <div class="btn">Открыть проект</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- загрузка детали -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">DETAIL·B</span>загрузка детали · скелетон</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="nav">
+        <span class="bk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Задачи</span>
+        <div class="skel sk-line" style="width:90px;height:22px;border-radius:999px;margin-left:auto"></div>
+      </div>
+      <div class="body">
+        <div style="display:flex;gap:11px;margin-bottom:15px">
+          <div class="skel" style="width:24px;height:24px;border-radius:50%;flex:0 0 auto"></div>
+          <div style="flex:1"><div class="skel sk-line" style="width:80%;height:18px"></div></div>
+        </div>
+        <!-- этап-поле skeleton -->
+        <div class="skel sk-block" style="height:74px;margin-bottom:10px"></div>
+        <div class="skel sk-block" style="height:56px;margin-bottom:10px"></div>
+        <div class="skel sk-block" style="height:52px"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="max-width:880px;margin-top:24px;font-size:12.5px;color:var(--steel);line-height:1.65">
+  <b style="color:var(--bone)">Заметки.</b>
+  Поля «Этап проекта» нет, если у задачи нет <span style="font-family:'Geist Mono',monospace">project_id</span> — этап существует только внутри проекта.
+  Ошибка загрузки детали наследует общий паттерн из T1-состояния (иконка-треугольник + «Не удалось загрузить» + «Повторить») — не дублируется здесь.
+  Шит-загрузка не нужна отдельно: список этапов проекта уже в памяти при открытии детали; если проект пуст — сразу пусто-состояние (показано выше).
+</p>
+
+</body>
+</html>

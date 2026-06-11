@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Календарь — Лента</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --finance:#C9A24B;
+    --p-high:#FF5C5C; --p-med:#FFB02E; --p-low:#EE8A3C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;color:var(--bone);display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .phone{width:390px;height:844px;background:var(--onyx);border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;font-weight:600;flex:0 0 auto}
+  .scroll{flex:1;overflow-y:auto;padding:6px 18px 100px}
+  .scroll::-webkit-scrollbar{display:none}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:14px}
+
+  /* segmented control */
+  .seg{display:flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:12px;padding:3px;margin-bottom:22px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--steel);font-family:inherit;font-size:13.5px;font-weight:500;padding:8px 0;border-radius:9px;cursor:pointer}
+  .seg button.on{background:var(--slate);color:var(--bone);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+
+  /* day group */
+  .day{margin-bottom:8px}
+  .dayhdr{display:flex;align-items:baseline;gap:8px;margin:18px 2px 11px}
+  .dayhdr .d{font-size:15px;font-weight:700;color:var(--ember);letter-spacing:-.01em}
+  .dayhdr .meta{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .dayhdr.first{margin-top:2px}
+  .rule{height:1px;background:var(--hairline);margin:0 2px}
+
+  /* task row */
+  .task{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;background:var(--card);border:1px solid var(--hairline);border-radius:13px;margin-bottom:8px;position:relative;overflow:hidden}
+  .task::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .chk{flex:0 0 auto;width:19px;height:19px;border-radius:50%;border:2px solid var(--cm);margin-top:1px;position:relative}
+  .chk.done{background:var(--cm);border-color:var(--cm)}
+  .chk.done::after{content:"";position:absolute;left:5px;top:2px;width:5px;height:9px;border:solid var(--onyx);border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .t-body{flex:1;min-width:0}
+  .t-name{font-size:14.5px;font-weight:500;line-height:1.3}
+  .t-name.done{color:var(--steel);text-decoration:line-through}
+  .t-sub{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap}
+  .cant{font-size:11px;font-weight:600;font-family:"Geist Mono",monospace;padding:2px 7px;border-radius:6px;letter-spacing:.2px}
+  .time{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .danger-cant{color:var(--danger);background:rgba(255,92,92,.13)}
+  .stage-cant{color:var(--steel);background:var(--slate)}  /* E2 — метка этапа, нейтральный steel */
+
+  /* free day */
+  .free{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:12.5px;color:var(--steel);font-style:italic;margin-bottom:8px}
+  .free::before{content:"";flex:0 0 auto;width:19px;height:1px;background:var(--hairline)}
+
+  /* ПРОСРОЧЕНО — закреплено сверху ленты (forward-скан теряет хвосты) */
+  .od-hdr{display:flex;align-items:baseline;gap:8px;margin:2px 2px 11px}
+  .od-hdr .d{font-size:15px;font-weight:700;color:var(--danger)}
+  .od-rule{height:1px;background:rgba(255,92,92,.25);margin:0 2px 7px}
+  .task.od{border-color:rgba(255,92,92,.28)}
+  .od-date{font-size:11px;color:var(--danger);font-family:"Geist Mono",monospace}
+
+  /* ВЕХА-строка — рубеж проекта (не задача, без чекбокса) */
+  .veha{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,.02);border:1px dashed var(--hairline);border-radius:13px;margin-bottom:8px}
+  .veha svg{width:13px;height:13px;flex:0 0 auto}
+  .veha .vn{font-size:14px;font-weight:600}
+  .veha .vtag{font-size:10.5px;font-weight:600;font-family:"Geist Mono",monospace;color:var(--steel);background:var(--slate);padding:2px 7px;border-radius:6px}
+  .veha .vt{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;margin-left:auto}
+
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:78px;background:var(--card);border-top:1px solid var(--hairline);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:14px}
+  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:10px;color:var(--steel)}
+  .tab.active{color:var(--ember)}
+  .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8}
+
+  .legend{width:300px;font-size:13px;line-height:1.7}
+  .legend h2{font-size:16px;margin-bottom:10px}
+  .legend .row{margin-bottom:13px;padding-left:12px;border-left:2px solid var(--ember)}
+  .legend b{color:var(--ember)}
+  .legend .muted{color:#9a9aa2}
+  .fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+  .ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style></head>
+<body>
+
+<div class="phone">
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="scroll">
+    <h1>Календарь</h1>
+
+    <div class="seg">
+      <button>Неделя</button>
+      <button>Месяц</button>
+      <button class="on">Лента<span class="ecode">A1</span></button>
+    </div>
+
+    <!-- ПРОСРОЧЕНО (закреплено сверху, красным) -->
+    <div class="day">
+      <div class="od-hdr"><span class="d">Просрочено · 2</span></div>
+      <div class="od-rule"></div>
+      <div class="task od" style="--c:var(--health);--cm:var(--health)">
+        <div class="chk"></div>
+        <div class="t-body">
+          <div class="t-name">Записаться на МРТ</div>
+          <div class="t-sub"><span class="od-date">было 6 июня</span><span class="cant" style="color:var(--health);background:rgba(91,141,239,.13)">Здоровье</span></div>
+        </div>
+      </div>
+      <div class="task od" style="--c:var(--finance);--cm:var(--finance)">
+        <div class="chk"></div>
+        <div class="t-body">
+          <div class="t-name">Свести счёт Revolut</div>
+          <div class="t-sub"><span class="od-date">было 7 июня</span><span class="cant" style="color:var(--finance);background:rgba(201,162,75,.13)">Финансы</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СЕГОДНЯ -->
+    <div class="day">
+      <div class="dayhdr first"><span class="d">Сегодня<span class="ecode">A2</span></span><span class="meta">· Вт 9 июня</span></div>
+      <div class="rule"></div>
+
+      <div class="task" style="--c:var(--zima);--cm:var(--zima)">
+        <div class="chk"></div>
+        <div class="t-body">
+          <div class="t-name">Созвон ZIMA</div>
+          <div class="t-sub"><span class="time">11:00</span><span class="cant" style="color:var(--zima);background:rgba(63,182,139,.13)">ZIMA</span></div>
+        </div>
+      </div>
+
+      <div class="task" style="--c:var(--finance);--cm:var(--finance)">
+        <div class="chk"></div>
+        <div class="t-body">
+          <div class="t-name">Договор клиенту<span class="ecode">A3</span></div>
+          <div class="t-sub"><span class="time">17:00</span><span class="cant" style="color:var(--finance);background:rgba(201,162,75,.13)">Финансы</span><span class="cant danger-cant">дедлайн<span class="ecode">A4</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ЗАВТРА -->
+    <div class="day">
+      <div class="dayhdr"><span class="d">Завтра<span class="ecode">A5</span></span><span class="meta">· Ср 10 июня</span></div>
+      <div class="rule"></div>
+
+      <div class="task" style="--c:var(--health);--cm:var(--health)">
+        <div class="chk"></div>
+        <div class="t-body">
+          <div class="t-name">Сдать анализы</div>
+          <div class="t-sub"><span class="cant" style="color:var(--health);background:rgba(91,141,239,.13)">Здоровье</span><span class="cant danger-cant">блокер<span class="ecode">A6</span></span></div>
+        </div>
+      </div>
+
+      <div class="task" style="--c:var(--health);--cm:var(--health)">
+        <div class="chk"></div>
+        <div class="t-body">
+          <div class="t-name">Зарядка + валик</div>
+          <div class="t-sub"><span class="time">07:00</span><span class="cant" style="color:var(--health);background:rgba(91,141,239,.13)">Здоровье</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ЧТ -->
+    <div class="day">
+      <div class="dayhdr"><span class="d">Чт 11 июня</span></div>
+      <div class="rule"></div>
+
+      <!-- ВЕХА — рубеж проекта, не задача (без чекбокса) -->
+      <div class="veha">
+        <svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#3FB68B" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#3FB68B"/></svg>
+        <span class="vn">Юр.готовность ZIMA</span><span class="vtag">веха</span><span class="vt">этап 4 → 5</span>
+      </div>
+
+      <div class="task" style="--c:var(--zima);--cm:var(--zima)">
+        <div class="chk"></div>
+        <div class="t-body">
+          <div class="t-name">Юр.пакет ZIMA</div>
+          <div class="t-sub"><span class="cant" style="color:var(--zima);background:rgba(63,182,139,.13)">ZIMA</span><span class="cant stage-cant">этап 4<span class="ecode">A7</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ПТ -->
+    <div class="day">
+      <div class="dayhdr"><span class="d">Пт 12 июня</span></div>
+      <div class="rule"></div>
+
+      <div class="task" style="--c:var(--plan);--cm:var(--plan)">
+        <div class="chk"></div>
+        <div class="t-body">
+          <div class="t-name">Планёрка planner</div>
+          <div class="t-sub"><span class="cant" style="color:var(--plan);background:rgba(155,107,224,.13)">planner</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СБ -->
+    <div class="day">
+      <div class="dayhdr"><span class="d">Сб 13 июня</span></div>
+      <div class="rule"></div>
+      <div class="free">свободно<span class="ecode">A8</span></div>
+    </div>
+
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Задачи</div>
+    <div class="tab active"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/></svg>Календарь</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h14M4 18h7"/></svg>Гант</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Цели</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg>Привычки</div>
+  </div>
+</div>
+
+<div class="legend">
+  <h2><span class="fcode">T2c·A</span>Календарь — Лента (Agenda) · ↔ V2 P02</h2>
+  <div class="row"><b>Лента</b> — быстрый вертикальный скан ближайших дней в Things-стиле (Upcoming). Очень мобильно: листаешь вниз, видишь всё, что катится навстречу.</div>
+  <div class="row"><b>Чекбокс прямо тут</b> — задачу можно закрыть, не уходя с ленты. Цвет чекбокса = проект.</div>
+  <div class="row"><b>Метка проекта / этапа</b> висит на задаче (кант + бейдж). Время — слева, дедлайны/блокеры — красным кантом.</div>
+  <div class="row"><b>Дни без задач</b> — тонкая строка «свободно», чтобы лента не рвалась.</div>
+  <div class="row muted">Третий вид одного таба «Календарь»: Неделя · Месяц · <b>Лента</b>. Те же данные, другой ракурс.</div>
+</div>
+
+</body></html>

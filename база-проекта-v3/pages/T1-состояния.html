@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T1 — матрица состояний (таймлайн + список)</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--onyx:#0F0F11;--smoke:#1A1B1F;--slate:#242529;--bone:#F4F4F5;--steel:#8A8B91;--accent:#EE8A3C;--accent-soft:rgba(238,138,60,0.16);--danger:#FF5C5C;--warning:#FFB02E;--hairline:rgba(255,255,255,0.07);--p-health:#5B8DEF;--p-fin:#C9A24B;--p-plan:#9B8CCB}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 18px 60px}
+  h2{font-size:18px;font-weight:700;margin:26px 0 4px}h2:first-child{margin-top:0}
+  .sub{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:16px}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .fcap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:10px}
+  .fcap b{color:var(--accent)}
+  .fcode{display:inline-block;background:var(--accent);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px}
+  .phone{width:300px;height:600px;background:var(--onyx);border:1px solid var(--hairline);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+  .st{height:36px;display:flex;align-items:center;padding:0 18px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--bone)}
+  .hd{padding:10px 16px 8px;border-bottom:1px solid var(--hairline)}
+  .hd h1{font-size:19px;font-weight:700}
+  .hd .d{font-size:13px;color:var(--steel);margin-top:2px;text-transform:capitalize}
+  .hd .back{color:var(--accent);font-size:13px;font-weight:600;margin-bottom:4px}
+  .body{flex:1;overflow:hidden;position:relative;padding:0 16px}
+  /* empty-state */
+  .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:0 24px}
+  .empty .ic{width:40px;height:40px;color:var(--steel)}
+  .empty .t{font-size:16px;font-weight:600}
+  .empty .s{font-size:13px;color:var(--steel);line-height:1.5}
+  .empty .btn{margin-top:6px;background:var(--accent);color:#1a1209;font-size:14px;font-weight:600;border-radius:11px;padding:11px 20px}
+  .hint{text-align:center;color:var(--steel);font-size:13px;padding:18px 20px 0}
+  /* loading skeleton */
+  .skel{background:var(--slate);border-radius:8px;position:relative;overflow:hidden}
+  .skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.3s infinite}
+  @keyframes sh{100%{transform:translateX(100%)}}
+  .sk-line{height:13px;border-radius:6px}
+  .sk-block{height:50px;border-radius:10px;margin-bottom:10px}
+  /* hour grid for timeline */
+  .hour{height:46px;border-top:1px solid var(--hairline);position:relative}
+  .hour span{position:absolute;top:-7px;left:0;font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);background:var(--onyx);padding-right:5px}
+  .tabs{display:flex;border-top:1px solid var(--hairline);background:var(--smoke);padding:7px 4px 12px}
+  .tab{flex:1;text-align:center;font-size:10px;color:var(--steel)}.tab.on{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<h2>Таймлайн (T1·A) — состояния</h2>
+<div class="sub">happy-path уже в основном мокапе. Здесь пусто / загрузка / ошибка.</div>
+<div class="row">
+  <!-- timeline empty -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T1·A</span>пусто · день свободен</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Задачи</h1><div class="d">вторник, 9 июня</div></div>
+      <div class="body">
+        <div class="hint">План на день пуст. Тап по часу или <b style="color:var(--accent)">+</b> добавит задачу.</div>
+        <div style="margin-top:14px;opacity:.5">
+          <div class="hour"><span>09:00</span></div><div class="hour"><span>10:00</span></div>
+          <div class="hour"><span>11:00</span></div><div class="hour"><span>12:00</span></div>
+          <div class="hour"><span>13:00</span></div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab on">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- timeline loading -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T1·A</span>загрузка · скелетон</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="skel sk-line" style="width:42%;height:18px"></div><div class="skel sk-line" style="width:30%;margin-top:9px"></div></div>
+      <div class="body" style="padding-top:14px">
+        <div class="skel sk-block" style="height:40px"></div>
+        <div class="skel sk-block"></div>
+        <div class="skel sk-block" style="height:80px"></div>
+        <div class="skel sk-block"></div>
+        <div class="skel sk-block" style="height:64px"></div>
+      </div>
+      <div class="tabs"><div class="tab on">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- timeline error -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T1·A</span>ошибка загрузки</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Задачи</h1><div class="d">вторник, 9 июня</div></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10.3 4l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/><path d="M12 9v5M12 17.5h.01"/></svg>
+          <div class="t">Не удалось загрузить</div>
+          <div class="s">Проверь соединение и попробуй ещё раз.</div>
+          <div class="btn">Повторить</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab on">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+</div>
+
+<h2>Список (T1·D) — состояния</h2>
+<div class="sub">заполненный = в основном мокапе. Здесь пусто / загрузка / ошибка.</div>
+<div class="row">
+  <!-- list empty -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T1·D</span>пусто · день свободен</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Таймлайн</div><h1>Задачи · сегодня</h1><div class="d">вторник, 9 июня</div></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg>
+          <div class="t">День свободен</div>
+          <div class="s">Ни одной задачи на сегодня. Запиши первую — или отдохни.</div>
+          <div class="btn">Добавить задачу</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab on">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- list loading -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T1·D</span>загрузка · скелетон</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Таймлайн</div><div class="skel sk-line" style="width:46%;height:18px;margin-top:4px"></div></div>
+      <div class="body" style="padding-top:14px">
+        <div class="skel sk-block" style="height:56px"></div>
+        <div class="skel sk-line" style="width:30%;margin:14px 0 10px"></div>
+        <div class="skel sk-block" style="height:52px"></div>
+        <div class="skel sk-block" style="height:52px"></div>
+        <div class="skel sk-line" style="width:24%;margin:14px 0 10px"></div>
+        <div class="skel sk-block" style="height:52px"></div>
+      </div>
+      <div class="tabs"><div class="tab on">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- list error -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T1·D</span>ошибка загрузки</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Таймлайн</div><h1>Задачи · сегодня</h1></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10.3 4l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/><path d="M12 9v5M12 17.5h.01"/></svg>
+          <div class="t">Не удалось загрузить</div>
+          <div class="s">Проверь соединение и попробуй ещё раз.</div>
+          <div class="btn">Повторить</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab on">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

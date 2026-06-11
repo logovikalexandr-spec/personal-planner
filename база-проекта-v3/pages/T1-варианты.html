@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T1 — варианты решений (сверка)</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+    --hairline:rgba(255,255,255,0.07);
+    --p-zima:#3FB68B; --p-health:#5B8DEF; --p-plan:#9B8CCB; --p-fin:#C9A24B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 20px 80px;line-height:1.45}
+  h2{font-size:18px;font-weight:700;margin:34px 0 6px;letter-spacing:-.02em}
+  h2:first-child{margin-top:0}
+  .sub{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:16px;max-width:760px}
+  .sub b{color:var(--accent)}
+  .opts{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .opt{width:340px;background:var(--onyx);border:1px solid var(--hairline);border-radius:18px;padding:14px}
+  .opt .tag{font-family:"Geist Mono",monospace;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .opt .note{font-size:12px;color:var(--steel);margin-top:10px}
+  /* mini-header контекст */
+  .hd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .hd .burger{width:30px;height:30px;border-radius:9px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center}
+  .hd .burger svg{width:16px;height:16px;color:var(--bone)}
+  .hd h1{font-size:19px;font-weight:700}
+  /* all-day */
+  .allday{display:flex;align-items:flex-start;gap:10px;padding:8px 0 6px;border-top:1px solid var(--hairline)}
+  .allday .lbl{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);flex:0 0 34px;line-height:1.2;padding-top:7px}
+  .allday .col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .chip{background:rgba(91,141,239,0.13);color:var(--p-health);border-radius:8px;padding:7px 11px;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--warning)}
+  .chip.z{background:rgba(63,182,139,0.13);color:var(--p-zima);border-left-color:var(--danger)}
+  .chip.p{background:rgba(155,140,203,0.13);color:var(--p-plan);border-left-color:var(--accent)}
+  .chip.f{background:rgba(201,162,75,0.13);color:var(--p-fin);border-left-color:var(--warning)}
+  .more{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);padding:5px 11px;border:1px dashed var(--hairline);border-radius:8px;align-self:flex-start;cursor:pointer}
+  .scrollbox{max-height:96px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+  .scrollbox::-webkit-scrollbar{width:5px}.scrollbox::-webkit-scrollbar-thumb{background:var(--slate);border-radius:3px}
+  .fade{position:relative}
+  /* mini-cal */
+  .mini{width:280px;background:var(--smoke);border:1px solid var(--hairline);border-radius:14px;padding:14px}
+  .mini .mh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px;font-weight:600}
+  .mini .mh .nav{color:var(--steel)}
+  .mg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+  .mg .dow{font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);padding-bottom:3px}
+  .mg .d{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:8px;position:relative}
+  .mg .d.dim{color:#444}
+  .mg .d.today{background:var(--accent);color:#1a1209;font-weight:700}
+  .mg .d.sel{border:1.5px solid var(--accent)}
+  .mg .d .dt{position:absolute;bottom:3px;width:4px;height:4px;border-radius:50%}
+  /* блоки таймлайна для метки этапа */
+  .tl{position:relative;background:var(--onyx);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:8px}
+  .blk{position:relative;background:var(--slate);border-left:3px solid var(--warning);border-radius:8px;padding:7px 9px 7px 11px;display:flex;gap:8px;align-items:flex-start}
+  .blk.z{background:rgba(63,182,139,0.13);border-left-color:var(--warning)}
+  .blk.h{background:rgba(91,141,239,0.13);border-left-color:var(--danger)}
+  .blk.f{background:rgba(201,162,75,0.13);border-left-color:var(--accent)}
+  .cb{flex:0 0 auto;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--steel);margin-top:1px}
+  .bt{font-size:14px;font-weight:500}
+  .bm{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-top:2px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .stage{display:inline-flex;align-items:center;gap:4px}
+  .stage svg{width:12px;height:12px}
+  .stage.neutral{color:var(--steel)}
+  .stage.late{color:var(--danger)}
+  .stage.cur{color:var(--accent)}
+  .stage.fut{color:var(--steel)}
+  .narrow{height:30px;overflow:hidden}
+  .pick{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-top:8px}
+  .pick b{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<h2>A · all-day переполнение (5 задач «весь день»)</h2>
+<div class="sub">Зона прибита в sticky-шапке. Контекст сверху = ☰ + «Задачи». Вопрос: что при 3+ чипах.</div>
+<div class="opts">
+  <div class="opt">
+    <div class="tag">A1 · «+N ещё»</div>
+    <div class="hd"><span class="burger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></span><h1>Задачи</h1></div>
+    <div class="allday"><span class="lbl">весь<br>день</span><div class="col">
+      <div class="chip">Записаться на анализы</div>
+      <div class="chip z">Договор аренды ZIMA</div>
+      <div class="more">+3 ещё</div>
+    </div></div>
+    <div class="note">Шапка компактна. Тап «+3» раскрывает. Минус: 3 задачи спрятаны.</div>
+  </div>
+  <div class="opt">
+    <div class="tag">A2 · стопка + скролл внутри</div>
+    <div class="hd"><span class="burger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></span><h1>Задачи</h1></div>
+    <div class="allday"><span class="lbl">весь<br>день</span><div class="col scrollbox">
+      <div class="chip">Записаться на анализы</div>
+      <div class="chip z">Договор аренды ZIMA</div>
+      <div class="chip p">Ревью мокапов planner</div>
+      <div class="chip f">Оплатить налоги záloha</div>
+      <div class="chip">Позвонить врачу</div>
+    </div></div>
+    <div class="note">Все видны, зона фикс-высоты, внутри скролл. Минус: скролл-в-скролле.</div>
+  </div>
+  <div class="opt">
+    <div class="tag">A3 · полная стопка</div>
+    <div class="hd"><span class="burger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></span><h1>Задачи</h1></div>
+    <div class="allday"><span class="lbl">весь<br>день</span><div class="col">
+      <div class="chip">Записаться на анализы</div>
+      <div class="chip z">Договор аренды ZIMA</div>
+      <div class="chip p">Ревью мокапов planner</div>
+      <div class="chip f">Оплатить налоги záloha</div>
+      <div class="chip">Позвонить врачу</div>
+    </div></div>
+    <div class="note">Просто. Минус: шапка растёт, таймлайн уезжает вниз.</div>
+  </div>
+</div>
+
+<h2>B · точки-проекты в датапикере</h2>
+<div class="sub">Цветная точка под днём = есть задача проекта. Требует фетч задач на весь месяц при открытии пикера.</div>
+<div class="opts">
+  <div class="opt" style="width:auto">
+    <div class="tag">B1 · без точек (v1)</div>
+    <div class="mini">
+      <div class="mh"><span class="nav">‹</span><span>Июнь 2026</span><span class="nav">›</span></div>
+      <div class="mg">
+        <span class="dow">Пн</span><span class="dow">Вт</span><span class="dow">Ср</span><span class="dow">Чт</span><span class="dow">Пт</span><span class="dow">Сб</span><span class="dow">Вс</span>
+        <span class="d">1</span><span class="d">2</span><span class="d">3</span><span class="d sel">4</span><span class="d">5</span><span class="d">6</span><span class="d">7</span>
+        <span class="d">8</span><span class="d today">9</span><span class="d">10</span><span class="d">11</span><span class="d">12</span><span class="d">13</span><span class="d">14</span>
+        <span class="d">15</span><span class="d">16</span><span class="d">17</span><span class="d">18</span><span class="d">19</span><span class="d">20</span><span class="d">21</span>
+      </div>
+    </div>
+    <div class="note">Лёгкий, 0 лишних запросов. Чистая навигация.</div>
+  </div>
+  <div class="opt" style="width:auto">
+    <div class="tag">B2 · с точками</div>
+    <div class="mini">
+      <div class="mh"><span class="nav">‹</span><span>Июнь 2026</span><span class="nav">›</span></div>
+      <div class="mg">
+        <span class="dow">Пн</span><span class="dow">Вт</span><span class="dow">Ср</span><span class="dow">Чт</span><span class="dow">Пт</span><span class="dow">Сб</span><span class="dow">Вс</span>
+        <span class="d">1</span><span class="d">2<i class="dt" style="background:var(--p-zima)"></i></span><span class="d">3</span><span class="d sel">4<i class="dt" style="background:var(--p-health)"></i></span><span class="d">5</span><span class="d">6</span><span class="d">7</span>
+        <span class="d">8</span><span class="d today">9</span><span class="d">10<i class="dt" style="background:var(--danger)"></i></span><span class="d">11</span><span class="d">12<i class="dt" style="background:var(--p-plan)"></i></span><span class="d">13</span><span class="d">14</span>
+        <span class="d">15<i class="dt" style="background:var(--p-fin)"></i></span><span class="d">16</span><span class="d">17</span><span class="d">18</span><span class="d">19</span><span class="d">20</span><span class="d">21</span>
+      </div>
+    </div>
+    <div class="note">Видно «где густо». Минус: +1 запрос на месяц при каждом открытии.</div>
+  </div>
+</div>
+
+<h2>C · метка этапа на блоке</h2>
+<div class="sub">Мишень + «этап N». Кант блока уже = приоритет, фон = проект. Вопрос: метку красить статусом этапа или держать нейтральной.</div>
+<div class="opts">
+  <div class="opt">
+    <div class="tag">C1 · нейтральный steel всегда</div>
+    <div class="tl">
+      <div class="blk z"><span class="cb"></span><div><div class="bt">Созвон ZIMA</div><div class="bm"><span>09:00–10:00</span><span class="stage neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 3</span></div></div></div>
+      <div class="blk h"><span class="cb"></span><div><div class="bt">Анализы — кровь</div><div class="bm"><span>11:00</span><span class="stage neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 1</span></div></div></div>
+      <div class="blk f"><span class="cb"></span><div><div class="bt">Налоги záloha</div><div class="bm"><span>18:00</span><span class="stage neutral"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 2</span></div></div></div>
+    </div>
+    <div class="note">Метка = тихая инфо. Цвет несут кант+фон. Меньше шума.</div>
+  </div>
+  <div class="opt">
+    <div class="tag">C2 · красить по статусу</div>
+    <div class="tl">
+      <div class="blk z"><span class="cb"></span><div><div class="bt">Созвон ZIMA</div><div class="bm"><span>09:00–10:00</span><span class="stage cur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 3 · текущий</span></div></div></div>
+      <div class="blk h"><span class="cb"></span><div><div class="bt">Анализы — кровь</div><div class="bm"><span>11:00</span><span class="stage late"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 1 · отстаёт</span></div></div></div>
+      <div class="blk f"><span class="cb"></span><div><div class="bt">Налоги záloha</div><div class="bm"><span>18:00</span><span class="stage fut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>этап 2 · впереди</span></div></div></div>
+    </div>
+    <div class="note">Видно «отстаёт» прямо на дне. Минус: 3-й цвет на блоке (кант+фон+метка) = пестрит.</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -147,7 +147,9 @@ async def measure_metric(metric_id: int, payload: MetricMeasureIn, _: Owner, db:
     return await _metric_out(db, m)
 
 
-# ── ретро ─────────────────────────────────────────────────────────────────── #
+# ── ретро (задачи + привычки) ──────────────────────────────────────────────── #
 @router.get("/tracking/retro")
-async def retro(_: Owner, db: Db, week_start: date_cls = Query(...)):
-    return await svc.week_retro(db, week_start)
+async def retro(_: Owner, db: Db, week_start: date_cls | None = Query(default=None)):
+    today = date_cls.today()
+    ws = week_start or (today - timedelta(days=today.weekday()))  # понедельник недели
+    return await svc.week_review(db, ws, today)

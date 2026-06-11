@@ -125,6 +125,11 @@ class TasksRepo:
                  f"~and(quadrant,eq,Q1)~and(due_date,eq,{today})")
         return await self._c.list("Tasks", where=where, limit=50)
 
+    async def search_text(self, query: str, limit: int = 10) -> list[dict]:
+        where = (f"(title,like,%{query}%)~or(description,like,%{query}%)")
+        return await self._c.list("Tasks", where=where, limit=limit,
+                                  sort="-created_at")
+
 
 class ActionsRepo:
     def __init__(self, client: NocoDBClient):

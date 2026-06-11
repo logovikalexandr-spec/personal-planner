@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Гант — по проекту</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0;
+    --hi:#FF5C5C; --med:#FFB02E; --low:#EE8A3C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;color:var(--bone);display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .phone{width:390px;height:844px;background:var(--onyx);border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;font-weight:600;flex:0 0 auto}
+  .scroll{flex:1;overflow-y:auto;padding:6px 18px 100px}
+  .scroll::-webkit-scrollbar{display:none}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+  .sub{color:var(--steel);font-size:13px;margin-bottom:16px}
+
+  /* переключатель режима */
+  .seg{display:inline-flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:11px;padding:3px;gap:3px;margin-bottom:13px}
+  .seg span{font-size:12.5px;font-weight:600;color:var(--steel);padding:6px 13px;border-radius:8px;cursor:pointer}
+  .seg span.on{background:var(--slate);color:var(--bone)}
+
+  /* селектор проекта */
+  .projchip{display:inline-flex;align-items:center;gap:8px;background:rgba(63,182,139,.12);border:1px solid rgba(63,182,139,.35);color:var(--zima);border-radius:11px;padding:9px 14px;font-size:14px;font-weight:600;margin-bottom:16px}
+  .projchip .car{font-size:11px;opacity:.8}
+
+  /* шкала недель */
+  .gwrap{background:var(--card);border:1px solid var(--hairline);border-radius:16px;overflow:hidden;margin-bottom:16px}
+  .ghead{display:grid;grid-template-columns:118px 1fr;border-bottom:1px solid var(--hairline)}
+  .ghead .corner{font-family:"Geist Mono",monospace;font-size:9px;letter-spacing:.6px;color:var(--steel);padding:9px 0 9px 13px;display:flex;align-items:flex-end}
+  .weeks{display:grid;grid-template-columns:repeat(8,1fr);position:relative}
+  .weeks .w{font-family:"Geist Mono",monospace;font-size:9px;color:var(--steel);text-align:center;padding:9px 0 7px;border-left:1px solid var(--hairline)}
+  .weeks .w:first-child{border-left:none}
+  .weeks .w b{display:block;color:#b9bac0;font-weight:600;font-size:9px}
+
+  /* строки ганта */
+  .grow{display:grid;grid-template-columns:118px 1fr;border-bottom:1px solid var(--hairline);position:relative}
+  .grow:last-child{border-bottom:none}
+  .gname{padding:11px 10px 11px 13px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+  .gname .t{font-size:12.5px;font-weight:600;line-height:1.2}
+  .gname .d{font-family:"Geist Mono",monospace;font-size:9px;color:var(--steel)}
+  .gname.task{padding-left:26px}
+  .gname.task .t{font-size:11.5px;font-weight:500;color:#cfd0d5}
+  .gname.task .dot{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%}
+
+  .lane{position:relative;height:100%;min-height:40px}
+  .lane.task{min-height:32px}
+  /* сетка вертикальных колонок недель внутри полосы */
+  .lane .grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(8,1fr);pointer-events:none}
+  .lane .grid i{border-left:1px solid var(--hairline)}
+  .lane .grid i:first-child{border-left:none}
+
+  .bar{position:absolute;top:50%;transform:translateY(-50%);height:15px;border-radius:5px;display:flex;align-items:center;font-size:9px;font-weight:600}
+  .bar.stage{height:17px}
+  .bar.done{background:var(--zima)}
+  .bar.prog{background:rgba(63,182,139,.22);overflow:hidden}
+  .bar.prog .fill{position:absolute;left:0;top:0;bottom:0;background:var(--zima)}
+  .bar.prog .pct{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:8.5px;color:var(--bone);z-index:2}
+  .bar.ahead{background:transparent;border:1.4px dashed rgba(255,255,255,.28)}
+  .bar.crit{box-shadow:0 0 0 1.5px var(--ember),0 0 11px rgba(238,138,60,.5);height:19px}
+
+  /* мини-бары задач */
+  .tbar{position:absolute;top:50%;transform:translateY(-50%);height:9px;border-radius:3px}
+  .tbar.done{background:rgba(63,182,139,.85)}
+  .tbar.open{background:#33343a;border:1px solid rgba(255,255,255,.13)}
+
+  /* линия сегодня */
+  .today{position:absolute;top:0;bottom:0;width:2px;background:var(--ember);z-index:5}
+  .today::before{content:"СЕГОДНЯ";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-family:"Geist Mono",monospace;font-size:7.5px;letter-spacing:.5px;color:var(--ember);white-space:nowrap}
+  .today::after{content:"";position:absolute;top:0;left:-2px;width:6px;height:6px;border-radius:50%;background:var(--ember)}
+
+  /* стрелка зависимости */
+  .dep{position:absolute;z-index:6;pointer-events:none}
+  .dep svg{overflow:visible}
+
+  /* веха-ромб */
+  .milestone{position:absolute;top:50%;transform:translate(-50%,-50%) rotate(45deg);width:13px;height:13px;background:var(--ember);border-radius:2px;z-index:4;box-shadow:0 0 9px rgba(238,138,60,.6)}
+  .ml-row .gname .t{color:var(--ember)}
+
+  /* критический путь — подпись */
+  .critnote{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--steel);margin-bottom:8px;padding-left:2px}
+  .critnote .swatch{width:18px;height:4px;border-radius:2px;background:var(--ember);box-shadow:0 0 7px rgba(238,138,60,.6)}
+  .critnote b{color:var(--ember);font-weight:600}
+
+  /* мини-легенда статусов */
+  .keys{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--steel);margin-bottom:4px;padding:0 2px}
+  .keys span{display:inline-flex;align-items:center;gap:5px}
+  .keys i{width:11px;height:8px;border-radius:2px;display:inline-block}
+
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:78px;background:var(--card);border-top:1px solid var(--hairline);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:14px}
+  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:10px;color:var(--steel)}
+  .tab.active{color:var(--ember)}
+  .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8}
+
+  .legend{width:300px;font-size:13px;line-height:1.7}
+  .legend h2{font-size:16px;margin-bottom:10px}
+  .legend .row{margin-bottom:13px;padding-left:12px;border-left:2px solid var(--ember)}
+  .legend b{color:var(--ember)}
+  .legend .muted{color:#9a9aa2}
+  .fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+  .ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style></head>
+<body>
+
+<div class="phone">
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="scroll">
+    <h1>Гант</h1>
+    <div class="seg"><span>Все проекты<span class="ecode">A8·T3a</span></span><span class="on">По проекту</span></div>
+
+    <div class="projchip">Продать ZIMA <span class="car">▾</span><span class="ecode">A1</span></div>
+
+    <div class="critnote"><span class="swatch"></span> Критический путь: <b>Переговоры → Договор</b><span class="ecode">A2</span></div>
+
+    <div class="gwrap">
+      <!-- шапка недель -->
+      <div class="ghead">
+        <div class="corner">ЭТАП / ЗАДАЧА</div>
+        <div class="weeks">
+          <div class="w">Июн<b>W2</b></div>
+          <div class="w">Июн<b>W3</b></div>
+          <div class="w">Июн<b>W4</b></div>
+          <div class="w">Июл<b>W1</b></div>
+          <div class="w">Июл<b>W2</b></div>
+          <div class="w">Июл<b>W3</b></div>
+          <div class="w">Авг<b>W1</b></div>
+          <div class="w">Авг<b>W2</b></div>
+        </div>
+      </div>
+
+      <!-- линия сегодня (≈9 июня → начало W2, ~6% от шкалы) -->
+      <!-- задаётся внутри каждой lane через .today -->
+
+      <!-- Этап 1 -->
+      <div class="grow">
+        <div class="gname"><span class="t">1 · Оценка и упаковка</span><span class="d">12–28 мая</span></div>
+        <div class="lane">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <!-- done до старта шкалы → короткий хвост слева -->
+          <div class="bar stage done" style="left:0;width:7%"></div>
+        </div>
+      </div>
+
+      <!-- Этап 2 -->
+      <div class="grow">
+        <div class="gname"><span class="t">2 · Поиск покупателей</span><span class="d">28 мая – 8 июн</span></div>
+        <div class="lane">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <div class="bar stage done" style="left:0;width:9%"></div>
+        </div>
+      </div>
+
+      <!-- Этап 3 — текущий, критический -->
+      <div class="grow">
+        <div class="gname"><span class="t">3 · Переговоры<span class="ecode">A3</span></span><span class="d">9–28 июн · текущий</span></div>
+        <div class="lane">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <div class="bar stage prog crit" style="left:6%;width:26%">
+            <div class="fill" style="width:60%"></div>
+            <span class="pct">60%</span>
+            <span class="ecode pin">A4</span>
+          </div>
+          <!-- стрелка зависимости 3 → 4 (вниз-вправо) -->
+          <div class="dep" style="left:32%;top:50%;width:14px;height:48px"><span class="ecode pin">A7</span>
+            <svg width="14" height="48" viewBox="0 0 14 48">
+              <path d="M1 1 L1 30 Q1 38 9 40 L11 41" stroke="var(--ember)" stroke-width="1.4" fill="none"/>
+              <path d="M7 37 L12 41 L7 45" stroke="var(--ember)" stroke-width="1.4" fill="none"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- задачи этапа 3 -->
+      <div class="grow">
+        <div class="gname task"><span class="dot" style="background:var(--zima)"></span><span class="t">Подготовить презентацию</span></div>
+        <div class="lane task">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <div class="tbar done" style="left:6%;width:9%"><span class="ecode pin">A5·DETAIL</span></div>
+        </div>
+      </div>
+      <div class="grow">
+        <div class="gname task"><span class="dot" style="background:var(--hi)"></span><span class="t">Согласовать цену</span></div>
+        <div class="lane task">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <div class="tbar open" style="left:15%;width:10%"></div>
+        </div>
+      </div>
+      <div class="grow">
+        <div class="gname task"><span class="dot" style="background:var(--med)"></span><span class="t">Получить депозит</span></div>
+        <div class="lane task">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <div class="tbar open" style="left:24%;width:8%"></div>
+        </div>
+      </div>
+
+      <!-- Этап 4 — впереди, критический -->
+      <div class="grow">
+        <div class="gname"><span class="t">4 · Договор + юр.проверка</span><span class="d">28 июн – 20 июл</span></div>
+        <div class="lane">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <div class="bar stage ahead crit" style="left:32%;width:29%"><span class="ecode pin">A6</span></div>
+        </div>
+      </div>
+
+      <!-- Этап 5 — впереди -->
+      <div class="grow">
+        <div class="gname"><span class="t">5 · Передача</span><span class="d">20 июл – 12 авг</span></div>
+        <div class="lane">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <div class="bar stage ahead" style="left:61%;width:28%"></div>
+        </div>
+      </div>
+
+      <!-- Веха -->
+      <div class="grow ml-row">
+        <div class="gname"><span class="t">◆ Сделка закрыта</span><span class="d">15 авг</span></div>
+        <div class="lane">
+          <div class="grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="today" style="left:6%"></div>
+          <div class="milestone" style="left:94%"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="keys">
+      <span><i style="background:var(--zima)"></i> готово</span>
+      <span><i style="background:rgba(63,182,139,.22)"></i> в работе</span>
+      <span><i style="background:transparent;border:1.4px dashed rgba(255,255,255,.28)"></i> впереди</span>
+      <span><i style="background:var(--ember);box-shadow:0 0 6px rgba(238,138,60,.6)"></i> крит. путь</span>
+    </div>
+
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Задачи</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/></svg>Календарь</div>
+    <div class="tab active"><svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h14M4 18h7"/></svg>Гант</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Цели</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg>Привычки</div>
+  </div>
+</div>
+
+<div class="legend">
+  <h2><span class="fcode">T3b·A</span>Гант — по проекту · ↔ V2 P03</h2>
+  <div class="row"><b>Один проект на шкале</b> — этапы (1–5) и под текущим этапом его <b>задачи</b> мини-барами. Слева колонка этапов+задач, справа недели Июн W2..Авг W2.</div>
+  <div class="row"><b>Прогресс текущего этапа</b>: этап 3 «Переговоры» — бар-заливка 60%. Задачи: презентация done (зел), цена/депозит впереди (приоритет цветом: <b style="color:var(--hi)">high</b>/<b style="color:var(--med)">med</b>).</div>
+  <div class="row"><b>Критический путь</b> подсвечен ember-обводкой: этап 3 → этап 4. <b>Зависимость</b> — стрелка от 3 к 4 (4 не стартует без депозита).</div>
+  <div class="row"><b>Веха</b> ◆ «Сделка закрыта» — ромб на 15 авг. Линия <b>сегодня</b> (9 июня) — вертикаль ember.</div>
+  <div class="row muted">Открывается из детального экрана проекта (кнопка «Открыть в Ганте»). Те же этапы, что в «Целях» → карточка «Продать ZIMA».</div>
+</div>
+
+</body></html>

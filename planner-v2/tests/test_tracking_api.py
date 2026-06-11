@@ -95,5 +95,25 @@ def test_retro(client):
     for d in ("2026-06-08", "2026-06-09", "2026-06-10"):
         client.post(f"/api/habits/{hid}/toggle", json={"date": d}, headers=HDR)
     out = client.get("/api/tracking/retro?week_start=2026-06-08", headers=HDR).json()
-    assert out["done_days"] == 3
-    assert out["total_days"] == 7
+    assert out["habits"]["done_days"] == 3
+    assert out["habits"]["total_days"] == 7
+    assert "tasks" in out and "overdue" in out["tasks"]
+
+
+def test_retro_tasks_overdue_and_projects(client):
+    # задача недели (выполнена) + просроченная
+    t1 = client.post(
+        "/api/tasks", json={"title": "Созвон", "due_date": "2026-06-09"}, headers=HDR
+    ).json()
+    client.patch(f"/api/tasks/{t1['id']}", json={"impact": 80, "status": "done"}, headers=HDR)
+    client.post(
+        "/api/tasks", json={"title": "Оплатить аренду", "due_date": "2026-06-01"}, headers=HDR
+    )  # просрочена
+    # today после недели, week_start = пн
+    out = client.get("/api/tracking/retro?week_start=2026-06-08", headers=HDR).json()
+    tasks = out["tasks"]
+    assert tasks["done"] == 1
+    assert tasks["impact_sum"] == 80
+    assert tasks["top_task"]["title"] == "Созвон"
+    titles = [o["title"] for o in tasks["overdue"]]
+    assert "Оплатить аренду" in titles

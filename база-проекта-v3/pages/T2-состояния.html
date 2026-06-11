@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T2 Календарь — матрица состояний (неделя · месяц · лента)</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--onyx:#0F0F11;--smoke:#16171b;--card:#1A1B1F;--slate:#242529;--bone:#F4F4F5;--steel:#8A8B91;--accent:#EE8A3C;--ember:#EE8A3C;--accent-soft:rgba(238,138,60,0.16);--ember-soft:rgba(238,138,60,.13);--danger:#FF5C5C;--warning:#FFB02E;--hairline:rgba(255,255,255,0.07);--zima:#3FB68B;--health:#5B8DEF;--plan:#9B6BE0;--fin:#C9A24B}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 18px 60px}
+  .top{max-width:880px;margin-bottom:8px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--ember)}
+  h2{font-size:18px;font-weight:700;margin:30px 0 4px}
+  .sub{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:16px}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .fcap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:10px}
+  .fcap b{color:var(--accent)}
+  .fcode{display:inline-block;background:var(--accent);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px}
+  .phone{width:300px;height:600px;background:var(--onyx);border:1px solid var(--hairline);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+  .st{height:36px;display:flex;align-items:center;padding:0 18px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--bone)}
+  .hd{padding:8px 16px 8px}
+  .hd h1{font-size:19px;font-weight:700}
+  .seg{display:flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:10px;padding:3px;margin-top:8px}
+  .seg i{flex:1;text-align:center;font-style:normal;font-size:11.5px;font-weight:600;color:var(--steel);padding:6px 0;border-radius:7px}
+  .seg i.on{background:var(--slate);color:var(--bone)}
+  .body{flex:1;overflow:hidden;position:relative;padding:10px 16px}
+  /* empty-state */
+  .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:0 24px}
+  .empty .ic{width:40px;height:40px;color:var(--steel)}
+  .empty .t{font-size:16px;font-weight:600}
+  .empty .s{font-size:13px;color:var(--steel);line-height:1.5}
+  .empty .btn{margin-top:6px;background:var(--accent);color:#1a1209;font-size:14px;font-weight:600;border-radius:11px;padding:11px 20px}
+  .hint{text-align:center;color:var(--steel);font-size:12.5px;padding:8px 14px 0}
+  .hint b{color:var(--accent)}
+  /* loading skeleton */
+  .skel{background:var(--slate);border-radius:8px;position:relative;overflow:hidden}
+  .skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.3s infinite}
+  @keyframes sh{100%{transform:translateX(100%)}}
+  .sk-line{height:13px;border-radius:6px}
+  /* week grid (empty/skeleton) */
+  .range{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);margin:10px 2px 8px}
+  .daysrow{display:flex;gap:3px}
+  .wcol{flex:1;min-width:0}
+  .dh{text-align:center;margin-bottom:5px}
+  .dh .dn{font-size:9px;color:var(--steel);text-transform:uppercase}
+  .dh .dd{font-size:13px;font-weight:600;margin-top:1px}
+  .dh.today .dd{color:var(--ember)}
+  .wgrid{position:relative;background:var(--smoke);border:1px solid var(--hairline);border-radius:7px;height:300px;overflow:hidden}
+  .hr{position:absolute;left:0;right:0;border-top:1px solid rgba(255,255,255,.05)}
+  .now{position:absolute;left:0;right:0;height:1.5px;background:var(--ember)}
+  .now::before{content:"";position:absolute;left:-2px;top:-2.5px;width:6px;height:6px;border-radius:50%;background:var(--ember)}
+  .sk-blk{position:absolute;left:2px;right:2px;border-radius:6px}
+  /* month grid */
+  .mdow{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:8px 0 6px}
+  .mdow span{text-align:center;font-family:"Geist Mono",monospace;font-size:9px;color:var(--steel)}
+  .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cell{aspect-ratio:1/1.05;background:var(--card);border:1px solid var(--hairline);border-radius:8px;padding:4px 3px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .cell.out{background:transparent;border-color:transparent}.cell.out .num{color:#46474c}
+  .num{font-size:10.5px;font-weight:600;line-height:1}
+  .cell.today{border-color:var(--ember);box-shadow:0 0 0 1px var(--ember)}.cell.today .num{color:var(--ember)}
+  /* agenda rows */
+  .day{margin-bottom:6px}
+  .dayhdr{display:flex;align-items:baseline;gap:8px;margin:6px 2px 9px}
+  .dayhdr .d{font-size:14px;font-weight:700;color:var(--ember)}
+  .dayhdr .meta{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .rule{height:1px;background:var(--hairline);margin:0 2px 8px}
+  .free{display:flex;align-items:center;gap:9px;padding:8px 4px;font-size:12px;color:var(--steel);font-style:italic;margin-bottom:6px}
+  .free::before{content:"";flex:0 0 auto;width:19px;height:1px;background:var(--hairline)}
+  .sk-task{height:46px;border-radius:11px;margin-bottom:8px}
+  .tabs{display:flex;border-top:1px solid var(--hairline);background:var(--smoke);padding:7px 4px 12px;margin-top:auto}
+  .tab{flex:1;text-align:center;font-size:10px;color:var(--steel)}.tab.on{color:var(--accent)}
+  /* mchips для «нет вех» контекста */
+  .mstrip{margin:10px 0 0}
+  .mcap{font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);text-transform:uppercase;margin-bottom:7px}
+  .mempty{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--steel);font-style:italic;border:1px dashed var(--hairline);border-radius:10px;padding:9px 11px}
+  .mempty svg{width:13px;height:13px;flex:0 0 auto}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>T2 «Календарь» — матрица состояний</h1>
+  <p>happy-path трёх видов — в базовых мокапах. Здесь <b>пусто · скелетон · ошибка · нет вех</b> для Недели / Месяца / Ленты. Скелетоны повторяют размеры реальной сетки (не спиннеры).</p>
+</div>
+
+<!-- ── ПУСТО ── -->
+<h2>Пусто — окно без задач</h2>
+<div class="sub">range-фильтр вернул 0 задач. Экран не пустой, а зовёт планировать.</div>
+<div class="row">
+  <!-- WEEK empty -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·A</span>Неделя · ничего не запланировано</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i class="on">Неделя</i><i>Месяц</i><i>Лента</i></div></div>
+      <div class="body">
+        <div class="range">‹ 9–15 июня ›</div>
+        <div class="hint">Неделя свободна. Тап по часу или тяг задачу из <b>«Без даты»</b> — спланируй день.</div>
+        <div class="daysrow" style="margin-top:10px;opacity:.5">
+          <div class="wcol"><div class="dh today"><div class="dn">Пн</div><div class="dd">9</div></div><div class="wgrid"><div class="hr" style="top:50px"></div><div class="hr" style="top:100px"></div><div class="hr" style="top:150px"></div><div class="hr" style="top:200px"></div><div class="now" style="top:120px"></div></div></div>
+          <div class="wcol"><div class="dh"><div class="dn">Вт</div><div class="dd">10</div></div><div class="wgrid"><div class="hr" style="top:50px"></div><div class="hr" style="top:100px"></div><div class="hr" style="top:150px"></div><div class="hr" style="top:200px"></div></div></div>
+          <div class="wcol"><div class="dh"><div class="dn">Ср</div><div class="dd">11</div></div><div class="wgrid"><div class="hr" style="top:50px"></div><div class="hr" style="top:100px"></div><div class="hr" style="top:150px"></div><div class="hr" style="top:200px"></div></div></div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- MONTH empty -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·A</span>Месяц · ни задач, ни вех</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i>Неделя</i><i class="on">Месяц</i><i>Лента</i></div></div>
+      <div class="body">
+        <div class="range">Июнь 2026</div>
+        <div class="mdow"><span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span>С</span><span>В</span></div>
+        <div class="mgrid" style="opacity:.85">
+          <div class="cell out"><div class="num">31</div></div>
+          <div class="cell"><div class="num">1</div></div><div class="cell"><div class="num">2</div></div><div class="cell"><div class="num">3</div></div><div class="cell"><div class="num">4</div></div><div class="cell"><div class="num">5</div></div><div class="cell"><div class="num">6</div></div>
+          <div class="cell"><div class="num">7</div></div><div class="cell"><div class="num">8</div></div><div class="cell today"><div class="num">9</div></div><div class="cell"><div class="num">10</div></div><div class="cell"><div class="num">11</div></div><div class="cell"><div class="num">12</div></div><div class="cell"><div class="num">13</div></div>
+          <div class="cell"><div class="num">14</div></div><div class="cell"><div class="num">15</div></div><div class="cell"><div class="num">16</div></div><div class="cell"><div class="num">17</div></div><div class="cell"><div class="num">18</div></div><div class="cell"><div class="num">19</div></div><div class="cell"><div class="num">20</div></div>
+        </div>
+        <div class="hint" style="padding-top:14px">Пусто весь месяц. Задачи появятся точками, дедлайны этапов — флажками.</div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- AGENDA empty -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·A</span>Лента · впереди свободно</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i>Неделя</i><i>Месяц</i><i class="on">Лента</i></div></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>
+          <div class="t">Впереди пусто</div>
+          <div class="s">Ни просрочек, ни ближайших задач. Запланируй что-нибудь или отдохни.</div>
+          <div class="btn">Добавить задачу</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── СКЕЛЕТОН ── -->
+<h2>Скелетон — загрузка окна</h2>
+<div class="sub">range запрошен, ответ не пришёл. Каркас повторяет геометрию вида.</div>
+<div class="row">
+  <!-- WEEK skeleton -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·B</span>Неделя · скелетон сетки</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i class="on">Неделя</i><i>Месяц</i><i>Лента</i></div></div>
+      <div class="body">
+        <div class="skel sk-line" style="width:38%;margin:8px 2px 10px"></div>
+        <div class="daysrow">
+          <div class="wcol"><div class="dh"><div class="skel sk-line" style="width:70%;height:9px;margin:0 auto 3px"></div><div class="skel sk-line" style="width:50%;height:11px;margin:0 auto"></div></div>
+            <div class="wgrid"><div class="hr" style="top:50px"></div><div class="hr" style="top:100px"></div><div class="hr" style="top:150px"></div><div class="hr" style="top:200px"></div>
+              <div class="skel sk-blk" style="top:24px;height:40px"></div><div class="skel sk-blk" style="top:130px;height:54px"></div></div></div>
+          <div class="wcol"><div class="dh"><div class="skel sk-line" style="width:70%;height:9px;margin:0 auto 3px"></div><div class="skel sk-line" style="width:50%;height:11px;margin:0 auto"></div></div>
+            <div class="wgrid"><div class="hr" style="top:50px"></div><div class="hr" style="top:100px"></div><div class="hr" style="top:150px"></div><div class="hr" style="top:200px"></div>
+              <div class="skel sk-blk" style="top:90px;height:36px"></div></div></div>
+          <div class="wcol"><div class="dh"><div class="skel sk-line" style="width:70%;height:9px;margin:0 auto 3px"></div><div class="skel sk-line" style="width:50%;height:11px;margin:0 auto"></div></div>
+            <div class="wgrid"><div class="hr" style="top:50px"></div><div class="hr" style="top:100px"></div><div class="hr" style="top:150px"></div><div class="hr" style="top:200px"></div>
+              <div class="skel sk-blk" style="top:60px;height:48px"></div><div class="skel sk-blk" style="top:170px;height:30px"></div></div></div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- MONTH skeleton -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·B</span>Месяц · скелетон ячеек</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i>Неделя</i><i class="on">Месяц</i><i>Лента</i></div></div>
+      <div class="body">
+        <div class="skel sk-line" style="width:34%;margin:8px 2px 10px"></div>
+        <div class="mdow"><span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span>С</span><span>В</span></div>
+        <div class="mgrid">
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div><div class="skel sk-line" style="width:60%;height:5px;margin-top:auto;border-radius:3px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div><div class="skel sk-line" style="width:75%;height:5px;margin-top:auto;border-radius:3px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div><div class="skel sk-line" style="width:50%;height:5px;margin-top:auto;border-radius:3px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div><div class="skel sk-line" style="width:70%;height:5px;margin-top:auto;border-radius:3px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div><div class="skel sk-line" style="width:55%;height:5px;margin-top:auto;border-radius:3px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div><div class="skel sk-line" style="width:65%;height:5px;margin-top:auto;border-radius:3px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div><div class="skel sk-line" style="width:60%;height:5px;margin-top:auto;border-radius:3px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div><div class="skel sk-line" style="width:50%;height:5px;margin-top:auto;border-radius:3px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+          <div class="cell"><div class="skel sk-line" style="width:40%;height:9px"></div></div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- AGENDA skeleton -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·B</span>Лента · скелетон строк</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i>Неделя</i><i>Месяц</i><i class="on">Лента</i></div></div>
+      <div class="body" style="padding-top:14px">
+        <div class="skel sk-line" style="width:30%;margin:0 2px 11px"></div>
+        <div class="skel sk-task"></div>
+        <div class="skel sk-line" style="width:24%;margin:14px 2px 10px"></div>
+        <div class="skel sk-task"></div>
+        <div class="skel sk-task"></div>
+        <div class="skel sk-line" style="width:28%;margin:14px 2px 10px"></div>
+        <div class="skel sk-task"></div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ОШИБКА · НЕТ ВЕХ ── -->
+<h2>Ошибка · нет вех</h2>
+<div class="sub">сбой загрузки окна (одна на все виды) и пустая сводка вех месяца.</div>
+<div class="row">
+  <!-- error -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·C</span>ошибка загрузки + Повторить</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i class="on">Неделя</i><i>Месяц</i><i>Лента</i></div></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10.3 4l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/><path d="M12 9v5M12 17.5h.01"/></svg>
+          <div class="t">Не удалось загрузить</div>
+          <div class="s">Проверь соединение и попробуй ещё раз.</div>
+          <div class="btn">Повторить</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- no milestones -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·C</span>Месяц · задачи есть, вех нет</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i>Неделя</i><i class="on">Месяц</i><i>Лента</i></div></div>
+      <div class="body">
+        <div class="range">Июль 2026</div>
+        <div class="mdow"><span>П</span><span>В</span><span>С</span><span>Ч</span><span>П</span><span>С</span><span>В</span></div>
+        <div class="mgrid">
+          <div class="cell out"><div class="num">30</div></div>
+          <div class="cell"><div class="num">1</div></div><div class="cell"><div class="num">2</div></div><div class="cell"><div class="num">3</div></div><div class="cell"><div class="num">4</div></div><div class="cell"><div class="num">5</div></div><div class="cell"><div class="num">6</div></div>
+          <div class="cell"><div class="num">7</div></div><div class="cell"><div class="num">8</div></div><div class="cell"><div class="num">9</div></div><div class="cell"><div class="num">10</div></div><div class="cell"><div class="num">11</div></div><div class="cell"><div class="num">12</div></div><div class="cell"><div class="num">13</div></div>
+        </div>
+        <div class="mstrip">
+          <div class="mcap">Вехи июля</div>
+          <div class="mempty"><svg viewBox="0 0 12 12" fill="none" stroke="var(--steel)" stroke-width="1.3"><path d="M2 1v10"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z"/></svg>В этом месяце нет вех-рубежей</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+  <!-- agenda free days only -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T2·C</span>Лента · разрежено (дни «свободно»)</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Календарь</h1><div class="seg"><i>Неделя</i><i>Месяц</i><i class="on">Лента</i></div></div>
+      <div class="body" style="padding-top:6px">
+        <div class="day">
+          <div class="dayhdr"><span class="d">Сегодня</span><span class="meta">· Вт 9 июня</span></div>
+          <div class="rule"></div>
+          <div class="free">свободно</div>
+        </div>
+        <div class="day">
+          <div class="dayhdr"><span class="d">Ср 10 июня</span></div>
+          <div class="rule"></div>
+          <div class="free">свободно</div>
+        </div>
+        <div class="day">
+          <div class="dayhdr"><span class="d">Чт 11 июня</span></div>
+          <div class="rule"></div>
+          <div class="free">свободно</div>
+        </div>
+        <div class="hint" style="padding-top:10px">Лента не рвётся: дни без задач — тонкая строка «свободно».</div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab on">Календарь</div><div class="tab">Гант</div><div class="tab">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

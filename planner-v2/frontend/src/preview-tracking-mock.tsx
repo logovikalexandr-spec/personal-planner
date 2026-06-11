@@ -30,7 +30,31 @@ const METRICS = [
       { entry_date: "2026-06-11", value: 6.8 }, { entry_date: "2026-06-10", value: 6.3 },
       { entry_date: "2026-06-09", value: 7.1 }, { entry_date: "2026-06-08", value: 6.0 }] },
 ];
-const RETRO = { week_start: "2026-06-08", week_end: "2026-06-14", habits: 3, done_days: 14, total_days: 21 };
+const RETRO = {
+  week_start: "2026-06-08", week_end: "2026-06-14",
+  tasks: {
+    done: 12, planned: 18, impact_sum: 185,
+    by_project: [
+      { project_id: 1, name: "ZIMA", color: "#3FB68B", done: 5, total: 7 },
+      { project_id: 2, name: "Здоровье", color: "#5B8DEF", done: 4, total: 5 },
+      { project_id: 3, name: "Финансы", color: "#E0B15B", done: 3, total: 4 },
+      { project_id: 4, name: "Планировщик", color: "#9B6BE0", done: 0, total: 2 },
+    ],
+    overdue: [
+      { id: 11, title: "Оплатить аренду", project: "Финансы", color: "#E0B15B", days_late: 3 },
+      { id: 12, title: "Позвонить юристу", project: "ZIMA", color: "#3FB68B", days_late: 1 },
+    ],
+    top_task: { title: "Согласовать цену", impact: 80, project: "ZIMA" },
+  },
+  habits: {
+    done_days: 14, total_days: 21, count: 3,
+    items: [
+      { id: 1, name: "Зарядка + валик", color: "#5B8DEF", week: [true, true, true, true, true, false, false], week_done: 5, streak: 12, tag: "рекорд 12" },
+      { id: 3, name: "Без травы", color: "#3FB68B", week: [true, true, true, true, true, true, true], week_done: 7, streak: 8, tag: "цель близко" },
+      { id: 2, name: "Вода 2л", color: "#3FB68B", week: [true, true, true, false, true, false, false], week_done: 4, streak: 4, tag: "слабое" },
+    ],
+  },
+};
 
 const orig = window.fetch;
 window.fetch = ((input: RequestInfo | URL) => {

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F07 · ProjectSheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --accent:#EE8A3C;
+    --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+    --hairline:rgba(255,255,255,0.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist, sans-serif;color:var(--bone);
+       display:flex;flex-wrap:wrap;justify-content:center;gap:36px;padding:40px 20px 80px;min-height:100vh;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .plaque{font-family:"Geist Mono",monospace;color:var(--steel);font-size:13px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px}
+  .plaque b{color:var(--accent);font-weight:600}
+  .caption{font-family:"Geist Mono",monospace;color:var(--steel);font-size:12px;text-align:center;margin-top:10px;max-width:390px;line-height:1.5}
+  .phone{position:relative;width:390px;height:844px;background:var(--onyx);border-radius:28px;overflow:hidden;border:1px solid var(--hairline);display:flex;flex-direction:column}
+  .statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;flex:0 0 auto}
+  .statusbar .time{font-family:"Geist Mono",monospace;font-weight:500}
+  .dots{display:flex;gap:5px;align-items:center}.dots span{width:6px;height:6px;border-radius:50%;background:var(--steel)}
+  /* подложка = шторка (проекты живут тут) */
+  .drawer{flex:1;padding:6px 0;opacity:.5}
+  .dh{display:flex;align-items:center;gap:12px;padding:10px 16px}
+  .ava{width:36px;height:36px;border-radius:50%;background:var(--accent);color:#1a1209;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .dh .nm{font-size:16px;font-weight:600}
+  .di{display:flex;align-items:center;gap:13px;padding:11px 16px}
+  .di .emo{width:30px;height:30px;border-radius:8px;text-align:center;font-size:16px;
+           display:flex;align-items:center;justify-content:center;flex:none}
+  .di .nm{flex:1;font-size:16px;font-weight:500}
+  .di .cnt{font-family:"Geist Mono",monospace;font-size:14px;color:var(--steel)}
+  .sec{font-size:12px;font-weight:600;color:var(--steel);letter-spacing:.06em;text-transform:uppercase;padding:10px 16px 4px}
+  /* scrim + sheet */
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:5}
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--smoke);
+         border-top-left-radius:20px;border-top-right-radius:20px;border-top:1px solid var(--hairline);
+         padding:10px 18px 24px;display:flex;flex-direction:column;gap:15px}
+  .grip{width:38px;height:4px;border-radius:2px;background:var(--slate);margin:2px auto 4px}
+  .row{display:flex;align-items:center;gap:12px}
+  .icon-preview{width:46px;height:46px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
+                background:var(--slate);border:1px solid var(--hairline);font-size:24px}
+  .input{flex:1;background:var(--slate);border:1px solid var(--hairline);border-radius:12px;color:var(--bone);
+         font-family:Geist;font-size:16px;padding:13px 14px;outline:none}
+  .input::placeholder{color:var(--steel)}.input:focus{border-color:var(--ember)}
+  .field-label{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace;letter-spacing:.04em;text-transform:uppercase;margin-bottom:-6px}
+  /* emoji icon picker (emoji разрешены) */
+  .emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:7px}
+  .emoji-chip{aspect-ratio:1;border-radius:10px;background:var(--slate);border:1px solid var(--hairline);
+              display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
+  .emoji-chip.active{background:var(--ember-soft);border-color:var(--ember)}
+  /* СВОБОДНЫЙ цвет-селектор */
+  .picker{display:flex;flex-direction:column;gap:11px}
+  /* спектр проектных hex — БЕЗ ember/оранжевого, чтобы цвет проекта не сливался с акцентом */
+  .hue{height:26px;border-radius:8px;position:relative;
+       background:linear-gradient(to right,#3FB68B,#4FB0A8,#5B8DEF,#9B8CCB,#9B6BE0,#C77DA8,#C9A24B)}
+  .knob{position:absolute;top:50%;width:24px;height:24px;border-radius:50%;border:3px solid #fff;transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+  .pk-row{display:flex;align-items:center;gap:10px}
+  .pk-cur{width:28px;height:28px;border-radius:8px}
+  .pk-hex{font-family:"Geist Mono",monospace;font-size:14px}
+  .pk-note{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);margin-left:auto}
+  /* превью строки-задачи: фон = тинт проекта 0.13, полоса слева = приоритет */
+  .task-prev{display:flex;align-items:center;gap:12px;border-radius:10px;padding:11px 13px}
+  .cbx{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--steel);flex:none;
+       display:flex;align-items:center;justify-content:center}
+  .cbx.done{background:var(--ember);border-color:var(--ember)}
+  .cbx svg{width:13px;height:13px}
+  .task-prev .tt{flex:1;font-size:15px}
+  .task-prev .tm{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .select{position:relative}
+  .select select{width:100%;background:var(--slate);border:1px solid var(--hairline);border-radius:12px;color:var(--bone);
+                 font-family:Geist;font-size:15px;padding:13px 38px 13px 14px;outline:none;appearance:none}
+  .select .chev{position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--steel)}
+  .btn{width:100%;background:var(--ember);color:#1a1209;border:none;border-radius:10px;font-family:Geist;font-size:15px;font-weight:600;padding:14px;cursor:pointer}
+  .err{color:var(--danger);font-size:13px;display:flex;align-items:center;gap:8px;background:rgba(255,92,92,0.10);
+       border:1px solid rgba(255,92,92,0.28);border-radius:10px;padding:11px 12px}
+  .err svg{flex:none;width:16px;height:16px}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<!-- ============ CREATE ============ -->
+<div class="col">
+  <div class="plaque">F07 · <b>ProjectSheet — создание</b></div>
+  <div class="phone">
+    <div class="statusbar"><span class="time">9:41</span><span class="dots"><span></span><span></span><span></span></span></div>
+    <!-- подложка = шторка -->
+    <div class="drawer">
+      <div class="dh"><div class="ava">А</div><div class="nm">Александр Логовик</div></div>
+      <div class="sec">Проекты</div>
+      <div class="di"><span class="emo" style="background:rgba(155,107,224,0.18)">🎯</span><span class="nm">Глобальные цели</span><span class="cnt">12</span></div>
+      <div class="di"><span class="emo" style="background:rgba(201,162,75,0.18)">💰</span><span class="nm">Финансы</span><span class="cnt">97</span></div>
+      <div class="di"><span class="emo" style="background:rgba(63,182,139,0.18)">🧊</span><span class="nm">ZIMA</span><span class="cnt">49</span></div>
+    </div>
+
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grip"></div>
+      <div class="row">
+        <div class="icon-preview" style="position:relative">💪<span class="ecode pin">A1</span></div>
+        <input class="input" placeholder="Название проекта..." value="Здоровье"><span class="ecode">A2</span>
+      </div>
+
+      <div class="field-label">Значок<span class="ecode">A3</span></div>
+      <div class="emoji-grid">
+        <button class="emoji-chip">🎯</button>
+        <button class="emoji-chip">💚</button>
+        <button class="emoji-chip active">💪</button>
+        <button class="emoji-chip">🧘</button>
+        <button class="emoji-chip">💰</button>
+        <button class="emoji-chip">🧊</button>
+        <button class="emoji-chip">🏛️</button>
+        <button class="emoji-chip">🧠</button>
+        <button class="emoji-chip">📚</button>
+        <button class="emoji-chip">⭐</button>
+        <button class="emoji-chip">🔥</button>
+        <button class="emoji-chip">🚀</button>
+        <button class="emoji-chip">🏠</button>
+        <button class="emoji-chip">💡</button>
+        <button class="emoji-chip">📌</button>
+        <button class="emoji-chip">📦</button>
+      </div>
+
+      <div class="field-label">Цвет проекта — тащи по спектру<span class="ecode">A4</span></div>
+      <div class="picker">
+        <div class="hue"><div class="knob" style="left:30%;background:#5B8DEF"></div></div>
+        <div class="pk-row"><span class="pk-cur" style="background:#5B8DEF"></span><span class="pk-hex">#5B8DEF</span><span class="pk-note">фон задач = тинт 0.13</span></div>
+      </div>
+
+      <div class="field-label">Так задачи выглядят в списке</div>
+      <div class="task-prev" style="background:rgba(91,141,239,0.13);border-left:3px solid var(--warning)">
+        <div class="cbx"></div>
+        <div class="tt">Сдать анализ крови</div>
+        <div class="tm">сегодня</div>
+      </div>
+
+      <div class="field-label">Родитель<span class="ecode">A5</span></div>
+      <div class="select">
+        <select><option>Без родителя</option><option>Глобальные цели</option><option>Финансы</option></select>
+        <span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span>
+      </div>
+
+      <button class="btn">Создать<span class="ecode">A6</span></button>
+    </div>
+  </div>
+  <div class="caption"><span class="fcode">F07·A</span>create · имя + emoji-значок + свободный цвет + родитель. Подложка — шторка (проекты живут там). · ↔ V2 F17 (вызов из шторки)</div>
+</div>
+
+<!-- ============ ALT: ERROR ============ -->
+<div class="col">
+  <div class="plaque">F07 · <b>alt — error при сохранении</b></div>
+  <div class="phone">
+    <div class="statusbar"><span class="time">9:41</span><span class="dots"><span></span><span></span><span></span></span></div>
+    <div class="drawer"></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="grip"></div>
+      <div class="row">
+        <div class="icon-preview" style="position:relative">🧊<span class="ecode pin">B1</span></div>
+        <input class="input" value="ZIMA — маркетинг"><span class="ecode">B2</span>
+      </div>
+
+      <div class="field-label">Значок</div>
+      <div class="emoji-grid">
+        <button class="emoji-chip">🎯</button>
+        <button class="emoji-chip active">🧊</button>
+        <button class="emoji-chip">💰</button>
+        <button class="emoji-chip">🔥</button>
+        <button class="emoji-chip">🚀</button>
+        <button class="emoji-chip">⭐</button>
+        <button class="emoji-chip">📌</button>
+        <button class="emoji-chip">📦</button>
+      </div>
+
+      <div class="field-label">Цвет проекта — тащи по спектру</div>
+      <div class="picker">
+        <div class="hue"><div class="knob" style="left:2%;background:#3FB68B"></div></div>
+        <div class="pk-row"><span class="pk-cur" style="background:#3FB68B"></span><span class="pk-hex">#3FB68B</span><span class="pk-note">фон задач = тинт 0.13</span></div>
+      </div>
+
+      <div class="field-label">Так задачи выглядят в списке</div>
+      <div class="task-prev" style="background:rgba(63,182,139,0.13);border-left:3px solid var(--danger)">
+        <div class="cbx done"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></div>
+        <div class="tt">Запустить кампанию</div>
+        <div class="tm">пн</div>
+      </div>
+
+      <div class="err">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+        Не удалось сохранить. Попробуй ещё раз.<span class="ecode">B3</span>
+      </div>
+
+      <button class="btn">Сохранить<span class="ecode">B4</span></button>
+    </div>
+  </div>
+  <div class="caption"><span class="fcode">F07·B</span>alt · error-state · submit упал, кнопка снова активна · ↔ V2 F17 (вызов из шторки)</div>
+</div>
+
+</body>
+</html>

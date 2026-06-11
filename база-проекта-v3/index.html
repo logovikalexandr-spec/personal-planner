@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Planner v3 — реструктуризация (AI-PM)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+    --ember-soft:rgba(238,138,60,0.16); --hairline:rgba(255,255,255,0.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--onyx);color:var(--bone);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:40px 24px 80px;line-height:1.4}
+  .wrap{max-width:1320px;margin:0 auto}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  .sub{color:var(--steel);font-family:"Geist Mono",monospace;font-size:13px;margin-top:6px}
+  .meta{color:var(--steel);font-size:13px;margin-top:4px;max-width:760px;line-height:1.6}
+  .meta b{color:var(--ember)}
+  h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);margin:44px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--hairline)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+  .card{background:var(--smoke);border:1px solid var(--hairline);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:transform .14s ease,border-color .14s ease}
+  .card:hover{transform:translateY(-3px);border-color:var(--ember)}
+  .thumb{position:relative;height:300px;overflow:hidden;background:var(--onyx);border-bottom:1px solid var(--hairline)}
+  .thumb iframe{width:390px;height:844px;border:0;transform:scale(.667);transform-origin:top left;pointer-events:none}
+  .label{padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+  .num{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ember)}
+  .title{font-size:15px;font-weight:500}
+  .acts{display:flex;gap:8px;margin-top:10px}
+  .acts a{flex:1;text-align:center;font-size:12px;font-weight:500;text-decoration:none;padding:7px 0;border-radius:8px;border:1px solid var(--hairline);color:var(--bone)}
+  .acts a:hover{border-color:var(--ember)}
+  .acts a.mark{background:var(--ember-soft);color:var(--ember);border-color:transparent}
+  .badge{position:absolute;top:10px;left:10px;z-index:2;background:var(--ember-soft);color:var(--ember);font-family:"Geist Mono",monospace;font-size:11px;font-weight:500;padding:3px 8px;border-radius:999px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Planner v3 — реструктуризация (AI проджект-менеджер)</h1>
+    <div class="sub">5 табов · 10 экранов · мозг=Claude Code, приложение=трекинг, петля ~5 мин</div>
+    <div class="meta"><b>Не todo — система достижения целей.</b> Проект разбираешь с ИИ здесь (вероятность%, срок, этапы), приложение показывает и ведёт учёт. Клик — открыть в полный экран, «разметить» — пометки.</div>
+  </header>
+
+  <h2>5 табов</h2>
+  <div class="grid" id="tabs"></div>
+
+  <h2>Детали и статус</h2>
+  <div class="grid" id="extra"></div>
+
+  <h2>Флоу + состояния (разведка Фазы 2 — контракт сборки)</h2>
+  <div class="grid" id="flows"></div>
+</div>
+
+<script>
+  const tabs = [
+    ["T1","Задачи — любой день + датапикер","pages/T1-zadachi.html"],
+    ["T2a","Календарь — Неделя + лоток (тайм-блок)","pages/T2a-calendar-week.html"],
+    ["T2b","Календарь — Месяц (обзор дедлайнов)","pages/T2b-calendar-month.html"],
+    ["T2c","Календарь — Лента (agenda)","pages/T2c-calendar-agenda.html"],
+    ["T3a","Гант — все проекты","pages/T3a-gantt-all.html"],
+    ["T3b","Гант — по проекту","pages/T3b-gantt-project.html"],
+    ["T4","Цели — пульс + проекты (%шанс/этапы)","pages/T4-celi.html"],
+    ["T5","Привычки + метрики + тепловая карта + ретро","pages/T5-habits.html"],
+  ];
+  const extra = [
+    ["T4d","Проект — детальный (разбор ИИ + этапы + лог)","pages/T4d-celi-detail.html"],
+    ["IN","Входящие (Inbox) — статус + обработка","pages/INBOX-inbox.html"],
+  ];
+  const flows = [
+    ["T1·сост","Задачи — состояния (пусто/скелетон/ошибка)","pages/T1-состояния.html"],
+    ["T1·heat","Задачи — датапикер-тепло","pages/T1-D-heat.html"],
+    ["T2·флоу","Календарь — все взаимодействия","pages/T2-flows.html"],
+    ["T2·сост","Календарь — состояния","pages/T2-состояния.html"],
+    ["T3·флоу","Гант — все взаимодействия","pages/T3-flows.html"],
+    ["T3·сост","Гант — состояния","pages/T3-состояния.html"],
+    ["T4·флоу","Цели — все взаимодействия","pages/T4-flows.html"],
+    ["T4·сост","Цели — состояния","pages/T4-состояния.html"],
+    ["T5·флоу","Привычки — 11 флоу","pages/T5-flows.html"],
+    ["DET·флоу","Деталь задачи — блок «Этап»","pages/DETAIL-flows.html"],
+    ["DET·сост","Деталь задачи — состояния","pages/DETAIL-состояния.html"],
+    ["IN·флоу","Входящие — AI-подсказка + флоу","pages/INBOX-flows.html"],
+    ["IN·сост","Входящие — состояния","pages/INBOX-состояния.html"],
+  ];
+  const card = ([num,title,href]) => `
+    <div class="card">
+      <a class="thumb" href="${href}" target="_blank"><span class="badge">${num}</span><iframe src="${href}" loading="lazy" scrolling="no"></iframe></a>
+      <div class="label"><span class="num">${num}</span><span class="title">${title}</span>
+        <div class="acts">
+          <a href="${href}" target="_blank">открыть</a>
+          <a class="mark" href="annotator.html?m=${encodeURIComponent(href)}" target="_blank">разметить</a>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById("tabs").innerHTML = tabs.map(card).join("");
+  document.getElementById("extra").innerHTML = extra.map(card).join("");
+  document.getElementById("flows").innerHTML = flows.map(card).join("");
+</script>
+</body>
+</html>

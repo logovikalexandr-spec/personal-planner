@@ -21,8 +21,8 @@ from planner_bot.handlers.help_command import help_command
 from planner_bot.handlers.inbox_capture import capture_message
 from planner_bot.handlers.inbox_commands import (
     on_analyze_callback, on_archive_callback, on_assign_callback,
-    on_clarify_callback, on_confirm_callback, on_process_callback,
-    on_reclassify_callback,
+    on_clarify_callback, on_confirm_callback, on_open_callback,
+    on_process_callback, on_reclassify_callback,
 )
 from planner_bot.handlers.inbox_list_command import inbox_command
 from planner_bot.handlers.photo_capture import capture_photo
@@ -160,6 +160,8 @@ def build_application(settings: Settings) -> Application:
                                          pattern=r"^clarify:"))
     app.add_handler(CallbackQueryHandler(on_archive_callback,
                                          pattern=r"^archive:"))
+    app.add_handler(CallbackQueryHandler(on_open_callback,
+                                         pattern=r"^open:"))
     app.add_handler(CallbackQueryHandler(on_quadrant_selected,
                                          pattern=r"^quad:"))
 
@@ -168,6 +170,16 @@ def build_application(settings: Settings) -> Application:
     app.add_handler(MessageHandler(filters.Document.ALL, capture_document))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND,
                                    handle_free_text))
+
+    async def _error_handler(update, context):
+        logger.error("Unhandled exception: {}", context.error, exc_info=context.error)
+        try:
+            if update and update.effective_message:
+                await update.effective_message.reply_text("⚠️ Что-то пошло не так. Попробуй ещё раз.")
+        except Exception:
+            pass
+
+    app.add_error_handler(_error_handler)
 
     from planner_bot.cron_jobs import register_cron_jobs
     register_cron_jobs(app)

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P05 · Трекинг</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --accent:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  /* project palette (each project = own hex, never ember/orange) */
+  --p-health:#5B8DEF; --p-work:#9B8CCB; --p-spirit:#C77DA8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#2a2a2e;
+  font-family:Geist, sans-serif;
+  color:var(--bone);
+  display:flex; flex-direction:column; align-items:center;
+  gap:14px; padding:40px 20px 60px;
+  min-height:100vh;
+}
+.mono{font-family:"Geist Mono",monospace}
+.caption{
+  font-family:"Geist Mono",monospace; font-size:12px; color:var(--steel);
+  letter-spacing:.04em; text-align:center;
+}
+.plate{
+  font-family:"Geist Mono",monospace; font-size:13px; color:var(--steel);
+  letter-spacing:.06em; margin-bottom:2px;
+}
+.plate b{color:var(--bone); font-weight:600}
+
+/* phone frame */
+.phone{
+  width:390px; min-height:844px;
+  background:var(--onyx);
+  border-radius:28px; overflow:hidden;
+  border:1px solid var(--hairline);
+  position:relative;
+  display:flex; flex-direction:column;
+}
+.phone.short{min-height:auto}
+
+/* status bar */
+.statusbar{
+  height:44px; flex:none;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px;
+  font-family:"Geist Mono",monospace; font-size:14px; font-weight:500;
+}
+.statusbar .dots{display:flex; gap:5px; align-items:center}
+.statusbar .dots span{width:6px;height:6px;border-radius:50%;background:var(--steel)}
+.statusbar .dots .full{background:var(--bone)}
+
+/* content */
+.screen{flex:1; overflow:hidden; padding:0 18px 96px; display:flex; flex-direction:column}
+.hero{padding:10px 2px 16px; display:flex; align-items:baseline; justify-content:space-between}
+.hero h1{font-size:27px; font-weight:700; letter-spacing:-.02em}
+.hero .sub{font-family:"Geist Mono",monospace; font-size:12px; color:var(--steel)}
+
+/* chips row */
+.chips{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap}
+.chip{
+  font-size:13px; font-weight:500;
+  padding:7px 14px; border-radius:999px;
+  background:var(--slate); border:1px solid var(--hairline);
+  color:var(--steel);
+}
+.chip.active{background:var(--ember-soft); border-color:transparent; color:var(--ember)}
+
+/* section label */
+.sec{
+  font-family:"Geist Mono",monospace; font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--steel);
+  margin:6px 2px 10px;
+}
+
+/* heatmap card */
+.card{
+  background:var(--smoke); border-radius:14px; padding:16px;
+  margin-bottom:16px;
+}
+.card .ctitle{font-size:15px; font-weight:600; margin-bottom:2px}
+.card .cmeta{font-family:"Geist Mono",monospace; font-size:12px; color:var(--steel)}
+.heatmap{display:flex; flex-direction:column; gap:5px; margin-top:14px}
+.heat-row{display:flex; gap:5px; align-items:center}
+.heat-row .wd{
+  font-family:"Geist Mono",monospace; font-size:10px; color:var(--steel);
+  width:22px; flex:none;
+}
+.cell{width:26px;height:14px;border-radius:3px;background:var(--slate); flex:1}
+.cell.l1{background:rgba(238,138,60,0.22)}
+.cell.l2{background:rgba(238,138,60,0.45)}
+.cell.l3{background:rgba(238,138,60,0.72)}
+.cell.l4{background:var(--ember)}
+.heat-legend{
+  display:flex; align-items:center; justify-content:flex-end; gap:6px;
+  margin-top:12px; font-family:"Geist Mono",monospace; font-size:10px; color:var(--steel);
+}
+.heat-legend .cell{flex:none; width:13px; height:13px}
+
+/* habit row */
+.habit{
+  display:flex; align-items:center; gap:13px;
+  background:var(--smoke); border-radius:12px;
+  padding:13px 14px 13px 13px; margin-bottom:9px;
+  position:relative; overflow:hidden;
+  border-left:3px solid transparent;
+}
+/* priority lives ONLY on the left bar */
+.habit.p-high{border-left-color:var(--danger)}
+.habit.p-med{border-left-color:var(--warning)}
+.habit.p-low{border-left-color:var(--ember)}
+/* background = project tint @0.13 (never ember) */
+.habit.proj-health{background:rgba(91,141,239,0.13)}
+.habit.proj-work{background:rgba(155,140,203,0.13)}
+.habit.proj-spirit{background:rgba(199,125,168,0.13)}
+.checkbox{
+  width:22px;height:22px;border-radius:50%;flex:none;
+  border:1.5px solid var(--steel);
+  display:flex; align-items:center; justify-content:center;
+}
+.checkbox.done{background:var(--ember); border-color:transparent}
+.checkbox svg{width:13px;height:13px;display:none}
+.checkbox.done svg{display:block}
+.habit-body{flex:1; min-width:0}
+.habit-body .hname{font-size:15px; font-weight:500; line-height:1.25}
+.habit-body .hname.done{color:var(--steel)}
+.habit-body .hsub{
+  display:flex; align-items:center; gap:7px; margin-top:4px;
+  font-family:"Geist Mono",monospace; font-size:11.5px; color:var(--steel);
+}
+.streak{
+  display:inline-flex; align-items:center; gap:4px;
+  color:var(--ember); font-weight:500;
+}
+.streak svg{width:12px;height:12px}
+/* mini week dots */
+.weekdots{display:flex; gap:4px; flex:none}
+.weekdots span{width:8px;height:8px;border-radius:2px;background:var(--slate)}
+.weekdots span.on{background:var(--ember)}
+.weekdots span.miss{background:rgba(255,92,92,0.4)}
+
+/* metric tiles (2-col, intentionally not 3 equal) */
+.metrics{display:grid; grid-template-columns:1.3fr 1fr; gap:11px; margin-bottom:16px}
+.metric{background:var(--smoke); border-radius:14px; padding:15px 16px}
+.metric.span{grid-column:1 / -1}
+.metric .mlabel{font-family:"Geist Mono",monospace; font-size:11px; color:var(--steel); letter-spacing:.04em}
+.metric .mval{font-size:26px; font-weight:700; margin-top:7px; letter-spacing:-.02em}
+.metric .mval small{font-size:14px; font-weight:500; color:var(--steel)}
+.metric .mdelta{font-family:"Geist Mono",monospace; font-size:11.5px; margin-top:5px; color:var(--ember)}
+/* bar mini */
+.barwrap{display:flex; align-items:flex-end; gap:5px; height:38px; margin-top:10px}
+.barwrap .bar{flex:1; background:var(--ember-soft); border-radius:3px 3px 0 0}
+.barwrap .bar.hot{background:var(--ember)}
+
+/* retro card */
+.retro{
+  background:var(--smoke); border-radius:14px; padding:16px;
+  margin-bottom:16px;
+}
+.retro .rrow{display:flex; align-items:center; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--hairline)}
+.retro .rrow:last-child{border-bottom:none}
+.retro .rlabel{font-size:14px; color:var(--bone)}
+.retro .rval{font-family:"Geist Mono",monospace; font-size:13px; color:var(--steel)}
+.retro .rval.good{color:var(--ember)}
+
+.btn{
+  background:var(--ember); color:#1a1209; border:none;
+  border-radius:10px; font-family:Geist,sans-serif; font-size:15px; font-weight:600;
+  padding:13px; width:100%; margin-top:2px;
+}
+
+/* tab bar */
+.tabbar{
+  position:absolute; left:0; right:0; bottom:0; height:74px;
+  background:var(--smoke); border-top:1px solid var(--hairline);
+  display:flex; align-items:flex-start; justify-content:space-around;
+  padding-top:11px;
+}
+.tab{display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--steel); font-size:10.5px}
+.tab svg{width:23px;height:23px}
+.tab.active{color:var(--ember)}
+
+/* empty / alt state */
+.empty-card{
+  background:var(--smoke); border-radius:14px; padding:28px;
+  text-align:center; margin:0 18px;
+}
+.empty-card .muted{color:var(--steel); font-size:14px; line-height:1.5}
+.btn-sm{
+  background:var(--ember); color:#1a1209; border:none;
+  border-radius:10px; font-family:Geist,sans-serif; font-size:14px; font-weight:600;
+  padding:11px 20px; margin-top:16px;
+}
+.empty-ico{
+  width:46px;height:46px;border-radius:13px;background:var(--slate);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+}
+.empty-ico svg{width:24px;height:24px;stroke:var(--ember)}
+
+/* skeleton */
+.sk{background:linear-gradient(90deg,var(--smoke),var(--slate),var(--smoke));border-radius:12px}
+.sk-line{height:13px;border-radius:6px;background:var(--slate);margin-bottom:8px}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<div class="plate mono"><span class="fcode">P05·A</span>P05 · <b>Трекинг</b> — привычки · тепловая карта · метрики · ретро · ↔ V3 T5</div>
+
+<!-- MAIN FRAME -->
+<div class="phone">
+  <div class="statusbar mono">
+    <span>9:41</span>
+    <span class="dots"><span class="full"></span><span class="full"></span><span></span><span class="full"></span></span>
+  </div>
+
+  <div class="screen">
+    <div class="hero">
+      <h1>Трекинг</h1>
+      <span class="sub">июнь · нед 23</span>
+    </div>
+
+    <div class="chips">
+      <div class="chip active">Привычки</div>
+      <div class="chip">Метрики</div>
+      <div class="chip">Ретро</div>
+    </div>
+
+    <!-- HEATMAP -->
+    <div class="card">
+      <div class="ctitle">Тепловая карта</div>
+      <div class="cmeta">последние 7 дней · 5 привычек</div>
+      <div class="heatmap">
+        <div class="heat-row"><span class="wd">Пн</span><span class="cell l4"></span><span class="cell l3"></span><span class="cell l4"></span><span class="cell l2"></span><span class="cell l3"></span><span class="cell l4"></span><span class="cell l1"></span></div>
+        <div class="heat-row"><span class="wd">Вт</span><span class="cell l3"></span><span class="cell l4"></span><span class="cell l2"></span><span class="cell l4"></span><span class="cell l4"></span><span class="cell l1"></span><span class="cell l3"></span></div>
+        <div class="heat-row"><span class="wd">Ср</span><span class="cell l2"></span><span class="cell l3"></span><span class="cell l4"></span><span class="cell l4"></span><span class="cell l3"></span><span class="cell l4"></span><span class="cell l4"></span></div>
+        <div class="heat-row"><span class="wd">Чт</span><span class="cell l4"></span><span class="cell l2"></span><span class="cell l3"></span><span class="cell l1"></span><span class="cell l4"></span><span class="cell l3"></span><span class="cell l2"></span></div>
+        <div class="heat-row"><span class="wd">Пт</span><span class="cell l1"></span><span class="cell l4"></span><span class="cell l4"></span><span class="cell l3"></span><span class="cell l2"></span><span class="cell l4"></span><span class="cell l3"></span></div>
+      </div>
+      <div class="heat-legend">
+        меньше
+        <span class="cell"></span><span class="cell l1"></span><span class="cell l2"></span><span class="cell l3"></span><span class="cell l4"></span>
+        больше<span class="ecode">A1</span>
+      </div>
+    </div>
+
+    <!-- HABITS -->
+    <div class="sec">Привычки сегодня</div>
+
+    <div class="habit p-high proj-health">
+      <div class="checkbox done" style="position:relative"><span class="ecode pin">A4</span><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></div>
+      <div class="habit-body">
+        <div class="hname done">Зарядка 15 минут</div>
+        <div class="hsub">
+          <span class="streak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c0 4-4 5-4 9a4 4 0 0 0 8 0c0-1.5-1-2.5-1-4 2 1 3 3 3 5a6 6 0 0 1-12 0c0-5 6-6 6-10z"/></svg>12 дн<span class="ecode">A2</span></span>
+          <span>· выполнено 8:05</span>
+        </div>
+      </div>
+      <div class="weekdots" style="position:relative"><span class="ecode pin">A3</span><span class="on"></span><span class="on"></span><span class="on"></span><span class="miss"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+    </div>
+
+    <div class="habit p-med proj-health">
+      <div class="checkbox done"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></div>
+      <div class="habit-body">
+        <div class="hname done">Без сахара</div>
+        <div class="hsub">
+          <span class="streak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c0 4-4 5-4 9a4 4 0 0 0 8 0c0-1.5-1-2.5-1-4 2 1 3 3 3 5a6 6 0 0 1-12 0c0-5 6-6 6-10z"/></svg>5 дн</span>
+          <span>· цель 30</span>
+        </div>
+      </div>
+      <div class="weekdots"><span></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+    </div>
+
+    <div class="habit p-low proj-work">
+      <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></div>
+      <div class="habit-body">
+        <div class="hname">Чтение 20 страниц</div>
+        <div class="hsub">
+          <span class="streak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c0 4-4 5-4 9a4 4 0 0 0 8 0c0-1.5-1-2.5-1-4 2 1 3 3 3 5a6 6 0 0 1-12 0c0-5 6-6 6-10z"/></svg>3 дн</span>
+          <span>· вечером</span>
+        </div>
+      </div>
+      <div class="weekdots"><span class="on"></span><span class="miss"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></div>
+    </div>
+
+    <div class="habit p-low proj-health">
+      <div class="checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></div>
+      <div class="habit-body">
+        <div class="hname">2 литра воды</div>
+        <div class="hsub">
+          <span class="streak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c0 4-4 5-4 9a4 4 0 0 0 8 0c0-1.5-1-2.5-1-4 2 1 3 3 3 5a6 6 0 0 1-12 0c0-5 6-6 6-10z"/></svg>21 дн</span>
+          <span>· 1.2 / 2 л</span>
+        </div>
+      </div>
+      <div class="weekdots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="sec" style="margin-top:18px">Метрики недели</div>
+    <div class="metrics">
+      <div class="metric">
+        <div class="mlabel">Привычек выполнено</div>
+        <div class="mval">82<small>%</small></div>
+        <div class="mdelta">+9% к прошлой неделе</div>
+      </div>
+      <div class="metric">
+        <div class="mlabel">Лучший стрик</div>
+        <div class="mval">21<small> дн</small></div>
+        <div class="mdelta">2 литра воды</div>
+      </div>
+      <div class="metric span">
+        <div class="mlabel">Задачи закрыты по дням<span class="ecode">A5</span></div>
+        <div class="barwrap">
+          <div class="bar" style="height:55%"></div>
+          <div class="bar" style="height:72%"></div>
+          <div class="bar hot" style="height:90%"></div>
+          <div class="bar" style="height:48%"></div>
+          <div class="bar" style="height:66%"></div>
+          <div class="bar" style="height:80%"></div>
+          <div class="bar" style="height:30%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RETRO -->
+    <div class="sec">Ретро недели<span class="ecode">A6</span></div>
+    <div class="retro">
+      <div class="rrow"><span class="rlabel">Выполнено задач</span><span class="rval good">34</span></div>
+      <div class="rrow"><span class="rlabel">Перенесено</span><span class="rval">7</span></div>
+      <div class="rrow"><span class="rlabel">Не делать</span><span class="rval">3</span></div>
+      <div class="rrow"><span class="rlabel">Фокус-сессий</span><span class="rval good">12 · 9ч 40м</span></div>
+    </div>
+    <button class="btn">Записать итог недели<span class="ecode">A7</span></button>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tabbar">
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M8 14h4"/></svg>
+      <span>Сегодня</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+      <span>Календарь</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Обзор</span>
+    </div>
+    <div class="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+      <span>Цели</span>
+    </div>
+    <div class="tab active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+      <span>Трекинг</span>
+    </div>
+  </div>
+</div>
+
+<!-- ALT STATE 1: EMPTY -->
+<div class="caption" style="margin-top:18px"><span class="fcode">P05·B</span>состояние · empty (нет привычек) · ↔ V3 T5</div>
+<div class="phone short">
+  <div class="statusbar mono">
+    <span>9:41</span>
+    <span class="dots"><span class="full"></span><span class="full"></span><span></span><span class="full"></span></span>
+  </div>
+  <div style="padding:18px 18px 28px">
+    <div class="hero"><h1>Трекинг</h1></div>
+    <div class="empty-card">
+      <div class="empty-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+      </div>
+      <div class="muted">Пока нет привычек для отслеживания.<br>Создайте первую — и здесь появятся стрики и тепловая карта.</div>
+      <button class="btn-sm">Создать привычку<span class="ecode">B1</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ALT STATE 2: skeleton -->
+<div class="caption" style="margin-top:18px"><span class="fcode">P05·C</span>состояние · загрузка (скелетон) · ↔ V3 T5</div>
+<div class="phone short">
+  <div class="statusbar mono">
+    <span>9:41</span>
+    <span class="dots"><span class="full"></span><span class="full"></span><span></span><span class="full"></span></span>
+  </div>
+  <div style="padding:18px 18px 28px">
+    <div class="hero"><h1>Трекинг</h1></div>
+    <div class="card">
+      <div class="sk-line" style="width:45%;height:15px"></div>
+      <div class="heatmap" style="margin-top:12px">
+        <div class="heat-row"><span class="wd"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+        <div class="heat-row"><span class="wd"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+        <div class="heat-row"><span class="wd"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+      </div>
+    </div>
+    <div class="habit">
+      <div class="checkbox"></div>
+      <div class="habit-body"><div class="sk-line" style="width:60%"></div><div class="sk-line" style="width:35%;margin-bottom:0"></div></div>
+    </div>
+    <div class="habit">
+      <div class="checkbox"></div>
+      <div class="habit-body"><div class="sk-line" style="width:50%"></div><div class="sk-line" style="width:40%;margin-bottom:0"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ALT STATE 3: ERROR -->
+<div class="caption" style="margin-top:18px"><span class="fcode">P05·D</span>состояние · ошибка загрузки · ↔ V3 T5</div>
+<div class="phone short">
+  <div class="statusbar mono">
+    <span>9:41</span>
+    <span class="dots"><span class="full"></span><span class="full"></span><span></span><span class="full"></span></span>
+  </div>
+  <div style="padding:18px 18px 28px">
+    <div class="hero"><h1>Трекинг</h1></div>
+    <div class="empty-card">
+      <div class="empty-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 16.5v.5"/><circle cx="12" cy="12" r="9"/></svg>
+      </div>
+      <div class="muted">Не удалось загрузить статистику.<br>Проверьте соединение и попробуйте снова.</div>
+      <button class="btn-sm">Повторить<span class="ecode">D1</span></button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

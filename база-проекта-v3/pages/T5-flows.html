@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T5 Привычки — функциональные флоу (каждое взаимодействие)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 22px 90px;line-height:1.45}
+  .top{max-width:880px;margin-bottom:8px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--ember)}
+  h2{font-size:18px;font-weight:700;margin:40px 0 5px;letter-spacing:-.02em}
+  .trig{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ember);margin-bottom:15px}
+  .trig b{color:var(--bone)}
+  .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .panel{width:330px}
+  .plabel{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+  .note{font-size:12px;color:var(--steel);margin-top:11px;max-width:330px}
+  .note b{color:var(--bone)} .rec{color:var(--zima);font-weight:600} .bad{color:var(--danger)}
+  .arrow{align-self:center;color:var(--steel);font-size:26px;padding:0 2px}
+
+  /* generic surfaces */
+  .surf{background:var(--onyx);border:1px solid var(--hairline);border-radius:18px;overflow:hidden}
+  .mono{font-family:"Geist Mono",monospace}
+
+  /* bottom sheet */
+  .sheet{background:#141519;border:1px solid var(--hairline);border-radius:20px;padding:16px 16px 18px}
+  .handle{width:36px;height:4px;border-radius:2px;background:var(--slate);margin:0 auto 14px}
+  .sh-title{font-size:17px;font-weight:700;margin-bottom:14px}
+  .fld{margin-bottom:13px}
+  .fld .lab{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+  .inp{background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:11px 12px;font-size:14px;color:var(--bone)}
+  .inp.ph{color:var(--steel)}
+  .seg{display:flex;background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:3px}
+  .seg i{flex:1;text-align:center;font-style:normal;font-size:12.5px;font-weight:600;color:var(--steel);padding:8px 0;border-radius:8px}
+  .seg i.on{background:var(--card);color:var(--bone);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{font-size:12.5px;color:var(--steel);background:var(--slate);border:1px solid var(--hairline);border-radius:9px;padding:7px 11px;font-weight:500}
+  .chip.on{background:var(--ember-soft);color:var(--ember);border-color:transparent}
+  .pal{display:flex;gap:9px}
+  .pal i{width:26px;height:26px;border-radius:50%;display:block;position:relative}
+  .pal i.on::after{content:"";position:absolute;inset:-4px;border:2px solid var(--bone);border-radius:50%}
+  .cta{background:var(--ember);color:#1a1209;border-radius:11px;padding:13px;text-align:center;font-weight:700;font-size:15px;margin-top:6px}
+  .cta.ghost{background:var(--slate);color:var(--bone)}
+  .two{display:flex;gap:9px}.two>*{flex:1}
+
+  /* context menu */
+  .menu{background:#1d1e23;border:1px solid var(--hairline);border-radius:14px;padding:6px;width:230px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .mi{display:flex;align-items:center;gap:11px;padding:11px 11px;border-radius:9px;font-size:14px}
+  .mi svg{width:17px;height:17px;color:var(--steel);flex:0 0 auto}
+  .mi.danger{color:var(--danger)} .mi.danger svg{color:var(--danger)}
+  .mi+.mi{border-top:1px solid var(--hairline)}
+
+  /* dialog */
+  .dlg{background:#1d1e23;border:1px solid var(--hairline);border-radius:16px;padding:18px 16px;width:290px;text-align:center}
+  .dlg .dt{font-size:16px;font-weight:700;margin-bottom:6px}
+  .dlg .dd{font-size:13px;color:var(--steel);margin-bottom:16px;line-height:1.5}
+  .dlg .db{display:flex;gap:9px}.dlg .db>*{flex:1;padding:11px;border-radius:10px;font-weight:600;font-size:14px}
+  .db .cancel{background:var(--slate);color:var(--bone)}
+  .db .del{background:var(--danger);color:#fff}
+
+  /* habit card (как в v3) для контекста триггера */
+  .hc{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:12px 13px;position:relative;overflow:hidden;display:flex;align-items:center;gap:12px}
+  .hc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .hc.press{outline:2px solid var(--ember);outline-offset:1px}
+  .ring{flex:0 0 auto;width:40px;height:40px;position:relative}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .ring .n b{font-size:14px;font-weight:700;color:var(--c)}.ring .n s{font-size:7.5px;text-decoration:none;color:var(--steel);font-family:"Geist Mono"}
+  .hb{flex:1;min-width:0}.hn{font-size:15px;font-weight:600}.hs{font-size:11.5px;color:var(--steel);margin-top:3px;font-family:"Geist Mono"}
+  .ck{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:2px solid var(--slate)}
+  .ck.done{background:var(--c);border-color:var(--c);display:flex;align-items:center;justify-content:center;color:#0F0F11}
+  .ck svg{width:15px;height:15px}
+  .plus{flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:var(--c);color:#0F0F11;display:flex;align-items:center;justify-content:center;font-size:18px}
+  /* swipe reveal */
+  .swwrap{position:relative;border-radius:14px;overflow:hidden}
+  .swact{position:absolute;right:0;top:0;bottom:0;display:flex}
+  .swact div{width:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;color:#fff;font-family:"Geist Mono"}
+  .swact .arch{background:var(--steel)} .swact .del{background:var(--danger)}
+  .swact svg{width:17px;height:17px}
+  .hc.shift{transform:translateX(-124px)}
+
+  /* detail screen */
+  .det{width:330px;background:var(--onyx);border:1px solid var(--hairline);border-radius:20px;overflow:hidden}
+  .det .dhead{display:flex;align-items:center;gap:12px;padding:14px 15px 4px;color:var(--steel)}
+  .det .dhead .bk{font-size:20px}
+  .det .dhead .dots{margin-left:auto;font-size:20px;letter-spacing:1px}
+  .det .body{padding:6px 15px 18px}
+  .hero{display:flex;align-items:center;gap:15px;margin-bottom:16px}
+  .bigring{flex:0 0 auto;width:78px;height:78px;position:relative}
+  .bigring svg{transform:rotate(-90deg)}
+  .bigring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .bigring .n b{font-size:26px;font-weight:700}.bigring .n s{font-size:10px;text-decoration:none;color:var(--steel);font-family:"Geist Mono"}
+  .hero h3{font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .hero .hsub{font-size:12.5px;color:var(--steel);margin-top:4px;font-family:"Geist Mono"}
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+  .stat{background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:10px 11px;text-align:center}
+  .stat .sv{font-size:18px;font-weight:700}.stat .sl{font-size:10px;color:var(--steel);font-family:"Geist Mono";margin-top:2px}
+  .mcal-t{font-size:12px;color:var(--steel);font-family:"Geist Mono";margin-bottom:8px}
+  .mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:16px}
+  .mcal .wd{text-align:center;font-size:9px;color:var(--steel);font-family:"Geist Mono";padding-bottom:2px}
+  .mcal .d{aspect-ratio:1;border-radius:7px;background:#1c1d21;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--steel)}
+  .mcal .d.on{background:var(--c);color:#0F0F11;font-weight:600}
+  .mcal .d.dim{opacity:.3}
+  .mcal .d.tod{border:1.5px solid var(--ember);color:var(--bone)}
+  .acts{display:flex;flex-direction:column;gap:8px}
+  .act{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--hairline);border-radius:11px;padding:12px 13px;font-size:14px}
+  .act svg{width:17px;height:17px;color:var(--steel)}
+  .act.danger{color:var(--danger)}.act.danger svg{color:var(--danger)}
+
+  /* stepper */
+  .step{display:flex;align-items:center;gap:14px;justify-content:center;margin:6px 0 14px}
+  .step .pm{width:46px;height:46px;border-radius:13px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--bone)}
+  .step .val{font-size:30px;font-weight:700;font-family:"Geist Mono";min-width:96px;text-align:center}
+  .step .val small{font-size:14px;color:var(--steel)}
+
+  /* empty */
+  .empty{background:var(--card);border:1px dashed var(--hairline);border-radius:16px;padding:30px 20px;text-align:center}
+  .empty .ei{width:52px;height:52px;border-radius:15px;background:var(--ember-soft);color:var(--ember);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .empty .et{font-size:15px;font-weight:600;margin-bottom:5px}
+  .empty .ed{font-size:12.5px;color:var(--steel);margin-bottom:16px;line-height:1.5}
+</style></head>
+<body>
+
+<div class="top">
+  <h1>T5 «Привычки» — функциональные флоу</h1>
+  <p>Каждое касание и состояние экрана. <b>Зелёное</b> = поведение по умолчанию (рекомендация), <b>красное</b> = деструктив/осторожно. Это контракт Фазы 2 — что строить.</p>
+</div>
+
+<!-- 1 -->
+<h2>1 · Тап по «+» (секция Активные) → создать привычку</h2>
+<div class="trig"><b>Где:</b> «+» справа в заголовке «Активные». <b>Что:</b> снизу выезжает шит-конструктор.</div>
+<div class="row">
+  <div class="panel">
+    <div class="plabel">шит «новая привычка»</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Новая привычка</div>
+      <div class="fld"><div class="lab">Название</div><div class="inp ph">Напр. «Бег утром»</div></div>
+      <div class="fld"><div class="lab">Тип отметки</div><div class="seg"><i class="on">Галка (да/нет)</i><i>Число (норма)</i></div></div>
+      <div class="fld"><div class="lab">Расписание</div><div class="chips"><span class="chip on">Ежедневно</span><span class="chip">3×/нед</span><span class="chip">По дням</span><span class="chip">Цель к дате</span></div></div>
+      <div class="fld"><div class="lab">Цвет</div><div class="pal"><i class="on" style="background:var(--health)"></i><i style="background:var(--zima)"></i><i style="background:var(--plan)"></i><i style="background:var(--ember)"></i><i style="background:var(--warning)"></i></div></div>
+      <div class="cta">Создать привычку</div>
+    </div>
+  </div>
+  <div class="note">
+    <b>Поля по типу:</b> выбрал «Число» → появляются <b>норма + единица</b> (2 / л). Выбрал «Цель к дате» → <b>дата + сколько дней</b> (16 дней к 22.06). «По дням» → чекбоксы Пн–Вс.<br><br>
+    <span class="rec">Минимум: имя + тип + расписание + цвет.</span> Остальное — дефолты. Один экран, без визарда.
+  </div>
+</div>
+
+<!-- 2 -->
+<h2>2 · Тап по карточке (по телу) → деталь привычки</h2>
+<div class="trig"><b>Где:</b> тап в любое место карточки кроме галки. <b>Что:</b> полноэкранная деталь.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">триггер</div>
+    <div class="hc" style="--c:var(--health);width:300px">
+      <div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--health)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="28"/></svg><div class="n"><b style="color:var(--health)">12</b><s>дн</s></div></div>
+      <div class="hb"><div class="hn">Зарядка + валик</div><div class="hs">12 дней подряд · до рубежа 14</div></div>
+      <div class="ck done" style="--c:var(--health)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    </div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">деталь привычки</div>
+    <div class="det">
+      <div class="dhead"><span class="bk">‹</span><span>Привычка</span><span class="dots">⋯</span></div>
+      <div class="body">
+        <div class="hero">
+          <div class="bigring"><svg width="78" height="78" viewBox="0 0 78 78"><circle cx="39" cy="39" r="33" fill="none" stroke="#2c2d31" stroke-width="6"/><circle cx="39" cy="39" r="33" fill="none" stroke="var(--health)" stroke-width="6" stroke-linecap="round" stroke-dasharray="207" stroke-dashoffset="30"/></svg><div class="n"><b style="color:var(--health)">12</b><s>дней</s></div></div>
+          <div><h3>Зарядка + валик</h3><div class="hsub">ежедневно · до рубежа 14</div></div>
+        </div>
+        <div class="stats"><div class="stat"><div class="sv">12</div><div class="sl">стрик</div></div><div class="stat"><div class="sv">21</div><div class="sl">рекорд</div></div><div class="stat"><div class="sv">86%</div><div class="sl">за 30 дн</div></div></div>
+        <div class="mcal-t">Июнь</div>
+        <div class="mcal">
+          <span class="wd">П</span><span class="wd">В</span><span class="wd">С</span><span class="wd">Ч</span><span class="wd">П</span><span class="wd">С</span><span class="wd">В</span>
+          <span class="d dim"></span><span class="d on" style="--c:var(--health)">1</span><span class="d on" style="--c:var(--health)">2</span><span class="d">3</span><span class="d on" style="--c:var(--health)">4</span><span class="d on" style="--c:var(--health)">5</span><span class="d tod">6</span>
+          <span class="d dim">7</span><span class="d dim">8</span><span class="d dim">9</span><span class="d dim">10</span><span class="d dim">11</span><span class="d dim">12</span><span class="d dim">13</span>
+        </div>
+        <div class="acts">
+          <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Изменить</div>
+          <div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></svg>Архивировать</div>
+          <div class="act danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Удалить привычку</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note"><b>Деталь несёт:</b> большой стрик-кольцо, рекорд/% за 30д, <b>месяц-календарь</b> с заливкой дней (тап по дню = бэкфилл), и 3 действия. <span class="rec">Удалить/архив живут тут — не мусорят карточку.</span> ⋯ вверху = то же меню.</div>
+
+<!-- 3 -->
+<h2>3 · Тап по галке → переключить выполнение</h2>
+<div class="trig"><b>Где:</b> круг справа. <b>Что:</b> мгновенно, без шита. Хаптик.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">не сделано</div>
+    <div class="hc" style="--c:var(--steel);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--steel)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="55"/></svg><div class="n"><b style="color:var(--steel)">4</b><s>дн</s></div></div><div class="hb"><div class="hn">Медитация</div><div class="hs">4 дня · сегодня ещё нет</div></div><div class="ck" style="--c:var(--steel)"></div></div>
+  </div>
+  <span class="arrow">→</span>
+  <div class="panel" style="width:auto"><div class="plabel">сделано (+1, цвет, кольцо растёт)</div>
+    <div class="hc" style="--c:var(--plan);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--plan)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="42"/></svg><div class="n"><b style="color:var(--plan)">5</b><s>дн</s></div></div><div class="hb"><div class="hn">Медитация</div><div class="hs">5 дней подряд · отмечено</div></div><div class="ck done" style="--c:var(--plan)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
+  </div>
+</div>
+<div class="note">Тап ещё раз = откат (стрик −1). <span class="rec">Без подтверждения — обратимо.</span> Сводка дня сверху обновляется (3→4 из 5).</div>
+
+<!-- 4 -->
+<h2>4 · Тап по «+» (числовая, Вода) → ввод значения</h2>
+<div class="trig"><b>Где:</b> «+» справа у количественной. <b>Что:</b> компактный степпер снизу.</div>
+<div class="row">
+  <div class="panel">
+    <div class="plabel">шит «добавить замер»</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Вода · сегодня</div>
+      <div class="step"><span class="pm">−</span><span class="val">1.4<small> / 2 л</small></span><span class="pm">+</span></div>
+      <div class="fld"><div class="lab">Быстро</div><div class="chips"><span class="chip">+ стакан 0.25</span><span class="chip on">+ бутылка 0.5</span><span class="chip">+ 1 л</span></div></div>
+      <div class="cta">Сохранить</div>
+    </div>
+  </div>
+  <div class="note"><b>Шаг</b> по типу (вода 0.25 л). Пресеты-чипы для частого. Норма достигнута (2/2) → кольцо/heatmap красятся в lv4. <span class="rec">Один тап «+ бутылка» закрывает 90% случаев.</span></div>
+</div>
+
+<!-- 5 -->
+<h2>5 · Долгий тап / свайп влево → быстрые действия (как удалить)</h2>
+<div class="trig"><b>Долгий тап</b> = контекст-меню. <b>Свайп влево</b> = открыть архив/удалить прямо в строке.</div>
+<div class="row">
+  <div class="panel" style="width:auto">
+    <div class="plabel">долгий тап → меню</div>
+    <div class="hc press" style="--c:var(--health);width:300px;margin-bottom:10px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--health)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="28"/></svg><div class="n"><b style="color:var(--health)">12</b><s>дн</s></div></div><div class="hb"><div class="hn">Зарядка + валик</div><div class="hs">12 дней подряд</div></div></div>
+    <div class="menu">
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Изменить</div>
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9h14M5 15h14M9 5v14"/></svg>Переместить</div>
+      <div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/></svg>Архивировать</div>
+      <div class="mi danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Удалить</div>
+    </div>
+  </div>
+  <span class="arrow">|</span>
+  <div class="panel" style="width:auto">
+    <div class="plabel">свайп влево → действия в строке</div>
+    <div class="swwrap" style="width:300px">
+      <div class="swact"><div class="arch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/></svg>Архив</div><div class="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Удал.</div></div>
+      <div class="hc shift" style="--c:var(--plan);position:relative"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--plan)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="57"/></svg><div class="n"><b style="color:var(--plan)">3</b><s>нед</s></div></div><div class="hb"><div class="hn">Спортзал</div><div class="hs">2 из 4 на неделе</div></div></div>
+    </div>
+  </div>
+</div>
+<div class="note"><span class="rec">Удалить доступно 3 путями:</span> деталь · долгий тап · свайп. <b>Архив</b> = прячет, но хранит историю (можно вернуть). <b>Удалить</b> = с подтверждением (см. 6).</div>
+
+<!-- 6 -->
+<h2>6 · Удаление → подтверждение (деструктив)</h2>
+<div class="trig"><b>Где:</b> после «Удалить». <b>Что:</b> нативный <b>tg.showConfirm</b> (или диалог).</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">диалог подтверждения</div>
+    <div class="dlg"><div class="dt">Удалить «Спортзал»?</div><div class="dd">Привычка и вся история (стрики, отметки) удалятся навсегда. Отменить нельзя.</div><div class="db"><span class="cancel">Отмена</span><span class="del">Удалить</span></div></div>
+  </div>
+  <div class="note"><b>Удалить</b> = безвозвратно (стрики/heatmap теряются). <span class="rec">Поэтому предлагаем сперва «Архив»</span> (мягкий, обратимый). Текст честно про потерю истории. Деструктив всегда с подтверждением (правило проекта).</div>
+</div>
+
+<!-- 7 -->
+<h2>7 · Тап по «+» (секция Метрики) → создать метрику</h2>
+<div class="trig"><b>Где:</b> «+» в заголовке «Метрики недели». <b>Что:</b> шит generic-метрики.</div>
+<div class="row">
+  <div class="panel">
+    <div class="plabel">шит «новая метрика»</div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sh-title">Новая метрика</div>
+      <div class="fld"><div class="lab">Название</div><div class="inp ph">Напр. «Вес»</div></div>
+      <div class="two">
+        <div class="fld"><div class="lab">Единица</div><div class="inp">кг</div></div>
+        <div class="fld"><div class="lab">«Хорошо» это</div><div class="seg"><i class="on">↓ меньше</i><i>↑ больше</i></div></div>
+      </div>
+      <div class="fld"><div class="lab">Цвет линии</div><div class="pal"><i class="on" style="background:var(--zima)"></i><i style="background:var(--health)"></i><i style="background:var(--ember)"></i><i style="background:var(--plan)"></i></div></div>
+      <div class="cta">Создать метрику</div>
+    </div>
+  </div>
+  <div class="note"><b>Generic-число</b> (твой выбор): любое имя+единица. <b>Направление «хорошо»</b> красит дельту (вес↓ зелёный, сон↑ синий) — без него непонятно, рост это плюс или минус. <span class="rec">Цель/норма — опционально позже.</span></div>
+</div>
+
+<!-- 8 -->
+<h2>8 · Тап по карточке метрики → деталь + добавить замер</h2>
+<div class="trig"><b>Что:</b> график за период, список замеров, «+ замер», изменить/удалить.</div>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">деталь метрики</div>
+    <div class="det" style="width:300px"><div class="dhead"><span class="bk">‹</span><span>Метрика</span><span class="dots">⋯</span></div>
+      <div class="body">
+        <div class="hero" style="margin-bottom:12px"><div><h3>Вес</h3><div class="hsub">78.2 кг · <span style="color:var(--zima)">▼0.4 за неделю</span></div></div></div>
+        <svg width="100%" height="70" viewBox="0 0 270 70" preserveAspectRatio="none" style="margin-bottom:6px"><polyline points="0,20 38,18 76,30 114,24 152,40 190,42 228,50 270,48" fill="none" stroke="var(--zima)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="chips" style="margin-bottom:14px"><span class="chip">7д</span><span class="chip on">30д</span><span class="chip">Год</span></div>
+        <div class="act" style="border-color:var(--ember);color:var(--ember)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Добавить замер</div>
+        <div style="margin-top:12px">
+          <div class="hs" style="display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--hairline)"><span>сегодня</span><b style="color:var(--bone)">78.2 кг</b></div>
+          <div class="hs" style="display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--hairline)"><span>вчера</span><b style="color:var(--bone)">78.4 кг</b></div>
+          <div class="hs" style="display:flex;justify-content:space-between;padding:9px 2px"><span>4 июня</span><b style="color:var(--bone)">78.6 кг</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>График</b> + переключатель периода + лог замеров. <b>«+ замер»</b> = тот же степпер/ввод числа. Свайп по строке лога = удалить замер. ⋯ = изменить/удалить метрику.</div>
+</div>
+
+<!-- 9 -->
+<h2>9 · Тап по ячейке heatmap → бэкфилл прошлого дня</h2>
+<div class="trig"><b>Что:</b> «забыл отметить вчера» — тап по ячейке переключает день.</div>
+<div class="row">
+  <div class="panel"><div class="plabel">тап по серой ячейке = отметить задним числом</div>
+    <div class="surf" style="padding:13px">
+      <div class="hs" style="margin-bottom:9px">Медитация · последние 7 дней</div>
+      <div style="display:flex;gap:5px;align-items:center">
+        <span style="width:60px" class="hs">Медит.</span>
+        <span style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--ember)"></span>
+        <span style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--ember)"></span>
+        <span style="flex:1;aspect-ratio:1;border-radius:4px;background:#222327;outline:2px solid var(--ember);outline-offset:1px"></span>
+        <span style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--ember)"></span>
+        <span style="flex:1;aspect-ratio:1;border-radius:4px;background:rgba(238,138,60,.42)"></span>
+        <span style="flex:1;aspect-ratio:1;border-radius:4px;background:#222327"></span>
+        <span style="flex:1;aspect-ratio:1;border-radius:4px;background:#222327"></span>
+      </div>
+    </div>
+  </div>
+  <div class="note">Тап по пустой ячейке прошлого дня (обводка) → отмечает, стрик/статы пересчитываются. <span class="rec">Будущие дни — недоступны.</span> <span class="bad">Минус: лёгкий миссклик — поэтому бэкфилл только тут и в деталь-календаре, не на основной карточке.</span></div>
+</div>
+
+<!-- 10 -->
+<h2>10 · Пустые состояния</h2>
+<div class="trig">0 привычек / 0 метрик — экран не пустой, а зовёт к действию.</div>
+<div class="row">
+  <div class="panel"><div class="plabel">0 привычек</div>
+    <div class="empty"><div class="ei"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg></div><div class="et">Пока нет привычек</div><div class="ed">Заведи первую рутину — стрик начнётся с сегодня.</div><div class="cta" style="margin:0">+ Новая привычка</div></div>
+  </div>
+  <div class="panel"><div class="plabel">0 метрик</div>
+    <div class="empty"><div class="ei"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l5-5 4 4 8-9"/></svg></div><div class="et">Нет метрик</div><div class="ed">Следи за любым числом — вес, сон, настроение.</div><div class="cta ghost" style="margin:0">+ Новая метрика</div></div>
+  </div>
+  <div class="note">Heatmap при 0 привычек скрыт. Ретро при пустой неделе → «нет данных, отмечай привычки».</div>
+</div>
+
+<!-- 11 -->
+<h2>11 · Edge: стрик прерван · цель достигнута</h2>
+<div class="row">
+  <div class="panel" style="width:auto"><div class="plabel">пропустил день → стрик 0</div>
+    <div class="hc" style="--c:var(--danger);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/></svg><div class="n"><b style="color:var(--steel)">0</b><s>дн</s></div></div><div class="hb"><div class="hn">Чтение</div><div class="hs" style="color:var(--danger)">стрик прерван · рекорд был 21</div></div><div class="ck" style="--c:var(--ember)"></div></div>
+    <div class="note">Кольцо пустое, подпись красная, но <b>рекорд хранится</b>. Тап галки = старт заново с 1.</div>
+  </div>
+  <div class="panel" style="width:auto"><div class="plabel">цель-дата достигнута</div>
+    <div class="hc" style="--c:var(--zima);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--zima)" stroke-width="3.5"/></svg><div class="n"><b style="color:var(--zima)">16</b><s>дн</s></div></div><div class="hb"><div class="hn">Без травы</div><div class="hs" style="color:var(--zima)">цель достигнута · 16/16 ✓</div></div><div class="ck done" style="--c:var(--zima)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
+    <div class="note">Кольцо полное. Предложение: <b>«Продлить»</b> (новая дата) или <b>«Завершить»</b> (в архив с медалью).</div>
+  </div>
+</div>
+
+</body></html>

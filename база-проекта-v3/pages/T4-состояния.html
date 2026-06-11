@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T4 — матрица состояний (Цели: пульс + деталь проекта)</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* :root — 1:1 из T5-flows.html */
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --ok:#3FB68B;
+    --accent:#EE8A3C;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 18px 60px}
+  h2{font-size:18px;font-weight:700;margin:30px 0 4px}h2:first-child{margin-top:0}
+  .sub{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:16px}
+  .row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .fcap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:10px}
+  .fcap b{color:var(--accent)}
+  .fcode{display:inline-block;background:var(--accent);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px}
+  .phone{width:300px;height:600px;background:var(--onyx);border:1px solid var(--hairline);border-radius:26px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+  .st{height:36px;display:flex;align-items:center;padding:0 18px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--bone)}
+  .hd{padding:10px 16px 8px;border-bottom:1px solid var(--hairline)}
+  .hd h1{font-size:19px;font-weight:700}
+  .hd .d{font-size:13px;color:var(--steel);margin-top:2px}
+  .hd .back{color:var(--accent);font-size:13px;font-weight:600;margin-bottom:4px}
+  .body{flex:1;overflow:hidden;position:relative;padding:0 16px}
+  /* empty-state */
+  .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:0 22px}
+  .empty .ic{width:40px;height:40px;color:var(--steel)}
+  .empty .t{font-size:16px;font-weight:600}
+  .empty .s{font-size:13px;color:var(--steel);line-height:1.5}
+  .empty .btn{margin-top:6px;background:var(--accent);color:#1a1209;font-size:14px;font-weight:600;border-radius:11px;padding:11px 20px}
+  .empty .btn.ghost{background:var(--slate);color:var(--bone)}
+  /* skeleton */
+  .skel{background:var(--slate);border-radius:8px;position:relative;overflow:hidden}
+  .skel::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);animation:sh 1.3s infinite}
+  @keyframes sh{100%{transform:translateX(100%)}}
+  .sk-line{height:13px;border-radius:6px}
+  .sk-card{height:118px;border-radius:16px;margin-bottom:12px}
+  .sk-pulse{height:78px;border-radius:16px;margin-bottom:18px}
+  .tabs{display:flex;border-top:1px solid var(--hairline);background:var(--card);padding:7px 4px 12px}
+  .tab{flex:1;text-align:center;font-size:10px;color:var(--steel)}.tab.on{color:var(--accent)}
+
+  /* reused project-card / detail bits */
+  .pcard{background:var(--card);border:1px solid var(--hairline);border-radius:16px;padding:14px 15px;position:relative;overflow:hidden;margin-bottom:12px}
+  .pcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .pc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .pc-name{font-size:15px;font-weight:600;line-height:1.25}
+  .ring .v{font-size:18px;font-weight:700;color:var(--c)}.ring .l{font-size:9px;color:var(--steel)}
+  .ring{text-align:center}
+  .pc-meta{font-size:11.5px;color:var(--steel);margin:5px 0 10px;font-family:"Geist Mono",monospace}
+  .pc-meta.none{color:#5e5f66}
+  .stages{display:flex;gap:4px;margin-bottom:9px}.stages i{flex:1;height:6px;border-radius:3px;background:#2c2d31}.stages i.on{background:var(--c)}
+  .hint{text-align:center;color:var(--steel);font-size:12.5px;line-height:1.5}
+
+  /* placeholder "обсуди с ассистентом" блок (zero-afk пустые AI-данные) */
+  .ph-ai{background:rgba(155,107,224,.09);border:1px dashed rgba(155,107,224,.4);border-radius:13px;padding:14px 14px;text-align:center;margin:6px 0 12px}
+  .ph-ai .pt{font-size:13.5px;font-weight:600;color:#c3aef0;margin-bottom:4px}
+  .ph-ai .ps{font-size:12px;color:var(--steel);line-height:1.45;margin-bottom:11px}
+  .ph-ai .pb{background:#7d5cc0;color:#fff;font-size:13px;font-weight:600;border-radius:10px;padding:9px 16px;display:inline-block}
+  .newbtn{width:100%;background:var(--ember-soft);color:var(--ember);border:1px dashed var(--ember);border-radius:13px;padding:11px;font-size:13px;font-weight:600;text-align:center}
+</style>
+</head>
+<body>
+
+<h2>Пульс «Цели» (T4·A) — состояния</h2>
+<div class="sub">happy-path (3 проекта + пульс) — в основном мокапе T4-celi. Здесь: нет целей / загрузка / ошибка.</div>
+<div class="row">
+
+  <!-- A: нет целей/проектов -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T4·A</span>пусто · нет целей</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Цели</h1><div class="d">большие намерения</div></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/></svg>
+          <div class="t">Ещё нет целей</div>
+          <div class="s">Большую цель разбираем в чате с ассистентом — он задаст срок, этапы и оценит шанс. Карточка появится заполненной.</div>
+          <div class="btn">+ Новый проект</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab on">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+  <!-- A: skeleton -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T4·A</span>загрузка · скелетон</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="skel sk-line" style="width:30%;height:18px"></div><div class="skel sk-line" style="width:48%;margin-top:9px"></div></div>
+      <div class="body" style="padding-top:16px">
+        <div class="skel sk-pulse"></div>
+        <div class="skel sk-line" style="width:24%;height:11px;margin-bottom:12px"></div>
+        <div class="skel sk-card"></div>
+        <div class="skel sk-card"></div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab on">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+  <!-- A: error -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T4·A</span>ошибка загрузки</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><h1>Цели</h1><div class="d">большие намерения</div></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10.3 4l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/><path d="M12 9v5M12 17.5h.01"/></svg>
+          <div class="t">Не удалось загрузить</div>
+          <div class="s">Проверь соединение и попробуй ещё раз.</div>
+          <div class="btn">Повторить</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab on">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+</div>
+
+<h2>Деталь проекта (T4d) — состояния</h2>
+<div class="sub">заполненный разбор — в основном мокапе T4d. Здесь: проект без этапов · без AI-данных · загрузка · ошибка.</div>
+<div class="row">
+
+  <!-- D1: проект без этапов И без AI-данных (ZERO-AFK плейсхолдер) -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T4d·A</span>проект без этапов / без AI</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Цели</div><h1>Ремонт квартиры</h1><div class="d">черновик · не разобран</div></div>
+      <div class="body" style="--c:var(--plan);padding-top:12px;overflow-y:auto">
+        <div class="pc-meta none">шанс: — · срок: не задан · этапов нет</div>
+        <div class="ph-ai">
+          <div class="pt">AI-данных пока нет</div>
+          <div class="ps">Обсуди проект с ассистентом — он оценит шанс, поставит срок и распишет этапы. Появятся здесь.</div>
+          <div class="pb">Обсудить с ассистентом</div>
+        </div>
+        <div class="newbtn">+ Добавить этап вручную</div>
+        <div class="hint" style="margin-top:14px">Можно вести руками, но без разбора нет %вероятности, прогноза срока и заметок ИИ.</div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab on">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+  <!-- D2: проект с AI-оценкой, но этапов нет -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T4d·A</span>есть оценка, но 0 этапов</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Цели</div><h1>Выучить чешский B2</h1><div class="d">разобран · этапы не нарезаны</div></div>
+      <div class="body" style="--c:var(--health);padding-top:12px;overflow-y:auto">
+        <div class="pc-meta">шанс 48% · срок: до дек · осталось 26 нед</div>
+        <div class="stages" style="margin-bottom:14px"><i></i><i></i><i></i></div>
+        <div style="font-family:'Geist Mono';font-size:11px;color:var(--steel);text-transform:uppercase;letter-spacing:.6px;margin:0 2px 8px">Этапы</div>
+        <div class="hint" style="text-align:left;padding:14px;background:var(--card);border:1px dashed var(--hairline);border-radius:13px">Цель оценена, но не разбита на этапы. Нарежь «слона» на куски — прогресс начнёт расти от задач.</div>
+        <div class="newbtn" style="margin-top:10px">+ Добавить этап</div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab on">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+  <!-- D3: skeleton -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T4d·A</span>загрузка · скелетон</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Цели</div><div class="skel sk-line" style="width:54%;height:18px;margin-top:4px"></div></div>
+      <div class="body" style="padding-top:14px">
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">
+          <div class="skel sk-line" style="flex:1;height:40px"></div>
+          <div class="skel" style="width:64px;height:64px;border-radius:50%"></div>
+        </div>
+        <div class="skel sk-line" style="width:90%;height:26px;margin-bottom:16px"></div>
+        <div class="skel sk-line" style="width:30%;height:11px;margin-bottom:10px"></div>
+        <div class="skel sk-card" style="height:64px"></div>
+        <div class="skel sk-card" style="height:64px"></div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab on">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+
+  <!-- D4: error -->
+  <div class="col">
+    <div class="fcap"><span class="fcode">T4d·A</span>ошибка загрузки</div>
+    <div class="phone">
+      <div class="st">9:41</div>
+      <div class="hd"><div class="back">‹ Цели</div><h1>Проект</h1></div>
+      <div class="body">
+        <div class="empty">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10.3 4l-8 14a2 2 0 001.7 3h16a2 2 0 001.7-3l-8-14a2 2 0 00-3.4 0z"/><path d="M12 9v5M12 17.5h.01"/></svg>
+          <div class="t">Не удалось загрузить проект</div>
+          <div class="s">Проверь соединение и попробуй ещё раз.</div>
+          <div class="btn">Повторить</div>
+        </div>
+      </div>
+      <div class="tabs"><div class="tab">Задачи</div><div class="tab">Календарь</div><div class="tab">Гант</div><div class="tab on">Цели</div><div class="tab">Привычки</div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

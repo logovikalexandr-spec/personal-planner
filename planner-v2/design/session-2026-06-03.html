@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Planner v2 — сессия 2026-06-03</title>
+<style>
+ body{margin:0;background:#0a0a0c;color:#f4f4f5;font-family:-apple-system,system-ui,sans-serif;padding:32px}
+ h1{font-size:22px;margin:0 0 4px} .sub{color:#8a8b91;font-size:14px;margin-bottom:28px;max-width:760px;line-height:1.5}
+ h2{font-size:16px;color:#ee8a3c;margin:34px 0 4px;border-top:1px solid rgba(255,255,255,.08);padding-top:22px}
+ .cap{color:#8a8b91;font-size:13px;margin-bottom:14px;max-width:820px;line-height:1.5}
+ .grid{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
+ .card{background:#16171b;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:10px;width:340px}
+ .card img{width:100%;border-radius:8px;display:block}
+ .card .t{font-size:12px;color:#8a8b91;margin-top:8px}
+ .wide img{width:100%} .wide{width:100%}
+ a{color:#ee8a3c}
+ .links{background:#16171b;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:24px;font-size:14px;line-height:1.8}
+</style></head><body>
+<h1>Planner v2 — что сделано в сессии 2026-06-03</h1>
+<p class="sub">Волна 2 (ядро задачи) собрана и задеплоена на прод + перф-фикс лагов. Ниже — живые скриншоты (реальные данные, локальный прод-стек). Главное смотреть на телефоне в боте — это живое приложение.</p>
+
+<div class="links">
+ <b>Живьём:</b> открой Mini App в Telegram-боте @ZIMA… (planner-бот) на телефоне.<br>
+ Прод: <a href="https://planner.188.245.42.4.nip.io/app/">planner.188.245.42.4.nip.io/app/</a> (нужна Telegram-авторизация)
+</div>
+
+<h2>1 · TaskDetail — полный экран задачи (НОВОЕ)</h2>
+<p class="cap">Раньше задача не открывалась. Теперь — все поля, заметки, чеклист с кольцом прогресса (чеклист двигает кольцо, сабтаски нет), мульти-напоминания, структурный повтор, сабтаски, overflow (Сабтаск/Won't Do/Удалить).</p>
+<div class="grid">
+ <div class="card"><img src="wave2-mock/live-3-detail.png"><div class="t">TaskDetail: кольцо 2/3, чеклист, 2 напоминания</div></div>
+ <div class="card"><img src="wave2-mock/live-9-subtask.png"><div class="t">Сабтаски (inline-добавление, toggle, open)</div></div>
+ <div class="card"><img src="wave2-mock/live-5-recurrence.png"><div class="t">Шторка повтора (стек поверх календаря)</div></div>
+ <div class="card"><img src="wave2-mock/live-4-recur.png"><div class="t">Date/Duration пикер: мини-календарь, время</div></div>
+</div>
+
+<h2>2 · Quick-add с распознаванием (НОВОЕ)</h2>
+<p class="cap">FAB → быстрый ввод. Пишешь «Позвонить юристу завтра 11:00 ~ZIMA !1 #аренда» → дата/проект/приоритет/тег распознаются, подсвечиваются, создаётся готовая задача. Поймал тут реальный баг (невидимый текст) и починил.</p>
+<div class="grid">
+ <div class="card"><img src="wave2-mock/live-8-quickadd-fixed.png"><div class="t">Распознанные токены: завтра · 11:00 · ~ZIMA · !1 · #аренда</div></div>
+ <div class="card"><img src="wave2-mock/live-6-list-fixed.png"><div class="t">Список: дата «3 июн · 17:00» (была сырая ISO+сек)</div></div>
+</div>
+
+<h2>3 · Утверждённые мокапы Волны 2</h2>
+<p class="cap">8 экранов, которые ты согласовал перед сборкой.</p>
+<div class="grid">
+ <div class="wide"><img src="wave2-mock/board-full.png"></div>
+ <div class="wide"><img src="wave2-mock/states-board.png"></div>
+</div>
+
+<h2>4 · Перф-фикс лагов</h2>
+<p class="cap">Жалоба «всё лагучее». Нашёл корень (приложение перерисовывало лишнее + ремонтило экран при каждом переключении). Два фикса задеплоены: JS-работа на переключение −86%. Замеры в session-логе.</p>
+</body></html>

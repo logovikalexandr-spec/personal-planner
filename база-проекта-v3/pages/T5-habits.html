@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Привычки — наполнение (v3 чистое: A3·B3·C2·D2·E2·F1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;color:var(--bone);display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .phone{width:390px;height:844px;background:var(--onyx);border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;font-weight:600;flex:0 0 auto}
+  .scroll{flex:1;overflow-y:auto;padding:6px 18px 100px}
+  .scroll::-webkit-scrollbar{display:none}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+  .sub{color:var(--steel);font-size:13px;margin-bottom:16px}
+
+  .seg{display:flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:12px;padding:3px;margin-bottom:18px}
+  .seg i{flex:1;text-align:center;font-size:13px;font-weight:600;font-style:normal;color:var(--steel);padding:7px 0;border-radius:9px;letter-spacing:.2px}
+  .seg i.on{background:var(--slate);color:var(--bone);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+
+  /* week progress summary (вместо «N задач весь день») */
+  .daysum{display:flex;align-items:center;gap:10px;margin:2px 2px 16px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .daysum .bar{flex:1;height:6px;border-radius:3px;background:#2c2d31;overflow:hidden}
+  .daysum .bar i{display:block;height:100%;background:var(--ember);border-radius:3px}
+  .daysum b{color:var(--bone);font-weight:600}
+
+  .seclbl{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--steel);margin:6px 2px 11px;display:flex;align-items:center;justify-content:space-between}
+  .secadd{width:24px;height:24px;border-radius:7px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;color:var(--steel);font-size:17px;font-weight:400;line-height:1}
+
+  /* habit row — лаконично: стрик слева · имя+1 строка · 1 действие справа */
+  .hcard{background:var(--card);border:1px solid var(--hairline);border-radius:15px;padding:13px 14px;margin-bottom:10px;position:relative;overflow:hidden;display:flex;align-items:center;gap:13px}
+  .hcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .hcard.off{opacity:.85}
+
+  /* C2 ring = стрик + путь к рубежу */
+  .sring{flex:0 0 auto;position:relative;width:44px;height:44px}
+  .sring svg{transform:rotate(-90deg)}
+  .sring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .sring .num b{font-size:15px;font-weight:700;color:var(--c)}
+  .sring .num s{font-size:8px;text-decoration:none;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:1px}
+
+  .hc-body{flex:1;min-width:0}
+  .hc-name{font-size:15.5px;font-weight:600;line-height:1.2;display:flex;align-items:center;gap:7px}
+  .hc-name .sched{font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);font-weight:500;background:var(--slate);border-radius:5px;padding:1px 6px}
+  .hc-sub{font-size:12px;color:var(--steel);margin-top:4px;font-family:"Geist Mono",monospace}
+  .hc-sub b{color:var(--bone);font-weight:600}
+  /* мини прогресс под количественной/цель — тонкая полоска внутри строки */
+  .miniprog{height:5px;border-radius:3px;background:#2c2d31;margin-top:7px;overflow:hidden;max-width:170px}
+  .miniprog i{display:block;height:100%;background:var(--c);border-radius:3px}
+
+  /* действие справа: галка ИЛИ значение */
+  .chk{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:2px solid var(--slate);display:flex;align-items:center;justify-content:center;color:var(--steel)}
+  .chk.done{background:var(--c);border-color:var(--c);color:#0F0F11}
+  .chk svg{width:16px;height:16px}
+  .numbtn{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+  .numbtn .v{font-size:15px;font-weight:700;font-family:"Geist Mono",monospace;color:var(--bone)}
+  .numbtn .plus{width:30px;height:30px;border-radius:9px;background:var(--c);color:#0F0F11;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;line-height:1}
+
+  /* heatmap D2 */
+  .heat{background:var(--card);border:1px solid var(--hairline);border-radius:15px;padding:14px 15px;margin-bottom:18px}
+  .heat .htop{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .heat .htitle{font-size:13px;font-weight:600}
+  .htabs{display:flex;gap:5px}
+  .htabs i{font-style:normal;font-family:"Geist Mono",monospace;font-size:10px;padding:4px 10px;border-radius:8px;background:var(--slate);color:var(--steel)}
+  .htabs i.on{background:var(--ember);color:#1a1209}
+  .hgrid{display:grid;grid-template-columns:70px repeat(7,1fr);gap:5px;align-items:center}
+  .hgrid .hd{font-size:9.5px;color:var(--steel);font-family:"Geist Mono",monospace;text-align:center}
+  .hgrid .rn{font-size:11px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:4px}
+  .hgrid .cell{aspect-ratio:1;border-radius:4px;background:#222327}
+  .lv0{background:#222327}.lv1{background:rgba(238,138,60,.22)}.lv2{background:rgba(238,138,60,.42)}.lv3{background:rgba(238,138,60,.66)}.lv4{background:var(--ember)}
+  .hleg{display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-top:12px;font-size:10px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .hleg span{width:12px;height:12px;border-radius:3px;display:inline-block}
+
+  /* metrics */
+  .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .mcard{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:13px 14px}
+  .mcard.wide{grid-column:1 / -1}
+  .m-lbl{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;letter-spacing:.5px;text-transform:uppercase}
+  .m-val{font-size:22px;font-weight:700;margin-top:5px;letter-spacing:-.02em}
+  .m-val small{font-size:13px;font-weight:500;color:var(--steel)}
+  .m-delta{font-size:12px;font-weight:600;margin-left:6px}
+  .m-delta.good{color:var(--zima)}
+  .m-delta.up{color:var(--health)}
+  .spark{margin-top:9px;display:block}
+
+  /* metric full rows (суб-вид «Метрики») */
+  .mrow{background:var(--card);border:1px solid var(--hairline);border-radius:15px;padding:13px 15px;margin-bottom:10px}
+  .mrow .mtop{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .mrow .mn{font-size:15.5px;font-weight:600}
+  .mrow .mn span{color:var(--steel);font-weight:500;font-size:11px;font-family:"Geist Mono",monospace;margin-left:5px}
+  .mrow .madd{margin-left:auto;flex:0 0 auto;width:28px;height:28px;border-radius:8px;background:var(--slate);border:1px solid var(--hairline);color:var(--ember);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1}
+  .mrow .mvrow{display:flex;align-items:baseline;gap:0}
+  .mrow .mbig{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .mrow .mbig small{font-size:12px;font-weight:500;color:var(--steel);margin-left:3px}
+  .mrow .md{font-size:12.5px;font-weight:600;margin-left:8px}
+  .mrow .md.good{color:var(--zima)} .mrow .md.up{color:var(--health)} .mrow .md.flat{color:var(--steel)}
+  .mrow .mfoot{font-size:10px;color:var(--steel);font-family:"Geist Mono",monospace;margin-top:7px}
+
+  /* retro F1 */
+  .retro{background:linear-gradient(135deg,#1c1d22,#161417);border:1px solid var(--hairline);border-radius:15px;padding:14px 15px;display:flex;align-items:center;gap:13px;cursor:pointer}
+  .retro .rl{flex:0 0 auto;width:40px;height:40px;border-radius:12px;background:var(--ember-soft);color:var(--ember);display:flex;align-items:center;justify-content:center}
+  .retro .rb{flex:1}
+  .retro .rt{font-size:14.5px;font-weight:600}
+  .retro .rs{font-size:12px;color:var(--steel);margin-top:3px}
+  .retro .rs b{color:var(--bone);font-weight:600}
+  .retro .chev{color:var(--steel);font-size:18px}
+
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:78px;background:var(--card);border-top:1px solid var(--hairline);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:14px}
+  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:10px;color:var(--steel)}
+  .tab.active{color:var(--ember)}
+  .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8}
+
+  .legend{width:330px;font-size:13px;line-height:1.65}
+  .legend h2{font-size:16px;margin-bottom:10px}
+  .legend .row{margin-bottom:11px;padding-left:12px;border-left:2px solid var(--ember)}
+  .legend b{color:var(--ember)}
+  .legend .muted{color:#9a9aa2}
+
+  /* ============ ФЛОУ-БОРД (все взаимодействия, в этом же файле) ============ */
+  .flows{flex-basis:100%;width:100%;background:#202024;border:1px solid var(--hairline);border-radius:20px;margin-top:14px;padding:28px 26px 40px}
+  .flows .fhead h1{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+  .flows .fhead p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)} .flows .fhead p b{color:var(--ember)}
+  .flows h2{font-size:17px;font-weight:700;margin:36px 0 5px;letter-spacing:-.02em}
+  .flows .trig{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ember);margin-bottom:14px} .flows .trig b{color:var(--bone)}
+  .flows .row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .flows .panel{width:330px}
+  .flows .plabel{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+  .flows .note{font-size:12px;color:var(--steel);margin-top:11px;max-width:340px} .flows .note b{color:var(--bone)} .flows .rec{color:var(--zima);font-weight:600} .flows .bad{color:var(--danger)}
+  .flows .arrow{align-self:center;color:var(--steel);font-size:26px;padding:0 2px}
+  .flows .surf{background:var(--onyx);border:1px solid var(--hairline);border-radius:18px;overflow:hidden}
+  .flows .sheet{background:#141519;border:1px solid var(--hairline);border-radius:20px;padding:16px 16px 18px}
+  .flows .handle{width:36px;height:4px;border-radius:2px;background:var(--slate);margin:0 auto 14px}
+  .flows .sh-title{font-size:17px;font-weight:700;margin-bottom:14px}
+  .flows .fld{margin-bottom:13px}
+  .flows .fld .lab{font-size:11px;color:var(--steel);font-family:"Geist Mono",monospace;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+  .flows .inp{background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:11px 12px;font-size:14px;color:var(--bone)} .flows .inp.ph{color:var(--steel)}
+  .flows .fseg{display:flex;background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:3px}
+  .flows .fseg i{flex:1;text-align:center;font-style:normal;font-size:12.5px;font-weight:600;color:var(--steel);padding:8px 0;border-radius:8px}
+  .flows .fseg i.on{background:var(--card);color:var(--bone);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .flows .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .flows .chip{font-size:12.5px;color:var(--steel);background:var(--slate);border:1px solid var(--hairline);border-radius:9px;padding:7px 11px;font-weight:500}
+  .flows .chip.on{background:var(--ember-soft);color:var(--ember);border-color:transparent}
+  .flows .pal{display:flex;gap:9px}
+  .flows .pal i{width:26px;height:26px;border-radius:50%;display:block;position:relative}
+  .flows .pal i.on::after{content:"";position:absolute;inset:-4px;border:2px solid var(--bone);border-radius:50%}
+  .flows .cta{background:var(--ember);color:#1a1209;border-radius:11px;padding:13px;text-align:center;font-weight:700;font-size:15px;margin-top:6px}
+  .flows .cta.ghost{background:var(--slate);color:var(--bone)}
+  .flows .two{display:flex;gap:9px} .flows .two>*{flex:1}
+  .flows .menu{background:#1d1e23;border:1px solid var(--hairline);border-radius:14px;padding:6px;width:230px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  .flows .mi{display:flex;align-items:center;gap:11px;padding:11px;border-radius:9px;font-size:14px}
+  .flows .mi svg{width:17px;height:17px;color:var(--steel);flex:0 0 auto}
+  .flows .mi.danger{color:var(--danger)} .flows .mi.danger svg{color:var(--danger)}
+  .flows .mi+.mi{border-top:1px solid var(--hairline)}
+  .flows .dlg{background:#1d1e23;border:1px solid var(--hairline);border-radius:16px;padding:18px 16px;width:290px;text-align:center}
+  .flows .dlg .dt{font-size:16px;font-weight:700;margin-bottom:6px}
+  .flows .dlg .dd{font-size:13px;color:var(--steel);margin-bottom:16px;line-height:1.5}
+  .flows .dlg .db{display:flex;gap:9px} .flows .dlg .db>*{flex:1;padding:11px;border-radius:10px;font-weight:600;font-size:14px}
+  .flows .db .cancel{background:var(--slate);color:var(--bone)} .flows .db .del{background:var(--danger);color:#fff}
+  .flows .hc{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:12px 13px;position:relative;overflow:hidden;display:flex;align-items:center;gap:12px}
+  .flows .hc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .flows .hc.press{outline:2px solid var(--ember);outline-offset:1px}
+  .flows .ring{flex:0 0 auto;width:40px;height:40px;position:relative}
+  .flows .ring svg{transform:rotate(-90deg)}
+  .flows .ring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .flows .ring .n b{font-size:14px;font-weight:700;color:var(--c)} .flows .ring .n s{font-size:7.5px;text-decoration:none;color:var(--steel);font-family:"Geist Mono"}
+  .flows .hb{flex:1;min-width:0} .flows .hn{font-size:15px;font-weight:600} .flows .hs{font-size:11.5px;color:var(--steel);margin-top:3px;font-family:"Geist Mono"}
+  .flows .ck{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:2px solid var(--slate)}
+  .flows .ck.done{background:var(--c);border-color:var(--c);display:flex;align-items:center;justify-content:center;color:#0F0F11}
+  .flows .ck svg{width:15px;height:15px}
+  .flows .plus{flex:0 0 auto;width:30px;height:30px;border-radius:9px;background:var(--c);color:#0F0F11;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .flows .swwrap{position:relative;border-radius:14px;overflow:hidden}
+  .flows .swact{position:absolute;right:0;top:0;bottom:0;display:flex}
+  .flows .swact div{width:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px;color:#fff;font-family:"Geist Mono"}
+  .flows .swact .arch{background:var(--steel)} .flows .swact .del{background:var(--danger)} .flows .swact svg{width:17px;height:17px}
+  .flows .hc.shift{transform:translateX(-124px)}
+  .flows .det{width:330px;background:var(--onyx);border:1px solid var(--hairline);border-radius:20px;overflow:hidden}
+  .flows .det .dhead{display:flex;align-items:center;gap:12px;padding:14px 15px 4px;color:var(--steel)}
+  .flows .det .dhead .bk{font-size:20px} .flows .det .dhead .dots{margin-left:auto;font-size:20px;letter-spacing:1px}
+  .flows .det .body{padding:6px 15px 18px}
+  .flows .hero{display:flex;align-items:center;gap:15px;margin-bottom:16px}
+  .flows .bigring{flex:0 0 auto;width:78px;height:78px;position:relative} .flows .bigring svg{transform:rotate(-90deg)}
+  .flows .bigring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .flows .bigring .n b{font-size:26px;font-weight:700} .flows .bigring .n s{font-size:10px;text-decoration:none;color:var(--steel);font-family:"Geist Mono"}
+  .flows .hero h3{font-size:20px;font-weight:700;letter-spacing:-.02em} .flows .hero .hsub{font-size:12.5px;color:var(--steel);margin-top:4px;font-family:"Geist Mono"}
+  .flows .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+  .flows .stat{background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:10px 11px;text-align:center}
+  .flows .stat .sv{font-size:18px;font-weight:700} .flows .stat .sl{font-size:10px;color:var(--steel);font-family:"Geist Mono";margin-top:2px}
+  .flows .mcal-t{font-size:12px;color:var(--steel);font-family:"Geist Mono";margin-bottom:8px}
+  .flows .mcal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:16px}
+  .flows .mcal .wd{text-align:center;font-size:9px;color:var(--steel);font-family:"Geist Mono";padding-bottom:2px}
+  .flows .mcal .d{aspect-ratio:1;border-radius:7px;background:#1c1d21;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--steel)}
+  .flows .mcal .d.on{background:var(--c);color:#0F0F11;font-weight:600} .flows .mcal .d.dim{opacity:.3} .flows .mcal .d.tod{border:1.5px solid var(--ember);color:var(--bone)}
+  .flows .acts{display:flex;flex-direction:column;gap:8px}
+  .flows .act{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--hairline);border-radius:11px;padding:12px 13px;font-size:14px}
+  .flows .act svg{width:17px;height:17px;color:var(--steel)} .flows .act.danger{color:var(--danger)} .flows .act.danger svg{color:var(--danger)}
+  .flows .step{display:flex;align-items:center;gap:14px;justify-content:center;margin:6px 0 14px}
+  .flows .step .pm{width:46px;height:46px;border-radius:13px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--bone)}
+  .flows .step .val{font-size:30px;font-weight:700;font-family:"Geist Mono";min-width:96px;text-align:center} .flows .step .val small{font-size:14px;color:var(--steel)}
+  .flows .empty{background:var(--card);border:1px dashed var(--hairline);border-radius:16px;padding:30px 20px;text-align:center}
+  .flows .empty .ei{width:52px;height:52px;border-radius:15px;background:var(--ember-soft);color:var(--ember);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+  .flows .empty .et{font-size:15px;font-weight:600;margin-bottom:5px}
+  .flows .empty .ed{font-size:12.5px;color:var(--steel);margin-bottom:16px;line-height:1.5}
+  .flows .scale{display:flex;gap:5px}
+  .flows .scale i{flex:1;aspect-ratio:1;border-radius:8px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--steel);font-style:normal}
+  .flows .scale i.on{background:var(--ember);color:#1a1209;border-color:transparent}
+  .flows .log{margin-top:10px}
+  .flows .log .li{display:flex;justify-content:space-between;font-size:11.5px;font-family:"Geist Mono",monospace;color:var(--steel);padding:7px 2px;border-bottom:1px solid var(--hairline)}
+  .flows .log .li b{color:var(--bone);font-weight:600}
+  .flows .dsel{display:flex;align-items:center;justify-content:space-between;background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:11px 12px;font-size:14px;color:var(--bone)}
+  .flows .dsel span{color:var(--steel);font-family:"Geist Mono",monospace;font-size:12px}
+  .flows .ttag{font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);font-weight:500;background:var(--slate);border-radius:5px;padding:1px 6px;margin-left:6px}
+</style></head>
+<body>
+
+<div class="phone">
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="scroll">
+    <h1>Привычки</h1>
+    <div class="sub">пятница, 6 июня · неделя 23</div>
+
+    <div class="seg">
+      <i class="on">Привычки</i>
+      <i>Метрики</i>
+      <i>Ретро</i>
+    </div>
+
+    <!-- сводка дня: один прогресс «сегодня закрыто» -->
+    <div class="daysum"><span><b>3</b> из 5 сегодня</span><div class="bar"><i style="width:60%"></i></div><span>60%</span></div>
+
+    <!-- ============ ПРИВЫЧКИ ============ -->
+    <div class="seclbl">Активные <span class="secadd">+</span></div>
+
+    <!-- 1 Зарядка — бинар ежедневно -->
+    <div class="hcard" style="--c:var(--health)">
+      <div class="sring">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="#2c2d31" stroke-width="4"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--health)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="32"/>
+        </svg>
+        <div class="num"><b style="color:var(--health)">12</b><s>дн</s></div>
+      </div>
+      <div class="hc-body">
+        <div class="hc-name">Зарядка + валик</div>
+        <div class="hc-sub">12 дней подряд · до рубежа 14</div>
+      </div>
+      <div class="chk done" style="--c:var(--health)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    </div>
+
+    <!-- 2 Без травы — бинар + цель-дата (прогресс к дате — суть привычки) -->
+    <div class="hcard" style="--c:var(--zima)">
+      <div class="sring">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="#2c2d31" stroke-width="4"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--zima)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="57"/>
+        </svg>
+        <div class="num"><b style="color:var(--zima)">8</b><s>дн</s></div>
+      </div>
+      <div class="hc-body">
+        <div class="hc-name">Без травы</div>
+        <div class="hc-sub"><b>8 / 16</b> к цели · до 22.06</div>
+        <div class="miniprog"><i style="width:50%;background:var(--zima)"></i></div>
+      </div>
+      <div class="chk done" style="--c:var(--zima)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    </div>
+
+    <!-- 3 Спортзал — недельная 4×/нед → стрик в неделях -->
+    <div class="hcard" style="--c:var(--plan)">
+      <div class="sring">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="#2c2d31" stroke-width="4"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--plan)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="57"/>
+        </svg>
+        <div class="num"><b style="color:var(--plan)">3</b><s>нед</s></div>
+      </div>
+      <div class="hc-body">
+        <div class="hc-name">Спортзал <span class="sched">4×/нед</span></div>
+        <div class="hc-sub"><b>2 из 4</b> на этой неделе</div>
+      </div>
+      <div class="chk" style="--c:var(--plan)"></div>
+    </div>
+
+    <!-- 4 Вода — количественная → значение справа + мини-прогресс нормы -->
+    <div class="hcard" style="--c:var(--ember)">
+      <div class="sring">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="#2c2d31" stroke-width="4"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--ember)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="33"/>
+        </svg>
+        <div class="num"><b style="color:var(--ember)">5</b><s>дн</s></div>
+      </div>
+      <div class="hc-body">
+        <div class="hc-name">Вода <span class="sched">норма 2 л</span></div>
+        <div class="hc-sub"><b>1.4 / 2 л</b> сегодня</div>
+        <div class="miniprog"><i style="width:70%;background:var(--ember)"></i></div>
+      </div>
+      <div class="numbtn"><span class="plus" style="--c:var(--ember)">+</span></div>
+    </div>
+
+    <!-- 5 Медитация — бинар, сегодня ещё нет (off-состояние) -->
+    <div class="hcard off" style="--c:var(--steel)">
+      <div class="sring">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="#2c2d31" stroke-width="4"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--steel)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="48"/>
+        </svg>
+        <div class="num"><b style="color:var(--steel)">4</b><s>дн</s></div>
+      </div>
+      <div class="hc-body">
+        <div class="hc-name">Медитация</div>
+        <div class="hc-sub">4 дня · сегодня ещё нет</div>
+      </div>
+      <div class="chk" style="--c:var(--steel)"></div>
+    </div>
+
+    <!-- ============ ТЕПЛОВАЯ КАРТА D2 ============ -->
+    <div class="seclbl">История</div>
+    <div class="heat">
+      <div class="htop">
+        <div class="htitle">Последние 7 дней</div>
+        <div class="htabs"><i class="on">7д</i><i>30д</i></div>
+      </div>
+      <div class="hgrid">
+        <div class="hd"></div>
+        <div class="hd">Пн</div><div class="hd">Вт</div><div class="hd">Ср</div><div class="hd">Чт</div><div class="hd">Пт</div><div class="hd">Сб</div><div class="hd">Вс</div>
+
+        <div class="rn">Зарядка</div>
+        <div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv0"></div><div class="cell lv0"></div>
+
+        <div class="rn">Без травы</div>
+        <div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv4"></div>
+
+        <div class="rn">Спортзал</div>
+        <div class="cell lv4"></div><div class="cell lv0"></div><div class="cell lv4"></div><div class="cell lv0"></div><div class="cell lv0"></div><div class="cell lv0"></div><div class="cell lv0"></div>
+
+        <div class="rn">Вода</div>
+        <div class="cell lv2"></div><div class="cell lv4"></div><div class="cell lv1"></div><div class="cell lv3"></div><div class="cell lv4"></div><div class="cell lv2"></div><div class="cell lv2"></div>
+
+        <div class="rn">Медитация</div>
+        <div class="cell lv4"></div><div class="cell lv4"></div><div class="cell lv0"></div><div class="cell lv4"></div><div class="cell lv2"></div><div class="cell lv0"></div><div class="cell lv0"></div>
+      </div>
+      <div class="hleg">меньше <span class="lv0"></span><span class="lv1"></span><span class="lv2"></span><span class="lv3"></span><span class="lv4"></span> больше</div>
+    </div>
+
+    <!-- ============ МЕТРИКИ (превью, полный — в табе «Метрики») ============ -->
+    <div class="seclbl">Метрики недели <span class="secadd">+</span></div>
+    <div class="mgrid">
+      <div class="mcard">
+        <div class="m-lbl">Вес</div>
+        <div class="m-val">78.2<small> кг</small><span class="m-delta good">▼0.4</span></div>
+        <svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none">
+          <polyline points="0,8 20,7 40,11 60,9 80,14 100,15 120,18" fill="none" stroke="var(--zima)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="mcard">
+        <div class="m-lbl">Сон</div>
+        <div class="m-val">6.8<small> ч</small><span class="m-delta up">▲0.5</span></div>
+        <svg class="spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none">
+          <polyline points="0,16 20,18 40,13 60,15 80,10 100,12 120,7" fill="none" stroke="var(--health)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ============ РЕТРО F1 ============ -->
+    <div class="seclbl">Итог недели</div>
+    <div class="retro">
+      <div class="rl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg></div>
+      <div class="rb">
+        <div class="rt">Ретро недели</div>
+        <div class="rs"><b>12 / 18 привычек</b> · рекорд: Зарядка 12</div>
+      </div>
+      <div class="chev">›</div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Задачи</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/></svg>Календарь</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h14M4 18h7"/></svg>Гант</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Цели</div>
+    <div class="tab active"><svg viewBox="0 0 24 24"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg>Привычки</div>
+  </div>
+</div>
+
+<!-- ===== СУБ-ВИД «МЕТРИКИ» (тот же экран, сегмент Метрики активен) ===== -->
+<div class="phone">
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="scroll">
+    <h1>Привычки</h1>
+    <div class="sub">пятница, 6 июня · неделя 23</div>
+
+    <div class="seg">
+      <i>Привычки</i>
+      <i class="on">Метрики</i>
+      <i>Ретро</i>
+    </div>
+
+    <div class="daysum"><span><b>3</b> из 5 обновлено сегодня</span><div class="bar"><i style="width:60%"></i></div><span>60%</span></div>
+
+    <div class="seclbl">Все метрики <span class="secadd">+</span></div>
+
+    <!-- Вес: «хорошо» = меньше, ▼ зелёный -->
+    <div class="mrow">
+      <div class="mtop"><div class="mn">Вес <span>кг</span></div><div class="madd">+</div></div>
+      <div class="mvrow"><div class="mbig">78.2</div><div class="md good">▼ 0.4 за неделю</div></div>
+      <svg class="spark" width="100%" height="30" viewBox="0 0 300 30" preserveAspectRatio="none"><polyline points="0,9 43,8 86,13 129,11 171,17 214,18 257,21 300,22" fill="none" stroke="var(--zima)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="mfoot">обновлено сегодня · показан период 30 дней</div>
+    </div>
+
+    <!-- Сон: «хорошо» = больше, ▲ синий -->
+    <div class="mrow">
+      <div class="mtop"><div class="mn">Сон <span>ч</span></div><div class="madd">+</div></div>
+      <div class="mvrow"><div class="mbig">6.8</div><div class="md up">▲ 0.5 за неделю</div></div>
+      <svg class="spark" width="100%" height="30" viewBox="0 0 300 30" preserveAspectRatio="none"><polyline points="0,20 43,22 86,16 129,18 171,12 214,14 257,9 300,8" fill="none" stroke="var(--health)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="mfoot">обновлено сегодня · 30 дней</div>
+    </div>
+
+    <!-- Настроение: шкала /10, ▲ -->
+    <div class="mrow">
+      <div class="mtop"><div class="mn">Настроение <span>/ 10</span></div><div class="madd">+</div></div>
+      <div class="mvrow"><div class="mbig">7</div><div class="md up">▲ 1 за неделю</div></div>
+      <svg class="spark" width="100%" height="30" viewBox="0 0 300 30" preserveAspectRatio="none"><polyline points="0,17 43,19 86,13 129,15 171,10 214,12 257,8 300,9" fill="none" stroke="var(--ember)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="mfoot">обновлено сегодня · 30 дней</div>
+    </div>
+
+    <!-- Шаги: «хорошо» = больше, но ▼ → дельта КРАСНАЯ (направление работает) -->
+    <div class="mrow">
+      <div class="mtop"><div class="mn">Шаги <span>тыс</span></div><div class="madd">+</div></div>
+      <div class="mvrow"><div class="mbig">8.4</div><div class="md" style="color:var(--danger)">▼ 1.2 за неделю</div></div>
+      <svg class="spark" width="100%" height="30" viewBox="0 0 300 30" preserveAspectRatio="none"><polyline points="0,8 43,10 86,9 129,14 171,12 214,18 257,16 300,21" fill="none" stroke="var(--plan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="mfoot">обновлено вчера · 30 дней</div>
+    </div>
+
+    <!-- Энергия: без изменений — flat -->
+    <div class="mrow">
+      <div class="mtop"><div class="mn">Энергия <span>/ 10</span></div><div class="madd">+</div></div>
+      <div class="mvrow"><div class="mbig">6</div><div class="md flat">— без изменений</div></div>
+      <svg class="spark" width="100%" height="30" viewBox="0 0 300 30" preserveAspectRatio="none"><polyline points="0,15 43,14 86,16 129,15 171,15 214,14 257,16 300,15" fill="none" stroke="var(--steel)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div class="mfoot">обновлено 3 дня назад · 30 дней</div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Задачи</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/></svg>Календарь</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h14M4 18h7"/></svg>Гант</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Цели</div>
+    <div class="tab active"><svg viewBox="0 0 24 24"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg>Привычки</div>
+  </div>
+</div>
+
+<div class="legend">
+  <h2>«Привычки» v3 — чистое наполнение</h2>
+  <div class="row"><b>1 карточка = 1 прогресс + 1 действие.</b> Слева кольцо-стрик (C2, путь к рубежу), справа галка ИЛИ «+» для числовой. Ряды-точки убраны — историю несёт heatmap.</div>
+  <div class="row"><b>Сводка дня</b> сверху: «3 из 5 сегодня» — главный фокус экрана.</div>
+  <div class="row"><b>Чип расписания</b> только у не-ежедневных (4×/нед, норма 2 л). Ежедневная = без чипа.</div>
+  <div class="row"><b>Мини-прогресс</b> в строке — только где это суть (число/цель-дата), не у всех.</div>
+  <div class="row"><b>Heatmap</b> = история (7/30д). <b>Метрики</b> = превью 2 карточки, полный список в суб-табе. <b>Ретро</b> = свёртка.</div>
+  <div class="row muted">Меньше элементов, каждый со смыслом. Тап карточки → деталь привычки (стрик-календарь, правка, архив).</div>
+</div>
+
+<div class="flows">
+  <div class="fhead">
+    <h1>Функциональные флоу — все взаимодействия экрана</h1>
+    <p>Каждое касание и состояние. <b>Зелёное</b> = поведение по умолчанию, <b>красное</b> = деструктив. Контракт Фазы 2.</p>
+  </div>
+
+  <h2>1 · Тап «+» (секция Активные) → создать привычку</h2>
+  <div class="trig"><b>Где:</b> «+» в заголовке «Активные». <b>Что:</b> снизу выезжает шит-конструктор.</div>
+  <div class="row">
+    <div class="panel">
+      <div class="plabel">тип «Галка» (Зарядка)</div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <div class="sh-title">Новая привычка</div>
+        <div class="fld"><div class="lab">Название</div><div class="inp">Зарядка</div></div>
+        <div class="fld"><div class="lab">Тип отметки</div><div class="fseg"><i class="on">Галка (да/нет)</i><i>Число (норма)</i></div></div>
+        <div class="fld"><div class="lab">Расписание</div><div class="chips"><span class="chip on">Ежедневно</span><span class="chip">3×/нед</span><span class="chip">По дням</span><span class="chip">Цель к дате</span></div></div>
+        <div class="fld"><div class="lab">Цвет</div><div class="pal"><i class="on" style="background:var(--health)"></i><i style="background:var(--zima)"></i><i style="background:var(--plan)"></i><i style="background:var(--ember)"></i></div></div>
+        <div class="cta">Создать привычку</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="plabel">тип «Число» (Вода) — тут рождается «2 л»</div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <div class="sh-title">Новая привычка</div>
+        <div class="fld"><div class="lab">Название</div><div class="inp">Вода</div></div>
+        <div class="fld"><div class="lab">Тип отметки</div><div class="fseg"><i>Галка (да/нет)</i><i class="on">Число (норма)</i></div></div>
+        <div class="two"><div class="fld"><div class="lab">Норма за день</div><div class="inp">2</div></div><div class="fld"><div class="lab">Единица</div><div class="inp">л</div></div></div>
+        <div class="fld"><div class="lab">Шаг кнопки «+» (своё число)</div><div class="inp">0.25</div></div>
+        <div class="fld"><div class="lab">Расписание</div><div class="chips"><span class="chip on">Ежедневно</span><span class="chip">3×/нед</span></div></div>
+        <div class="cta">Создать привычку</div>
+      </div>
+    </div>
+    <div class="note"><b>Один конструктор, поля по типу.</b> «Галка» → имя+расписание. «Число» → +<b>норма+единица+шаг</b> (отсюда «2 л» и «+0.25»). «Цель к дате» → +дата. <span class="rec">Метрика (вес/сон) создаётся ОТДЕЛЬНО (блок 7) — там нормы нет.</span></div>
+  </div>
+
+  <h2>2 · Тап по карточке (по телу) → деталь привычки</h2>
+  <div class="trig"><b>Где:</b> тап в карточку кроме галки. <b>Что:</b> полноэкранная деталь.</div>
+  <div class="row">
+    <div class="panel" style="width:auto"><div class="plabel">триггер</div>
+      <div class="hc" style="--c:var(--health);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--health)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="28"/></svg><div class="n"><b style="color:var(--health)">12</b><s>дн</s></div></div><div class="hb"><div class="hn">Зарядка + валик</div><div class="hs">12 дней подряд · до рубежа 14</div></div><div class="ck done" style="--c:var(--health)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
+    </div>
+    <span class="arrow">→</span>
+    <div class="panel" style="width:auto"><div class="plabel">деталь привычки</div>
+      <div class="det"><div class="dhead"><span class="bk">‹</span><span>Привычка</span><span class="dots">⋯</span></div>
+        <div class="body">
+          <div class="hero"><div class="bigring"><svg width="78" height="78" viewBox="0 0 78 78"><circle cx="39" cy="39" r="33" fill="none" stroke="#2c2d31" stroke-width="6"/><circle cx="39" cy="39" r="33" fill="none" stroke="var(--health)" stroke-width="6" stroke-linecap="round" stroke-dasharray="207" stroke-dashoffset="30"/></svg><div class="n"><b style="color:var(--health)">12</b><s>дней</s></div></div><div><h3>Зарядка + валик</h3><div class="hsub">ежедневно · до рубежа 14</div></div></div>
+          <div class="stats"><div class="stat"><div class="sv">12</div><div class="sl">стрик</div></div><div class="stat"><div class="sv">21</div><div class="sl">рекорд</div></div><div class="stat"><div class="sv">86%</div><div class="sl">за 30 дн</div></div></div>
+          <div class="mcal-t">Июнь</div>
+          <div class="mcal"><span class="wd">П</span><span class="wd">В</span><span class="wd">С</span><span class="wd">Ч</span><span class="wd">П</span><span class="wd">С</span><span class="wd">В</span><span class="d dim"></span><span class="d on" style="--c:var(--health)">1</span><span class="d on" style="--c:var(--health)">2</span><span class="d">3</span><span class="d on" style="--c:var(--health)">4</span><span class="d on" style="--c:var(--health)">5</span><span class="d tod">6</span><span class="d dim">7</span><span class="d dim">8</span><span class="d dim">9</span><span class="d dim">10</span><span class="d dim">11</span><span class="d dim">12</span><span class="d dim">13</span></div>
+          <div class="acts"><div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Изменить</div><div class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></svg>Архивировать</div><div class="act danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Удалить привычку</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Деталь несёт:</b> большое кольцо, рекорд/% за 30д, месяц-календарь (тап по дню = бэкфилл), 3 действия. <span class="rec">Удалить/архив живут тут — не мусорят карточку.</span> ⋯ вверху = то же меню.</div>
+
+  <h2>3 · Тап по галке → переключить выполнение</h2>
+  <div class="trig"><b>Что:</b> мгновенно, без шита, хаптик. Обратимо.</div>
+  <div class="row">
+    <div class="panel" style="width:auto"><div class="plabel">не сделано</div>
+      <div class="hc" style="--c:var(--steel);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--steel)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="55"/></svg><div class="n"><b style="color:var(--steel)">4</b><s>дн</s></div></div><div class="hb"><div class="hn">Медитация</div><div class="hs">4 дня · сегодня ещё нет</div></div><div class="ck" style="--c:var(--steel)"></div></div>
+    </div>
+    <span class="arrow">→</span>
+    <div class="panel" style="width:auto"><div class="plabel">сделано (+1, цвет, кольцо растёт)</div>
+      <div class="hc" style="--c:var(--plan);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--plan)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="42"/></svg><div class="n"><b style="color:var(--plan)">5</b><s>дн</s></div></div><div class="hb"><div class="hn">Медитация</div><div class="hs">5 дней подряд · отмечено</div></div><div class="ck done" style="--c:var(--plan)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
+    </div>
+  </div>
+  <div class="note">Тап ещё раз = откат (−1). <span class="rec">Без подтверждения — обратимо.</span> Сводка дня обновляется (3→4 из 5).</div>
+
+  <h2>4 · Тап «+» (числовая, Вода) → ввод значения</h2>
+  <div class="trig"><b>Что:</b> компактный степпер снизу.</div>
+  <div class="row">
+    <div class="panel">
+      <div class="plabel">шит «добавить замер»</div>
+      <div class="sheet"><div class="handle"></div><div class="sh-title">Вода · сегодня</div>
+        <div class="step"><span class="pm">−</span><span class="val">1.4<small> / 2 л</small></span><span class="pm">+</span></div>
+        <div class="fld"><div class="lab">Быстро</div><div class="chips"><span class="chip on">+ 0.25</span><span class="chip">+ 0.5</span><span class="chip">+ 1</span></div></div>
+        <div class="cta">Сохранить</div>
+      </div>
+    </div>
+    <div class="note"><b>Шаг</b> по типу (вода 0.25 л). Пресеты-чипы. Норма достигнута (2/2) → кольцо/heatmap красятся lv4. <span class="rec">Один тап «+ бутылка» — 90% случаев.</span></div>
+  </div>
+
+  <h2>5 · Долгий тап / свайп влево → быстрые действия (как удалить)</h2>
+  <div class="trig"><b>Долгий тап</b> = меню. <b>Свайп влево</b> = архив/удалить в строке.</div>
+  <div class="row">
+    <div class="panel" style="width:auto"><div class="plabel">долгий тап → меню</div>
+      <div class="hc press" style="--c:var(--health);width:300px;margin-bottom:10px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--health)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="28"/></svg><div class="n"><b style="color:var(--health)">12</b><s>дн</s></div></div><div class="hb"><div class="hn">Зарядка + валик</div><div class="hs">12 дней подряд</div></div></div>
+      <div class="menu"><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Изменить</div><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9h14M5 15h14M9 5v14"/></svg>Переместить</div><div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/></svg>Архивировать</div><div class="mi danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Удалить</div></div>
+    </div>
+    <span class="arrow">|</span>
+    <div class="panel" style="width:auto"><div class="plabel">свайп влево → действия в строке</div>
+      <div class="swwrap" style="width:300px"><div class="swact"><div class="arch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/></svg>Архив</div><div class="del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Удал.</div></div><div class="hc shift" style="--c:var(--plan);position:relative"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/><circle cx="20" cy="20" r="16" fill="none" stroke="var(--plan)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="57"/></svg><div class="n"><b style="color:var(--plan)">3</b><s>нед</s></div></div><div class="hb"><div class="hn">Спортзал</div><div class="hs">2 из 4 на неделе</div></div></div></div>
+    </div>
+  </div>
+  <div class="note"><span class="rec">Удалить доступно 3 путями:</span> деталь · долгий тап · свайп. <b>Архив</b> прячет, но хранит историю. <b>Удалить</b> — с подтверждением (6).</div>
+
+  <h2>6 · Удаление → подтверждение (деструктив)</h2>
+  <div class="trig"><b>Что:</b> нативный tg.showConfirm (или диалог).</div>
+  <div class="row">
+    <div class="panel" style="width:auto"><div class="plabel">диалог подтверждения</div>
+      <div class="dlg"><div class="dt">Удалить «Спортзал»?</div><div class="dd">Привычка и вся история (стрики, отметки) удалятся навсегда. Отменить нельзя.</div><div class="db"><span class="cancel">Отмена</span><span class="del">Удалить</span></div></div>
+    </div>
+    <div class="note"><b>Удалить</b> = безвозвратно. <span class="rec">Сперва предлагаем «Архив»</span> (мягкий, обратимый). Деструктив всегда с подтверждением (правило проекта).</div>
+  </div>
+
+  <h2>7 · Тап «+» (секция Метрики) → создать метрику</h2>
+  <div class="trig"><b>Что:</b> шит generic-метрики.</div>
+  <div class="row">
+    <div class="panel">
+      <div class="plabel">тип «Число» (Вес) — ввод степпером</div>
+      <div class="sheet"><div class="handle"></div><div class="sh-title">Новая метрика</div>
+        <div class="fld"><div class="lab">Название</div><div class="inp">Вес</div></div>
+        <div class="fld"><div class="lab">Тип значения</div><div class="fseg"><i class="on">Число</i><i>Шкала 1–N</i></div></div>
+        <div class="two"><div class="fld"><div class="lab">Единица</div><div class="inp">кг</div></div><div class="fld"><div class="lab">«Хорошо» это</div><div class="fseg"><i class="on">↓ меньше</i><i>↑ больше</i></div></div></div>
+        <div class="fld"><div class="lab">Цвет линии</div><div class="pal"><i class="on" style="background:var(--zima)"></i><i style="background:var(--health)"></i><i style="background:var(--ember)"></i><i style="background:var(--plan)"></i></div></div>
+        <div class="cta">Создать метрику</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="plabel">тип «Шкала» (Настроение) — ввод тапом 1–10</div>
+      <div class="sheet"><div class="handle"></div><div class="sh-title">Новая метрика</div>
+        <div class="fld"><div class="lab">Название</div><div class="inp">Настроение</div></div>
+        <div class="fld"><div class="lab">Тип значения</div><div class="fseg"><i>Число</i><i class="on">Шкала 1–N</i></div></div>
+        <div class="two"><div class="fld"><div class="lab">Диапазон</div><div class="dsel">1 — 10 <span>изменить ▾</span></div></div><div class="fld"><div class="lab">«Хорошо» это</div><div class="fseg"><i>↓ меньше</i><i class="on">↑ больше</i></div></div></div>
+        <div class="fld"><div class="lab">Цвет линии</div><div class="pal"><i style="background:var(--zima)"></i><i style="background:var(--health)"></i><i class="on" style="background:var(--ember)"></i><i style="background:var(--plan)"></i></div></div>
+        <div class="cta">Создать метрику</div>
+      </div>
+    </div>
+    <div class="note"><b>Тип значения = клавиатура ввода:</b> «Число» → степпер + единица (кг/ч/тыс); «Шкала» → тап 1–N, вместо единицы диапазон. <span class="rec">Оба = MetricEntry, замена, без стрика, пропуск ок.</span> Направление «хорошо» красит дельту.</div>
+  </div>
+
+  <h2>8 · Тап по карточке метрики → деталь + добавить замер</h2>
+  <div class="row">
+    <div class="panel" style="width:auto"><div class="plabel">деталь метрики</div>
+      <div class="det" style="width:300px"><div class="dhead"><span class="bk">‹</span><span>Метрика</span><span class="dots">⋯</span></div>
+        <div class="body">
+          <div class="hero" style="margin-bottom:12px"><div><h3>Вес</h3><div class="hsub">78.2 кг · <span style="color:var(--zima)">▼0.4 за неделю</span></div></div></div>
+          <svg width="100%" height="70" viewBox="0 0 270 70" preserveAspectRatio="none" style="margin-bottom:6px"><polyline points="0,20 38,18 76,30 114,24 152,40 190,42 228,50 270,48" fill="none" stroke="var(--zima)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div class="chips" style="margin-bottom:14px"><span class="chip">7д</span><span class="chip on">30д</span><span class="chip">Год</span></div>
+          <div class="act" style="border-color:var(--ember);color:var(--ember)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Добавить замер</div>
+          <div style="margin-top:12px"><div class="hs" style="display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--hairline)"><span>сегодня</span><b style="color:var(--bone)">78.2 кг</b></div><div class="hs" style="display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--hairline)"><span>вчера</span><b style="color:var(--bone)">78.4 кг</b></div><div class="hs" style="display:flex;justify-content:space-between;padding:9px 2px"><span>4 июня</span><b style="color:var(--bone)">78.6 кг</b></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><b>График</b> + период + лог замеров. <b>«+ замер»</b> = тот же степпер. Свайп по строке лога = удалить замер. ⋯ = изменить/удалить метрику.</div>
+  </div>
+
+  <h2>9 · Тап по ячейке heatmap → бэкфилл прошлого дня</h2>
+  <div class="trig"><b>Что:</b> «забыл вчера» — тап по ячейке переключает день.</div>
+  <div class="row">
+    <div class="panel"><div class="plabel">тап по серой ячейке = отметить задним числом</div>
+      <div class="surf" style="padding:13px"><div class="hs" style="margin-bottom:9px">Медитация · последние 7 дней</div>
+        <div style="display:flex;gap:5px;align-items:center"><span style="width:60px" class="hs">Медит.</span><span style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--ember)"></span><span style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--ember)"></span><span style="flex:1;aspect-ratio:1;border-radius:4px;background:#222327;outline:2px solid var(--ember);outline-offset:1px"></span><span style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--ember)"></span><span style="flex:1;aspect-ratio:1;border-radius:4px;background:rgba(238,138,60,.42)"></span><span style="flex:1;aspect-ratio:1;border-radius:4px;background:#222327"></span><span style="flex:1;aspect-ratio:1;border-radius:4px;background:#222327"></span></div>
+      </div>
+    </div>
+    <div class="note">Тап пустой ячейки прошлого (обводка) → отмечает, стрик/статы пересчитываются. <span class="rec">Будущее недоступно.</span> <span class="bad">Бэкфилл только тут и в деталь-календаре (анти-миссклик).</span></div>
+  </div>
+
+  <h2>10 · Пустые состояния</h2>
+  <div class="row">
+    <div class="panel"><div class="plabel">0 привычек</div>
+      <div class="empty"><div class="ei"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg></div><div class="et">Пока нет привычек</div><div class="ed">Заведи первую рутину — стрик начнётся с сегодня.</div><div class="cta" style="margin:0">+ Новая привычка</div></div>
+    </div>
+    <div class="panel"><div class="plabel">0 метрик</div>
+      <div class="empty"><div class="ei"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l5-5 4 4 8-9"/></svg></div><div class="et">Нет метрик</div><div class="ed">Следи за любым числом — вес, сон, настроение.</div><div class="cta ghost" style="margin:0">+ Новая метрика</div></div>
+    </div>
+    <div class="note">Heatmap при 0 привычек скрыт. Ретро при пустой неделе → «нет данных».</div>
+  </div>
+
+  <h2>11 · Edge: стрик прерван · цель достигнута</h2>
+  <div class="row">
+    <div class="panel" style="width:auto"><div class="plabel">пропустил день → стрик 0</div>
+      <div class="hc" style="--c:var(--danger);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/></svg><div class="n"><b style="color:var(--steel)">0</b><s>дн</s></div></div><div class="hb"><div class="hn">Чтение</div><div class="hs" style="color:var(--danger)">стрик прерван · рекорд был 21</div></div><div class="ck" style="--c:var(--ember)"></div></div>
+      <div class="note">Кольцо пустое, подпись красная, <b>рекорд хранится</b>. Тап галки = старт с 1.</div>
+    </div>
+    <div class="panel" style="width:auto"><div class="plabel">цель-дата достигнута</div>
+      <div class="hc" style="--c:var(--zima);width:300px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--zima)" stroke-width="3.5"/></svg><div class="n"><b style="color:var(--zima)">16</b><s>дн</s></div></div><div class="hb"><div class="hn">Без травы</div><div class="hs" style="color:var(--zima)">цель достигнута · 16/16 ✓</div></div><div class="ck done" style="--c:var(--zima)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
+      <div class="note">Кольцо полное. <b>«Продлить»</b> (новая дата) или <b>«Завершить»</b> (в архив).</div>
+    </div>
+  </div>
+
+  <h2>12 · Занос замеров по типам — привычка-число vs метрика</h2>
+  <div class="trig"><b>Ключевое:</b> Вода = привычка-кол (<b>СУММА</b> за день, есть стрик). Вес/Сон/Настроение = метрика (<b>ЗАМЕНА</b>, тренд, без стрика).</div>
+  <div class="row">
+    <div class="panel"><div class="plabel">Вода · привычка-кол · накопление за день</div>
+      <div class="sheet"><div class="handle"></div><div class="sh-title">Вода · сегодня</div>
+        <div class="step"><span class="pm">−</span><span class="val">1.4<small> / 2 л</small></span><span class="pm">+</span></div>
+        <div class="fld"><div class="lab">Быстро</div><div class="chips"><span class="chip on">+ 0.25</span><span class="chip">+ 0.5</span><span class="chip">+ 1</span></div></div>
+        <div class="log"><div class="li"><span>09:10</span><b>+ 0.25 л</b></div><div class="li"><span>11:30</span><b>+ 0.50 л</b></div><div class="li"><span>14:00</span><b>+ 0.65 л</b></div></div>
+        <div class="cta" style="margin-top:12px">Готово</div>
+      </div>
+      <div class="note">Жмёшь «+» <b>много раз за день</b> → суммируется (0.25+0.5+0.65 = 1.4). Сброс в полночь. <b>≥ 2 л</b> → день закрыт, стрик +1. Свайп по строке лога = удалить замер.</div>
+    </div>
+    <div class="panel"><div class="plabel">Вес · метрика · замена</div>
+      <div class="sheet"><div class="handle"></div><div class="sh-title">Вес · замер</div>
+        <div class="step"><span class="pm">−</span><span class="val">78.2<small> кг</small></span><span class="pm">+</span></div>
+        <div class="fld"><div class="lab">Дата замера</div><div class="dsel">Сегодня, 6 июня <span>изменить ▾</span></div></div>
+        <div class="cta">Сохранить</div>
+      </div>
+      <div class="note"><b>Одно число</b> заменяет замер за дату (не суммируется). Вносить <b>не обязательно каждый день</b> — пропуск не провал. Дату можно сменить = бэкфилл (вес за вчера).</div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px">
+    <div class="panel"><div class="plabel">Сон · метрика · за прошлую ночь</div>
+      <div class="sheet"><div class="handle"></div><div class="sh-title">Сон</div>
+        <div class="step"><span class="pm">−</span><span class="val">6.8<small> ч</small></span><span class="pm">+</span></div>
+        <div class="fld"><div class="lab">За какую ночь</div><div class="dsel">Ночь с 5 на 6 июня <span>изменить ▾</span></div></div>
+        <div class="cta">Сохранить</div>
+      </div>
+      <div class="note">Утром вносишь за <b>прошлую ночь</b> — дата привязана к ночи (по умолч. сегодняшнее утро). Замена, без стрика.</div>
+    </div>
+    <div class="panel"><div class="plabel">Настроение · метрика-шкала · тап</div>
+      <div class="sheet"><div class="handle"></div><div class="sh-title">Настроение сегодня</div>
+        <div class="scale"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i class="on">7</i><i>8</i><i>9</i><i>10</i></div>
+        <div class="cta" style="margin-top:14px">Сохранить</div>
+      </div>
+      <div class="note">Тап по 1–10. Можно переставить за день — <b>последняя перезапишет</b>. Замена, без стрика.</div>
+    </div>
+  </div>
+  <div class="row" style="margin-top:16px">
+    <div class="panel" style="width:auto"><div class="plabel">«не сделал» — два разных смысла</div>
+      <div class="hc" style="--c:var(--ember);width:300px;margin-bottom:9px"><div class="ring"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#2c2d31" stroke-width="3.5"/></svg><div class="n"><b style="color:var(--steel)">5</b><s>дн</s></div></div><div class="hb"><div class="hn">Вода <span class="ttag">привычка</span></div><div class="hs" style="color:var(--danger)">0 / 2 л · день не закрыт</div></div><div class="plus" style="--c:var(--ember)">+</div></div>
+      <div class="hc" style="--c:var(--steel);width:300px"><div class="hb"><div class="hn">Вес <span class="ttag">метрика</span></div><div class="hs">— нет замера сегодня · это норм</div></div><div class="plus" style="--c:var(--steel)">+</div></div>
+      <div class="note"><b>Привычка</b> 0 за день = провал (стрик под угрозой к полуночи). <b>Метрика</b> пусто = просто нет данных, без вины.</div>
+    </div>
+    <div class="panel"><div class="plabel">дыры закрыты этим блоком</div>
+      <div class="note" style="max-width:330px">
+        1. вода/сон/вес = привычка или метрика — <span class="rec">правило задано</span><br>
+        2. накопление (вода+) vs замена (вес=) — <span class="rec">разведено</span><br>
+        3. метрика без стрика/провала — <span class="rec">да</span><br>
+        4. порог зачёта ≥ норма; недобрал к полуночи → стрик рвётся<br>
+        5. неск. замеров/день → last wins, видно в логе<br>
+        6. бэкфилл метрики → выбор даты в заносе<br>
+        7. дата сна = ночь с X на Y<br>
+        8. «не сделал»: привычка=провал, метрика=прочерк<br>
+        9. «без травы» = ежедневная <b>бинарная</b>, не кол.<br>
+        10. правка/удаление замера → свайп в логе
+      </div>
+    </div>
+  </div>
+</div>
+
+</body></html>

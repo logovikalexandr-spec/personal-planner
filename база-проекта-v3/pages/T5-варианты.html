@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>T5 Привычки — варианты решений (сверка)</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+    --hairline:rgba(255,255,255,0.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --fin:#C9A24B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 20px 90px;line-height:1.45}
+  .top{max-width:820px;margin-bottom:30px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--accent)}
+  h2{font-size:18px;font-weight:700;margin:38px 0 6px;letter-spacing:-.02em}
+  .sub{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-bottom:16px;max-width:780px}
+  .sub b{color:var(--accent)}
+  .opts{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .opt{width:320px;background:var(--onyx);border:1px solid var(--hairline);border-radius:18px;padding:14px}
+  .opt .tag{font-family:"Geist Mono",monospace;font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+  .opt .note{font-size:12px;color:var(--steel);margin-top:12px}
+  .opt .rec{color:var(--zima);font-weight:600}
+  .opt .bad{color:var(--danger)}
+
+  /* habit card mini */
+  .hcard{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:12px 13px;position:relative;overflow:hidden}
+  .hcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .hc-row{display:flex;align-items:center;gap:12px}
+  .hc-body{flex:1;min-width:0}
+  .hc-name{font-size:15px;font-weight:600}
+  .hc-streak{font-size:12px;color:var(--steel);margin-top:3px;font-family:"Geist Mono",monospace;display:flex;align-items:center;gap:5px}
+  .hc-streak b{color:var(--accent);font-weight:600}
+  .flame{color:var(--accent);display:inline-flex;flex:0 0 auto}
+  /* ring */
+  .sring{flex:0 0 auto;position:relative;width:44px;height:44px}
+  .sring svg{transform:rotate(-90deg)}
+  .sring .num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--c)}
+  .badge{flex:0 0 auto;width:44px;height:44px;border-radius:50%;background:var(--c-soft);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--c)}
+  /* check / number btn */
+  .chk{flex:0 0 auto;width:32px;height:32px;border-radius:50%;border:2px solid var(--slate);display:flex;align-items:center;justify-content:center;color:var(--steel)}
+  .chk.done{background:var(--c);border-color:var(--c);color:#0F0F11}
+  .chk svg{width:15px;height:15px}
+  .numbtn{flex:0 0 auto;min-width:54px;height:32px;border-radius:9px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;gap:3px;font-size:13px;font-weight:600;font-family:"Geist Mono",monospace;color:var(--bone)}
+  /* week dots */
+  .wk{display:flex;gap:6px;margin-top:11px;align-items:center}
+  .wk i{width:12px;height:12px;border-radius:50%;background:#2c2d31;border:1px solid var(--hairline)}
+  .wk i.fill{background:var(--c);border-color:var(--c)}
+  .wk i.today{box-shadow:0 0 0 2px var(--onyx),0 0 0 3.5px var(--c)}
+  .wk .lbl{font-size:10px;color:var(--steel);font-family:"Geist Mono",monospace;margin-left:auto}
+  /* progress bar */
+  .pbar{height:7px;border-radius:4px;background:#2c2d31;margin-top:10px;overflow:hidden}
+  .pbar i{display:block;height:100%;background:var(--c);border-radius:4px}
+  .pgoal{font-size:11px;color:var(--steel);margin-top:7px;font-family:"Geist Mono",monospace}
+  .pgoal b{color:var(--bone)}
+  .stack>.hcard{margin-bottom:9px}
+  .stack>.hcard:last-child{margin-bottom:0}
+
+  /* heatmap mini */
+  .heat{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:13px}
+  .heat .ht{font-size:12px;font-weight:600;margin-bottom:11px}
+  .hgrid{display:grid;grid-template-columns:58px repeat(7,1fr);gap:4px;align-items:center}
+  .hgrid .hd{font-size:9px;color:var(--steel);font-family:"Geist Mono",monospace;text-align:center}
+  .hgrid .rn{font-size:10.5px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:3px}
+  .hgrid .cell{aspect-ratio:1;border-radius:3px;background:#222327}
+  .lv0{background:#222327}.lv1{background:rgba(238,138,60,.22)}.lv2{background:rgba(238,138,60,.42)}.lv3{background:rgba(238,138,60,.66)}.lv4{background:var(--accent)}
+  .bin-on{background:var(--accent)}.bin-off{background:#222327}
+  .hleg{display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-top:11px;font-size:9.5px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .hleg span{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .htabs{display:flex;gap:6px;margin-bottom:11px}
+  .htabs i{font-style:normal;font-family:"Geist Mono",monospace;font-size:10px;padding:3px 9px;border-radius:7px;background:var(--slate);color:var(--steel)}
+  .htabs i.on{background:var(--accent);color:#1a1209}
+
+  /* metric card */
+  .mcard{background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:12px 13px}
+  .m-lbl{font-size:10.5px;color:var(--steel);font-family:"Geist Mono",monospace;letter-spacing:.5px;text-transform:uppercase}
+  .m-val{font-size:21px;font-weight:700;margin-top:4px;letter-spacing:-.02em}
+  .m-val small{font-size:12px;font-weight:500;color:var(--steel)}
+  .m-d{font-size:12px;font-weight:600;margin-left:6px}
+  .m-d.good{color:var(--zima)}.m-d.bad{color:var(--danger)}.m-d.up{color:var(--health)}
+  .spark{margin-top:8px;display:block}
+
+  /* retro */
+  .retro{background:linear-gradient(135deg,#1c1d22,#161417);border:1px solid var(--hairline);border-radius:14px;padding:13px;display:flex;align-items:center;gap:12px}
+  .retro .rl{flex:0 0 auto;width:38px;height:38px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center}
+  .retro .rb{flex:1}
+  .retro .rt{font-size:14px;font-weight:600}
+  .retro .rs{font-size:11.5px;color:var(--steel);margin-top:3px}
+  .retro .rs b{color:var(--bone);font-weight:600}
+  .retro .chev{color:var(--steel);font-size:17px}
+  .full{background:var(--card);border:1px solid var(--hairline);border-radius:14px;padding:14px}
+  .full .ft{font-size:14px;font-weight:700;margin-bottom:10px}
+  .full .frow{display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--hairline);font-family:"Geist Mono",monospace;color:var(--steel)}
+  .full .frow b{color:var(--bone);font-weight:600}
+  .full .fhi{margin-top:11px;font-size:12px;color:var(--bone);background:var(--accent-soft);border-radius:9px;padding:9px 11px;line-height:1.5}
+  .full .fhi span{color:var(--accent);font-weight:600}
+
+  /* FAB / plus in section */
+  .screenbox{background:var(--onyx);border:1px solid var(--hairline);border-radius:14px;padding:0;overflow:hidden;position:relative;height:230px}
+  .sb-head{padding:12px 13px 0}
+  .sb-h1{font-size:17px;font-weight:700}
+  .sb-seclbl{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--steel);margin:13px 13px 8px;display:flex;align-items:center;justify-content:space-between}
+  .sb-plus{width:22px;height:22px;border-radius:7px;background:var(--slate);border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;color:var(--accent);font-weight:700;font-size:15px}
+  .sb-row{margin:0 13px 8px;background:var(--card);border:1px solid var(--hairline);border-radius:10px;padding:9px 11px;font-size:13px;display:flex;align-items:center;gap:9px}
+  .sb-row .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .fab{position:absolute;right:14px;bottom:14px;width:46px;height:46px;border-radius:14px;background:var(--accent);color:#1a1209;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:300;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>T5 «Привычки» — варианты логики (сверка перед сборкой)</h1>
+  <p>6 развилок определяют модель данных и весь экран. Реши по каждой → соберу финальный <b>T5-habits.html</b> и пройдёмся до «утверждаю». Зелёное = рекомендация, красное = минус.</p>
+</div>
+
+<!-- ============ A ============ -->
+<h2>A · механика «выполнения» привычки</h2>
+<div class="sub">Главная развилка. Определяет чек-кнопку И смысл тепловой карты (бинар = шахматка, число = градиент). <b>kind у привычки</b>.</div>
+<div class="opts">
+  <div class="opt">
+    <div class="tag">A1 · бинарная (галка)</div>
+    <div class="hcard" style="--c:var(--health)">
+      <div class="hc-row">
+        <div class="badge" style="--c:var(--health);--c-soft:rgba(91,141,239,.15)">12</div>
+        <div class="hc-body"><div class="hc-name">Зарядка</div>
+          <div class="hc-streak"><span class="flame"><svg width="10" height="12" viewBox="0 0 11 13" fill="currentColor"><path d="M5.5 0S1 3.2 1 7.3 3 12.5 5.5 12.5 10 10.4 10 7.3c0-1.6-.8-2.8-1.5-3.6 0 1.1-.6 1.8-1.3 1.8-.8 0-1.2-.6-1.2-1.6C5.9 2.6 5.5 0 5.5 0z"/></svg></span><b>12 дней</b> подряд</div>
+        </div>
+        <div class="chk done" style="--c:var(--health)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      </div>
+      <div class="wk"><i class="fill" style="--c:var(--health)"></i><i class="fill" style="--c:var(--health)"></i><i class="fill" style="--c:var(--health)"></i><i class="fill" style="--c:var(--health)"></i><i class="fill today" style="--c:var(--health)"></i><i></i><i></i><span class="lbl">5/7</span></div>
+    </div>
+    <div class="note">Сделал / не сделал. Тап = галка, мгновенно. <span class="rec">Просто, быстро, 80% привычек такие.</span> <span class="bad">Минус: «вода 1.4 из 2л» не выразить — только да/нет.</span></div>
+  </div>
+  <div class="opt">
+    <div class="tag">A2 · количественная (число/норма)</div>
+    <div class="hcard" style="--c:var(--zima)">
+      <div class="hc-row">
+        <div class="badge" style="--c:var(--zima);--c-soft:rgba(63,182,139,.15)">5</div>
+        <div class="hc-body"><div class="hc-name">Вода</div>
+          <div class="hc-streak"><span class="flame"><svg width="10" height="12" viewBox="0 0 11 13" fill="currentColor"><path d="M5.5 0S1 3.2 1 7.3 3 12.5 5.5 12.5 10 10.4 10 7.3c0-1.6-.8-2.8-1.5-3.6 0 1.1-.6 1.8-1.3 1.8-.8 0-1.2-.6-1.2-1.6C5.9 2.6 5.5 0 5.5 0z"/></svg></span><b>5 дней</b> · норма 2 л</div>
+        </div>
+        <div class="numbtn">1.4 л</div>
+      </div>
+      <div class="pbar"><i style="width:70%;--c:var(--zima)"></i></div>
+      <div class="pgoal">сегодня <b>1.4 / 2 л</b> · 70% нормы</div>
+    </div>
+    <div class="note">Вводишь число, норма = цель. Тепловая карта красит интенсивностью. <span class="bad">Минус: +1 тап на ввод, не для «помедитировал/нет».</span></div>
+  </div>
+  <div class="opt">
+    <div class="tag">A3 · смешанная (флаг типа)</div>
+    <div class="stack">
+      <div class="hcard" style="--c:var(--health);padding:9px 11px">
+        <div class="hc-row"><div class="hc-name" style="flex:1">Зарядка <span style="color:var(--steel);font-size:11px;font-family:'Geist Mono'">бинар</span></div>
+          <div class="chk done" style="--c:var(--health);width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
+      </div>
+      <div class="hcard" style="--c:var(--zima);padding:9px 11px">
+        <div class="hc-row"><div class="hc-name" style="flex:1">Вода <span style="color:var(--steel);font-size:11px;font-family:'Geist Mono'">число</span></div>
+          <div class="numbtn" style="height:26px;min-width:48px">1.4 л</div></div>
+      </div>
+    </div>
+    <div class="note">У каждой привычки свой <b>kind</b> при создании. Гибко, покрывает всё. <span class="rec">Чисто моделью, но больше UI (форма создания с выбором типа).</span></div>
+  </div>
+</div>
+
+<!-- ============ B ============ -->
+<h2>B · что считает «стрик»</h2>
+<div class="sub">Мокап мешал «12 дней подряд» И «5/7 за неделю» в одной карточке. Это <b>разные счётчики</b>. Что показываем главным.</div>
+<div class="opts">
+  <div class="opt">
+    <div class="tag">B1 · дни подряд</div>
+    <div class="hcard" style="--c:var(--accent)">
+      <div class="hc-row"><div class="badge" style="--c:var(--accent);--c-soft:var(--accent-soft)">12</div>
+        <div class="hc-body"><div class="hc-name">Чтение</div><div class="hc-streak"><b>12 дней</b> подряд · рекорд 21</div></div>
+        <div class="chk done" style="--c:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
+    </div>
+    <div class="note">Классика habit-трекера. Пропустил день → 0. <span class="rec">Понятно, мотивирует «не рвать цепь».</span> <span class="bad">Минус: для «5 раз в неделю» пропуск пн рвёт зря.</span></div>
+  </div>
+  <div class="opt">
+    <div class="tag">B2 · недели с нормой</div>
+    <div class="hcard" style="--c:var(--plan)">
+      <div class="hc-row"><div class="badge" style="--c:var(--plan);--c-soft:rgba(155,107,224,.15)">3</div>
+        <div class="hc-body"><div class="hc-name">Спортзал</div><div class="hc-streak"><b>3 нед</b> · цель 4/нед</div></div>
+        <div class="chk done" style="--c:var(--plan)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg></div></div>
+      <div class="wk"><i class="fill" style="--c:var(--plan)"></i><i></i><i class="fill" style="--c:var(--plan)"></i><i></i><i class="fill today" style="--c:var(--plan)"></i><i></i><i></i><span class="lbl">3/4 нед</span></div>
+    </div>
+    <div class="note">Стрик = недели подряд, где норма выполнена. Пропуск любого дня ок, если набрал N. <span class="bad">Минус: «дней подряд» нет, слабее дофамин.</span></div>
+  </div>
+  <div class="opt">
+    <div class="tag">B3 · расписание решает (гибрид)</div>
+    <div class="stack">
+      <div class="hcard" style="--c:var(--health);padding:9px 11px"><div class="hc-row"><div class="hc-body"><div class="hc-name" style="font-size:14px">Зарядка <span style="color:var(--steel);font-size:10px;font-family:'Geist Mono'">ежедневно</span></div><div class="hc-streak" style="margin-top:2px"><b>12 дней</b> подряд</div></div></div></div>
+      <div class="hcard" style="--c:var(--plan);padding:9px 11px"><div class="hc-row"><div class="hc-body"><div class="hc-name" style="font-size:14px">Спортзал <span style="color:var(--steel);font-size:10px;font-family:'Geist Mono'">4×/нед</span></div><div class="hc-streak" style="margin-top:2px"><b>3 нед</b> · цель</div></div></div></div>
+    </div>
+    <div class="note">У привычки есть <b>расписание</b> (ежедневно / N-раз-в-нед / дни). Счётчик подстраивается. <span class="rec">Честно: дневная = дни, недельная = недели.</span></div>
+  </div>
+</div>
+
+<!-- ============ C ============ -->
+<h2>C · смысл кольца вокруг числа</h2>
+<div class="sub">В мокапе кольца с разной заливкой, но <b>смысл не задан</b>. Либо несёт инфо, либо лишний декор.</div>
+<div class="opts">
+  <div class="opt">
+    <div class="tag">C1 · % недели</div>
+    <div class="hcard" style="--c:var(--health)">
+      <div class="hc-row">
+        <div class="sring"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#2c2d31" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="var(--health)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="32"/></svg><div class="num" style="color:var(--health)">12</div></div>
+        <div class="hc-body"><div class="hc-name">Зарядка</div><div class="hc-streak">кольцо = 5/7 недели</div></div>
+      </div>
+    </div>
+    <div class="note">Заливка = сколько дней недели закрыто. <span class="bad">Минус: дублирует нижний ряд точек.</span></div>
+  </div>
+  <div class="opt">
+    <div class="tag">C2 · путь к рубежу</div>
+    <div class="hcard" style="--c:var(--accent)">
+      <div class="hc-row">
+        <div class="sring"><svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" fill="none" stroke="#2c2d31" stroke-width="4"/><circle cx="22" cy="22" r="18" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="16"/></svg><div class="num" style="color:var(--accent)">12</div></div>
+        <div class="hc-body"><div class="hc-name">Чтение</div><div class="hc-streak">до рубежа <b>14</b> · −2 дня</div></div>
+      </div>
+    </div>
+    <div class="note">Кольцо = прогресс к след. вехе стрика (7→14→21→30). <span class="rec">Несёт смысл, тянет «дожать рубеж».</span></div>
+  </div>
+  <div class="opt">
+    <div class="tag">C3 · без кольца (бейдж)</div>
+    <div class="hcard" style="--c:var(--zima)">
+      <div class="hc-row">
+        <div class="badge" style="--c:var(--zima);--c-soft:rgba(63,182,139,.15)">8</div>
+        <div class="hc-body"><div class="hc-name">Без сахара</div><div class="hc-streak"><b>8 дней</b> подряд</div></div>
+      </div>
+    </div>
+    <div class="note">Просто цветной бейдж с числом, без дуги. <span class="rec">Минимум шума, быстрее рендер.</span> <span class="bad">Минус: меньше «игры».</span></div>
+  </div>
+</div>
+
+<!-- ============ D ============ -->
+<h2>D · тепловая карта</h2>
+<div class="sub">Зависит от <b>A</b>. Бинар → шахматка (вкл/выкл). Число → градиент интенсивности. Плюс окно 7д / 30д.</div>
+<div class="opts">
+  <div class="opt" style="width:auto">
+    <div class="tag">D1 · бинарная шахматка · 7д</div>
+    <div class="heat">
+      <div class="ht">Последние 7 дней · 4 привычки</div>
+      <div class="hgrid">
+        <div class="hd"></div><div class="hd">Пн</div><div class="hd">Вт</div><div class="hd">Ср</div><div class="hd">Чт</div><div class="hd">Пт</div><div class="hd">Сб</div><div class="hd">Вс</div>
+        <div class="rn">Зарядка</div><span class="cell bin-on"></span><span class="cell bin-on"></span><span class="cell bin-on"></span><span class="cell bin-on"></span><span class="cell bin-on"></span><span class="cell bin-off"></span><span class="cell bin-off"></span>
+        <div class="rn">Чтение</div><span class="cell bin-on"></span><span class="cell bin-on"></span><span class="cell bin-off"></span><span class="cell bin-on"></span><span class="cell bin-on"></span><span class="cell bin-on"></span><span class="cell bin-off"></span>
+        <div class="rn">Медитация</div><span class="cell bin-on"></span><span class="cell bin-off"></span><span class="cell bin-off"></span><span class="cell bin-on"></span><span class="cell bin-on"></span><span class="cell bin-off"></span><span class="cell bin-off"></span>
+      </div>
+      <div class="hleg">пропуск <span class="bin-off"></span><span class="bin-on"></span> сделано</div>
+    </div>
+    <div class="note">Чёткое «сделал/нет». <span class="rec">Совпадает с A1-бинаром.</span></div>
+  </div>
+  <div class="opt" style="width:auto">
+    <div class="tag">D2 · градиент · 7д/30д</div>
+    <div class="heat">
+      <div class="htabs"><i class="on">7 дней</i><i>30 дней</i></div>
+      <div class="hgrid">
+        <div class="hd"></div><div class="hd">Пн</div><div class="hd">Вт</div><div class="hd">Ср</div><div class="hd">Чт</div><div class="hd">Пт</div><div class="hd">Сб</div><div class="hd">Вс</div>
+        <div class="rn">Вода</div><span class="cell lv2"></span><span class="cell lv4"></span><span class="cell lv1"></span><span class="cell lv3"></span><span class="cell lv4"></span><span class="cell lv2"></span><span class="cell lv0"></span>
+        <div class="rn">Сон ч</div><span class="cell lv3"></span><span class="cell lv2"></span><span class="cell lv4"></span><span class="cell lv1"></span><span class="cell lv3"></span><span class="cell lv4"></span><span class="cell lv2"></span>
+        <div class="rn">Шаги</div><span class="cell lv4"></span><span class="cell lv3"></span><span class="cell lv2"></span><span class="cell lv4"></span><span class="cell lv1"></span><span class="cell lv0"></span><span class="cell lv3"></span>
+      </div>
+      <div class="hleg">меньше <span class="lv0"></span><span class="lv1"></span><span class="lv2"></span><span class="lv3"></span><span class="lv4"></span> больше</div>
+    </div>
+    <div class="note">Интенсивность = % нормы. Переключатель окна. <span class="rec">Богаче, нужен для A2-числовых.</span> <span class="bad">Минус: для бинара только 2 цвета из 5.</span></div>
+  </div>
+</div>
+
+<!-- ============ E ============ -->
+<h2>E · где кнопка «добавить»</h2>
+<div class="sub">В мокапе T5 кнопки <b>«+» нет вообще</b>. Привычку/метрику как заводить.</div>
+<div class="opts">
+  <div class="opt" style="width:auto">
+    <div class="tag">E1 · FAB (как в Задачах)</div>
+    <div class="screenbox" style="width:230px">
+      <div class="sb-head"><div class="sb-h1">Привычки</div></div>
+      <div class="sb-seclbl">Сегодня · 6 июня</div>
+      <div class="sb-row"><span class="dot" style="background:var(--health)"></span>Зарядка</div>
+      <div class="sb-row"><span class="dot" style="background:var(--zima)"></span>Без сахара</div>
+      <div class="sb-row"><span class="dot" style="background:var(--accent)"></span>Чтение</div>
+      <div class="fab">+</div>
+    </div>
+    <div class="note">Один FAB, контекст по активному суб-виду (на «Метрики» создаёт метрику). <span class="rec">Единый паттерн с остальным приложением.</span></div>
+  </div>
+  <div class="opt" style="width:auto">
+    <div class="tag">E2 · «+» в заголовке секции</div>
+    <div class="screenbox" style="width:230px">
+      <div class="sb-head"><div class="sb-h1">Привычки</div></div>
+      <div class="sb-seclbl">Сегодня · 6 июня <span class="sb-plus">+</span></div>
+      <div class="sb-row"><span class="dot" style="background:var(--health)"></span>Зарядка</div>
+      <div class="sb-row"><span class="dot" style="background:var(--zima)"></span>Без сахара</div>
+      <div class="sb-row"><span class="dot" style="background:var(--accent)"></span>Чтение</div>
+    </div>
+    <div class="note">«+» прямо у секции, явно что создаёт. <span class="bad">Минус: 2–3 «+» на экране (привычки/метрики), дальше тянуться.</span></div>
+  </div>
+</div>
+
+<!-- ============ F ============ -->
+<h2>F · ретро недели</h2>
+<div class="sub">«12/18» = НЕ цели (цели в табе T4), а <b>слоты-выполнения привычек</b>. Текст-хайлайт под <b>ZERO-AFK</b>: код или ты в чате, не LLM на бэке. И что по тапу.</div>
+<div class="opts">
+  <div class="opt">
+    <div class="tag">F1 · карточка-свёртка → заглушка</div>
+    <div class="retro">
+      <div class="rl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg></div>
+      <div class="rb"><div class="rt">Итог недели</div><div class="rs"><b>12 / 18</b> привычек · стрик-рекорд: Чтение 12</div></div>
+      <div class="chev">›</div>
+    </div>
+    <div class="note">Цифры считает код (бесплатно). Тап → пока чип «полный обзор скоро». <span class="rec">В скоупе форка E, дёшево.</span></div>
+  </div>
+  <div class="opt">
+    <div class="tag">F2 · полноэкранный обзор</div>
+    <div class="full">
+      <div class="ft">Неделя 23 · итог</div>
+      <div class="frow"><span>Привычки закрыто</span><b>12 / 18</b></div>
+      <div class="frow"><span>Лучший стрик</span><b>Чтение · 12</b></div>
+      <div class="frow"><span>Вес за неделю</span><b>▼ 0.4 кг</b></div>
+      <div class="fhi">Хайлайт: <span>первая медитация после паузы</span> — правило «возобновлён стрик ≥3».</div>
+    </div>
+    <div class="note">Отдельный экран. Хайлайт = детерминир. правило в коде ИЛИ твой текст в чате. <span class="bad">Минус: новый экран = отдельный форк, не «перенос».</span></div>
+  </div>
+</div>
+
+</body>
+</html>

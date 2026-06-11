@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inline-создание в ячейке — флоу + состояния</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+    --hairline:rgba(255,255,255,.07); --hour-h:56px;
+    --p-zima:#3FB68B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;color:var(--bone);font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 0 60px}
+  .cap{max-width:1200px;margin:0 auto 18px;font-family:"Geist Mono",monospace;font-size:13px;color:var(--steel);padding:0 16px;line-height:1.6}
+  .cap b{color:var(--accent)}
+  .row{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .fc{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin:0 0 10px;text-align:center;max-width:340px}
+  .fc b{color:var(--accent)}
+  .fc .n{display:inline-block;background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:1px 8px;margin-right:6px}
+  .phone{width:340px;height:600px;background:var(--onyx);border:1px solid var(--hairline);border-radius:26px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+  .status{height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-family:"Geist Mono",monospace;font-size:12px;color:var(--bone);flex:0 0 auto}
+  .head{padding:8px 16px 10px;border-bottom:1px solid var(--hairline)}
+  .head h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .head .d{color:var(--steel);font-size:13px;margin-top:1px}
+  .grid{flex:1;overflow:hidden;position:relative;padding:0 14px}
+  .gi{position:relative}
+  .hour{height:var(--hour-h);border-top:1px solid var(--hairline);position:relative}
+  .hl{position:absolute;top:-7px;left:0;font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);background:var(--onyx);padding-right:6px}
+  .hint{position:absolute;left:46px;right:8px;top:120px;text-align:center;color:var(--steel);font-size:13px;font-family:"Geist Mono",monospace;line-height:1.5}
+  /* черновик-блок */
+  .draft{position:absolute;left:46px;right:8px;border-radius:9px;border:1.5px dashed var(--accent);background:var(--accent-soft);
+          padding:7px 9px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+  .draft .ti{background:transparent;border:0;outline:0;color:var(--bone);font-family:Geist,sans-serif;font-size:14px;font-weight:500;caret-color:var(--accent)}
+  .draft .ti.ph{color:var(--steel)}
+  .draft .tm{font-family:"Geist Mono",monospace;font-size:11px;color:var(--accent)}
+  .caret{display:inline-block;width:1.5px;height:15px;background:var(--accent);vertical-align:-2px;animation:bl 1s steps(1) infinite}
+  @keyframes bl{50%{opacity:0}}
+  /* готовый блок */
+  .block{position:absolute;left:46px;right:8px;border-radius:9px;background:var(--slate);border-left:3px solid transparent;
+         padding:6px 9px;display:flex;flex-direction:column;gap:2px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+  .block.zima{background:rgba(63,182,139,.13)}
+  .block .bt{font-size:14px;font-weight:500}
+  .block .bm{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel)}
+  .err{position:absolute;left:46px;right:8px;border-radius:9px;border:1.5px solid var(--danger);background:rgba(255,92,92,.10);padding:7px 9px;display:flex;flex-direction:column;gap:4px}
+  .err .bt{font-size:14px;font-weight:500}
+  .err .re{display:flex;align-items:center;gap:6px;font-family:"Geist Mono",monospace;font-size:11px;color:var(--danger)}
+  .err .re b{background:var(--danger);color:#1a0808;border-radius:6px;padding:2px 8px;font-weight:600}
+  /* кнопка Готово в подсказке над клавой */
+  .done-bar{position:absolute;left:0;right:0;bottom:200px;display:flex;justify-content:flex-end;padding:8px 14px;background:linear-gradient(transparent,var(--onyx) 40%)}
+  .done-bar b{background:var(--accent);color:#1a1209;border-radius:10px;padding:9px 18px;font-size:14px;font-weight:600}
+  /* фейк-клавиатура */
+  .kb{position:absolute;left:0;right:0;bottom:0;height:200px;background:#1c1c1f;border-top:1px solid var(--hairline);display:grid;
+      grid-template-rows:repeat(4,1fr);gap:6px;padding:8px 6px}
+  .kb .kr{display:flex;gap:5px;justify-content:center}
+  .kb .k{flex:1;max-width:30px;background:#3a3a3e;border-radius:6px;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--bone)}
+  .kb .k.w{max-width:90px}
+  .gesture{position:absolute;z-index:5;pointer-events:none}
+  .finger{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.22);border:1.5px solid rgba(255,255,255,.5)}
+  .arrow{position:absolute;color:var(--accent);font-size:13px;font-family:"Geist Mono",monospace}
+  .legend{max-width:1000px;margin:30px auto 0;font-family:"Geist Mono",monospace;font-size:12.5px;color:var(--steel);line-height:1.8;padding:0 16px}
+  .legend b{color:var(--bone)} .legend .k{color:var(--accent)}
+</style></head>
+<body>
+  <div class="cap"><b>Inline-создание задачи в ячейке таймлайна</b> · Apple-стиль · заменяет bottom-sheet по тапу часа. Жест: <b>тап = блок 1ч, протяжка = своя длина</b>. Снап 15 мин. Реюз математики DayTimeline.</div>
+
+  <div class="row">
+
+    <!-- 1 — IDLE -->
+    <div class="col">
+      <div class="fc"><span class="n">1</span><b>покой</b> — пустая сетка</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="head"><h1>Сегодня</h1><div class="d">вторник, 9 июня</div></div>
+        <div class="grid"><div class="gi">
+          <div class="hour"><span class="hl">08:00</span></div>
+          <div class="hour"><span class="hl">09:00</span></div>
+          <div class="hour"><span class="hl">10:00</span></div>
+          <div class="hour"><span class="hl">11:00</span></div>
+          <div class="hour"><span class="hl">12:00</span></div>
+          <div class="hour"><span class="hl">13:00</span></div>
+          <div class="hint">Тап по сетке — задача на 1 час.<br>Протяжка — своя длительность.</div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- 2 — TAP → 1h draft + keyboard -->
+    <div class="col">
+      <div class="fc"><span class="n">2</span><b>тап</b> → блок 1ч + ввод + клавиатура</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="head"><h1>Сегодня</h1><div class="d">вторник, 9 июня</div></div>
+        <div class="grid"><div class="gi">
+          <div class="hour"><span class="hl">08:00</span></div>
+          <div class="hour"><span class="hl">09:00</span></div>
+          <div class="hour"><span class="hl">10:00</span></div>
+          <div class="hour"><span class="hl">11:00</span></div>
+          <!-- draft 09:00-10:00 -->
+          <div class="draft" style="top:57px;height:54px">
+            <span class="ti ph">Новая задача<span class="caret"></span></span>
+            <span class="tm">09:00–10:00</span>
+          </div>
+          <div class="gesture" style="top:74px;left:150px"><div class="finger"></div></div>
+        </div></div>
+        <div class="done-bar"><b>Готово</b></div>
+        <div class="kb">
+          <div class="kr"><span class="k">й</span><span class="k">ц</span><span class="k">у</span><span class="k">к</span><span class="k">е</span><span class="k">н</span><span class="k">г</span></div>
+          <div class="kr"><span class="k">ф</span><span class="k">ы</span><span class="k">в</span><span class="k">а</span><span class="k">п</span><span class="k">р</span><span class="k">о</span></div>
+          <div class="kr"><span class="k">я</span><span class="k">ч</span><span class="k">с</span><span class="k">м</span><span class="k">и</span><span class="k">т</span><span class="k">ь</span></div>
+          <div class="kr"><span class="k w">пробел</span><span class="k w" style="background:var(--accent);color:#1a1209">ввод</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 — DRAG → 2h draft -->
+    <div class="col">
+      <div class="fc"><span class="n">3</span><b>протяжка</b> → растягивает длительность</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="head"><h1>Сегодня</h1><div class="d">вторник, 9 июня</div></div>
+        <div class="grid"><div class="gi">
+          <div class="hour"><span class="hl">08:00</span></div>
+          <div class="hour"><span class="hl">09:00</span></div>
+          <div class="hour"><span class="hl">10:00</span></div>
+          <div class="hour"><span class="hl">11:00</span></div>
+          <div class="hour"><span class="hl">12:00</span></div>
+          <!-- draft 09:00-11:00 -->
+          <div class="draft" style="top:57px;height:110px">
+            <span class="ti ph">Новая задача<span class="caret"></span></span>
+            <span class="tm">09:00–11:00 · 2 ч</span>
+          </div>
+          <div class="gesture" style="top:158px;left:150px"><div class="finger"></div></div>
+          <span class="arrow" style="top:120px;left:185px">↓ тянешь</span>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- 4 — COMMITTED -->
+    <div class="col">
+      <div class="fc"><span class="n">4</span><b>ввод</b> → обычный блок (ресайз/перенос вкл)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="head"><h1>Сегодня</h1><div class="d">вторник, 9 июня</div></div>
+        <div class="grid"><div class="gi">
+          <div class="hour"><span class="hl">08:00</span></div>
+          <div class="hour"><span class="hl">09:00</span></div>
+          <div class="hour"><span class="hl">10:00</span></div>
+          <div class="hour"><span class="hl">11:00</span></div>
+          <div class="hour"><span class="hl">12:00</span></div>
+          <div class="block" style="top:57px;height:110px">
+            <span class="bt">Созвон с командой</span>
+            <span class="bm">09:00–11:00</span>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <!-- 5 — ERROR -->
+    <div class="col">
+      <div class="fc"><span class="n">5</span>edge · <b>POST упал</b> — текст цел, повтор</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>•••</span></div>
+        <div class="head"><h1>Сегодня</h1><div class="d">вторник, 9 июня</div></div>
+        <div class="grid"><div class="gi">
+          <div class="hour"><span class="hl">08:00</span></div>
+          <div class="hour"><span class="hl">09:00</span></div>
+          <div class="hour"><span class="hl">10:00</span></div>
+          <div class="hour"><span class="hl">11:00</span></div>
+          <div class="hour"><span class="hl">12:00</span></div>
+          <div class="err" style="top:57px;height:64px">
+            <span class="bt">Созвон с командой</span>
+            <span class="re">Не сохранено · <b>Повторить</b></span>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="legend">
+    <b>Состояния:</b> покой → (тап|протяжка) draft → ввод → создан | отмена | ошибка.<br>
+    <b>Жесты:</b> <span class="k">тап</span> пустоты = блок 1ч на снапнутом часе · <span class="k">протяжка</span> = start→end (снап 15м, на отпускании) · тап по <b>существующему</b> блоку = открыть (как сейчас).<br>
+    <b>Коммит:</b> <span class="k">Enter</span>/<span class="k">Готово</span> с текстом → POST (due_time+end_time, дата=сегодня, без проекта/приоритета) → блок становится обычным.<br>
+    <b>Отмена:</b> пустой текст + тап-вне/Escape/смена-таба → draft исчезает, ничего не создаётся.<br>
+    <b>Edge:</b> протяжка вверх → start/end нормализуются · нулевая протяжка = тап = 1ч · клавиатура: draft скроллится над ней, фон залочен · POST упал → draft с текстом остаётся + «Повторить» (текст не теряется).<br>
+    <b>Reuse:</b> y↔минуты (PX_PER_MIN/offsetMin), snap15, clamp, hhmm, гаситель скролла, pointer-capture — всё из DayTimeline. Новое только: draft-state без id + инлайн-input + POST.
+  </div>
+</body></html>

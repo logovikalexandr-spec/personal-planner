@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вклад в успех — варианты размещения</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;color:var(--bone);font-family:Geist,sans-serif;-webkit-font-smoothing:antialiased;padding:30px 22px 90px;line-height:1.45}
+  .top{max-width:1200px;margin:0 auto 6px}
+  .top h1{font-size:23px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+  .top p{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .top p b{color:var(--ember)}
+  .grid{max-width:1200px;margin:0 auto;display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .col{width:340px}
+  .vlabel{font-family:"Geist Mono",monospace;font-size:11px;color:var(--ember);text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px}
+  .vname{font-size:16px;font-weight:700;margin-bottom:3px;letter-spacing:-.01em}
+  .vdesc{font-size:12px;color:var(--steel);margin-bottom:12px;min-height:48px}
+  .phone{background:var(--onyx);border:1px solid var(--hairline);border-radius:20px;overflow:hidden;padding:14px 13px 16px}
+  .ph-head{font-size:17px;font-weight:700;margin-bottom:2px}
+  .ph-sub{font-size:11.5px;color:var(--steel);font-family:"Geist Mono";margin-bottom:13px}
+  .seclbl{font-family:"Geist Mono";font-size:10.5px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin:13px 0 7px}
+
+  /* task row базовый */
+  .row{background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:10px 11px;margin-bottom:8px;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden}
+  .row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,transparent)}
+  .cb{flex:0 0 auto;width:20px;height:20px;border-radius:50%;border:2px solid var(--slate)}
+  .rb{flex:1;min-width:0}
+  .rn{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rm{font-size:11px;color:var(--steel);font-family:"Geist Mono";margin-top:2px}
+
+  /* A: бейдж-кольцо вклада */
+  .impring{flex:0 0 auto;width:30px;height:30px;position:relative}
+  .impring svg{transform:rotate(-90deg)}
+  .impring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:"Geist Mono"}
+  .qd{flex:0 0 auto;width:9px;height:9px;border-radius:2px}
+
+  /* C: фокус-сортировка */
+  .focuscard{background:linear-gradient(180deg,var(--ember-soft),transparent);border:1px solid rgba(238,138,60,.25);border-radius:12px;padding:11px;margin-bottom:8px}
+  .fcrow{display:flex;align-items:center;gap:9px}
+  .fcrank{font-family:"Geist Mono";font-size:15px;font-weight:700;color:var(--ember);width:18px}
+  .pbar{height:4px;border-radius:2px;background:var(--slate);margin-top:7px;overflow:hidden}
+  .pbar i{display:block;height:100%;background:var(--ember)}
+
+  /* D: матрица квадрантов */
+  .matrix{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .quad{background:var(--card);border:1px solid var(--hairline);border-radius:11px;padding:9px;min-height:104px}
+  .quad .qt{font-size:10px;font-family:"Geist Mono";text-transform:uppercase;letter-spacing:.3px;margin-bottom:7px;display:flex;align-items:center;gap:5px}
+  .quad .dot{width:7px;height:7px;border-radius:50%}
+  .qi{font-size:11.5px;padding:5px 7px;background:var(--slate);border-radius:7px;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qax{font-family:"Geist Mono";font-size:9.5px;color:var(--steel);text-align:center;margin-top:6px}
+  .note{font-size:12px;color:var(--steel);margin-top:11px}
+  .note b{color:var(--bone)} .rec{color:var(--zima);font-weight:600}
+</style></head>
+<body>
+<div class="top">
+  <h1>«Вклад в успех» — где показать (4 варианта)</h1>
+  <p>Claude в чате пишет задаче <b>вклад%</b> (важность) + срочность из дедлайна. Приложение только показывает. Один акцент ember, без emoji. Выбирай глазами.</p>
+</div>
+
+<div class="grid">
+
+  <!-- A -->
+  <div class="col">
+    <div class="vlabel">Вариант A</div>
+    <div class="vname">Бейдж на строке задачи</div>
+    <div class="vdesc">Мини-кольцо вклада% слева у каждой задачи (везде: Сегодня, Списки, проект). Минимальная инвазия — задача как была, +один глиф.</div>
+    <div class="phone">
+      <div class="ph-head">Задачи · сегодня</div>
+      <div class="ph-sub">4 задачи · 1 закрыто</div>
+      <div class="row" style="--c:var(--zima)">
+        <span class="impring"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="none" stroke="#2c2d31" stroke-width="3"/><circle cx="15" cy="15" r="12" fill="none" stroke="var(--ember)" stroke-width="3" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="15"/></svg><b style="color:var(--ember)">80</b></span>
+        <span class="cb"></span>
+        <div class="rb"><div class="rn">Согласовать цену с покупателем</div><div class="rm">ZIMA · до 25 июня</div></div>
+      </div>
+      <div class="row" style="--c:var(--health)">
+        <span class="impring"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="none" stroke="#2c2d31" stroke-width="3"/><circle cx="15" cy="15" r="12" fill="none" stroke="var(--ember)" stroke-width="3" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="41"/></svg><b style="color:var(--steel)">45</b></span>
+        <span class="cb"></span>
+        <div class="rb"><div class="rn">Зарядка + валик</div><div class="rm">Здоровье · 14:00</div></div>
+      </div>
+      <div class="row" style="--c:var(--plan)">
+        <span class="impring"><svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="none" stroke="#2c2d31" stroke-width="3"/><circle cx="15" cy="15" r="12" fill="none" stroke="var(--ember)" stroke-width="3" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="64"/></svg><b style="color:var(--steel)">15</b></span>
+        <span class="cb"></span>
+        <div class="rb"><div class="rn">Разобрать почту</div><div class="rm">без времени</div></div>
+      </div>
+    </div>
+    <div class="note"><span class="rec">+ Видно везде, ноль новых экранов.</span> − Кольцо у каждой строки = шумнее список.</div>
+  </div>
+
+  <!-- B -->
+  <div class="col">
+    <div class="vlabel">Вариант B</div>
+    <div class="vname">Точка-квадрант (тихо)</div>
+    <div class="vdesc">Вместо числа — цветная точка квадранта Эйзенхауэра: красная=срочно+важно, ember=важно, синяя=срочно, серая=фон. Тише, чем %.</div>
+    <div class="phone">
+      <div class="ph-head">Задачи · сегодня</div>
+      <div class="ph-sub">4 задачи · 1 закрыто</div>
+      <div class="row" style="--c:var(--zima)"><span class="qd" style="background:var(--danger)"></span><span class="cb"></span><div class="rb"><div class="rn">Согласовать цену с покупателем</div><div class="rm">срочно + важно · до 25 июня</div></div></div>
+      <div class="row" style="--c:var(--health)"><span class="qd" style="background:var(--ember)"></span><span class="cb"></span><div class="rb"><div class="rn">Зарядка + валик</div><div class="rm">важно, не срочно · 14:00</div></div></div>
+      <div class="row" style="--c:var(--plan)"><span class="qd" style="background:var(--health)"></span><span class="cb"></span><div class="rb"><div class="rn">Ответить мастеру про смену</div><div class="rm">срочно, не важно · сегодня</div></div></div>
+      <div class="row" style="--c:var(--steel)"><span class="qd" style="background:var(--steel)"></span><span class="cb"></span><div class="rb"><div class="rn">Разобрать почту</div><div class="rm">фон · без времени</div></div></div>
+    </div>
+    <div class="note"><span class="rec">+ Спокойнее, цвет читается мгновенно.</span> − Точное число вклада скрыто (только в детали).</div>
+  </div>
+
+  <!-- C -->
+  <div class="col">
+    <div class="vlabel">Вариант C</div>
+    <div class="vname">«Фокус» — топ по вкладу</div>
+    <div class="vdesc">Отдельная секция/вид: задачи отсортированы по вкладу вниз, топ-3 выделены. «Что двигает цель сегодня». Ранг + прогресс-полоса.</div>
+    <div class="phone">
+      <div class="ph-head">Фокус дня</div>
+      <div class="ph-sub">по вкладу в цели · 3 ключевых</div>
+      <div class="seclbl">двигает цель</div>
+      <div class="focuscard"><div class="fcrow"><span class="fcrank">1</span><span class="cb"></span><div class="rb"><div class="rn">Согласовать цену с покупателем</div><div class="rm">ZIMA · вклад 80%</div></div></div><div class="pbar"><i style="width:80%"></i></div></div>
+      <div class="focuscard"><div class="fcrow"><span class="fcrank">2</span><span class="cb"></span><div class="rb"><div class="rn">Подготовить договор</div><div class="rm">ZIMA · вклад 65%</div></div></div><div class="pbar"><i style="width:65%"></i></div></div>
+      <div class="focuscard"><div class="fcrow"><span class="fcrank">3</span><span class="cb"></span><div class="rb"><div class="rn">Зарядка + валик</div><div class="rm">Здоровье · вклад 45%</div></div></div><div class="pbar"><i style="width:45%"></i></div></div>
+      <div class="seclbl">остальное · 6</div>
+      <div class="row" style="--c:var(--steel)"><span class="cb"></span><div class="rb"><div class="rn">Разобрать почту</div><div class="rm">вклад 15%</div></div></div>
+    </div>
+    <div class="note"><span class="rec">+ Прямо отвечает «что важно сегодня».</span> Может быть видом таба Задачи (переключатель Время/Фокус) или верхней секцией.</div>
+  </div>
+
+  <!-- D -->
+  <div class="col">
+    <div class="vlabel">Вариант D</div>
+    <div class="vname">Матрица Эйзенхауэра</div>
+    <div class="vdesc">Полноценные 4 квадранта срочность×важность. Отдельный вид (в Задачах или Целях). Видишь перекос: всё в «срочно-неважно» = тушишь пожары.</div>
+    <div class="phone">
+      <div class="ph-head">Матрица</div>
+      <div class="ph-sub">срочность × важность · 9 задач</div>
+      <div class="matrix">
+        <div class="quad"><div class="qt"><span class="dot" style="background:var(--danger)"></span>Срочно+Важно</div><div class="qi">Согласовать цену</div><div class="qi">Подписать договор</div></div>
+        <div class="quad"><div class="qt"><span class="dot" style="background:var(--ember)"></span>Важно</div><div class="qi">Зарядка + валик</div><div class="qi">План маркетинга</div><div class="qi">Чтение 20 мин</div></div>
+        <div class="quad"><div class="qt"><span class="dot" style="background:var(--health)"></span>Срочно</div><div class="qi">Ответить мастеру</div><div class="qi">Оплатить аренду</div></div>
+        <div class="quad"><div class="qt"><span class="dot" style="background:var(--steel)"></span>Фон</div><div class="qi">Разобрать почту</div><div class="qi">Прибраться в Drive</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between"><span class="qax">← срочность →</span><span class="qax">важность ↑</span></div>
+    </div>
+    <div class="note"><span class="rec">+ Стратегический обзор, классика.</span> − Лишний экран; на телефоне 4 квадранта тесные. Хорош как доп-вид, не основной.</div>
+  </div>
+
+</div>
+</body></html>

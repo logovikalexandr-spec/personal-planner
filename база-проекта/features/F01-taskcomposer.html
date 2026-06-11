@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F01 — TaskComposer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --accent:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  --font:Geist, sans-serif;
+  --mono:"Geist Mono", monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{
+  background:#2a2a2e; font-family:var(--font); color:var(--bone);
+  min-height:100vh; padding:40px 20px 80px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── caption-плашка над фреймом ── */
+.cap{
+  font-family:var(--mono); font-size:12px; color:var(--steel);
+  letter-spacing:0.04em; text-align:center; line-height:1.5;
+}
+.cap b{color:var(--bone); font-weight:500;}
+
+/* ── телефон-фрейм ── */
+.phone{
+  position:relative; width:390px; min-height:844px;
+  background:var(--onyx); border-radius:28px; overflow:hidden;
+  border:1px solid var(--hairline);
+  box-shadow:0 24px 70px rgba(0,0,0,0.45);
+}
+.statusbar{
+  height:44px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px; font-family:var(--mono); font-size:13px; color:var(--bone);
+}
+.statusbar .dots{display:flex; gap:5px; align-items:center;}
+.statusbar .dots i{width:5px; height:5px; border-radius:50%; background:var(--steel); display:block;}
+.statusbar .dots i.on{background:var(--bone);}
+
+/* ── подложка-экран (Входящие) ── */
+.scrim-screen{padding:0 18px;}
+.list-head{display:flex; align-items:baseline; justify-content:space-between; padding:6px 4px 16px;}
+.list-head h1{font-size:26px; font-weight:600; letter-spacing:-0.02em;}
+.list-head .count{font-family:var(--mono); font-size:13px; color:var(--steel);}
+.task-row{
+  background:var(--smoke); border-radius:12px; padding:13px 14px;
+  display:flex; align-items:center; gap:12px; margin-bottom:8px;
+  position:relative; overflow:hidden;
+  border-left:3px solid transparent;
+}
+/* фон строки = тинт ПРОЕКТА 0.13 (если проект задан) */
+.task-row.proj-health{background:rgba(91,141,239,0.13);}   /* Здоровье #5B8DEF */
+.task-row.proj-finance{background:rgba(201,162,75,0.13);}  /* Финансы #C9A24B */
+.task-row.proj-personal{background:rgba(155,140,203,0.13);}/* Планировщик/Личное #9B8CCB */
+/* полоса слева = ПРИОРИТЕТ */
+.task-row.p-high{border-left-color:var(--danger);}
+.task-row.p-med{border-left-color:var(--warning);}
+.task-row.p-low{border-left-color:var(--ember);}
+.chk{
+  width:22px; height:22px; border-radius:50%; border:1.5px solid var(--steel);
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+}
+.chk.done{background:var(--ember); border-color:var(--ember);}
+.chk.done svg{width:13px; height:13px;}
+.task-row .t-title{flex:1; font-size:15px;}
+.task-row.done-row .t-title{color:var(--steel); text-decoration:line-through;}
+.task-row .t-meta{font-family:var(--mono); font-size:11px; color:var(--steel);}
+
+/* ── scrim ── */
+.scrim{position:absolute; inset:0; background:rgba(0,0,0,0.5);}
+
+/* ── bottom-sheet (Sheet.tsx) ── */
+.sheet{
+  position:absolute; left:0; right:0; bottom:0;
+  background:var(--smoke); border-top:1px solid var(--hairline);
+  border-radius:20px 20px 0 0; padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  box-shadow:0 -10px 40px rgba(0,0,0,0.4);
+}
+.sheet .grab{width:36px; height:4px; border-radius:2px; background:var(--slate); margin:0 auto 14px;}
+
+/* ── composer ── */
+.input{
+  width:100%; background:transparent; border:none; outline:none;
+  color:var(--bone); font-family:var(--font); font-size:17px; font-weight:500;
+}
+.input::placeholder{color:var(--steel);}
+.input.area{font-size:15px; font-weight:400; line-height:1.45;}
+
+.qa-recognized{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+.qa-rec-chip{
+  font-family:var(--mono); font-size:11px; padding:3px 9px; border-radius:999px;
+  background:var(--slate); border:1px solid var(--hairline); color:var(--steel);
+}
+.qa-rec-chip.due{color:var(--ember); background:var(--ember-soft); border-color:transparent;}
+.qa-rec-chip.proj{color:#9B8CCB; background:rgba(155,140,203,0.16); border-color:transparent;}
+.qa-rec-chip.tag{color:var(--bone);}
+
+.divider{height:1px; background:var(--hairline); margin:14px 0;}
+
+.section-label{font-size:12px; color:var(--steel); font-weight:500; margin:14px 0 8px; letter-spacing:0.02em;}
+
+/* список подзадач: длинный чеклист скроллится, не режется (F10) */
+.sub-list{max-height:148px; overflow-y:auto;}
+.sub-row{display:flex; align-items:center; gap:10px; padding:6px 0;}
+.sub-row .sub-circle{
+  width:22px; height:22px; border-radius:50%; border:1.5px solid var(--steel); flex:0 0 auto;
+}
+.sub-row .sub-t{flex:1; font-size:14px;}
+.sub-row .sub-x{
+  width:24px; height:24px; border-radius:7px; border:none; background:transparent;
+  color:var(--steel); display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.sub-add{display:flex; gap:8px; align-items:center; margin-top:4px;}
+.sub-add .input{font-size:14px; font-weight:400;}
+.btn-plus{
+  width:34px; height:34px; border-radius:9px; border:1px solid var(--hairline);
+  background:var(--slate); color:var(--bone); font-size:18px; flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+
+/* ── composer-bar ── */
+.composer-bar{display:flex; align-items:center; gap:8px; margin-top:16px;}
+.cbar-btn{
+  height:34px; min-width:34px; padding:0 9px; border-radius:9px;
+  border:1px solid var(--hairline); background:var(--slate);
+  display:flex; align-items:center; gap:6px; cursor:pointer;
+  color:var(--steel);
+}
+.cbar-btn.has-val{background:var(--ember-soft); border-color:transparent; color:var(--ember);}
+.cbar-btn svg{width:18px; height:18px;}
+.cbar-txt{font-family:var(--mono); font-size:12px;}
+.cbar-send{
+  width:38px; height:38px; border-radius:10px; border:none; background:var(--ember);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 auto;
+}
+.cbar-send svg{width:20px; height:20px; stroke:#1a1209;}
+.cbar-send[disabled]{background:var(--slate); opacity:0.6;}
+.cbar-send[disabled] svg{stroke:var(--steel);}
+.spacer{flex:1;}
+
+/* ── DateSheet (alt) ── */
+.menu-head{font-size:16px; font-weight:600; margin-bottom:12px;}
+.seg{display:flex; gap:6px; margin-bottom:12px;}
+.seg button{
+  flex:1; height:38px; border-radius:9px; border:1px solid var(--hairline);
+  background:var(--slate); color:var(--steel); font-family:var(--font); font-size:13px; cursor:pointer;
+}
+.seg button.on{background:var(--ember-soft); border-color:transparent; color:var(--ember); font-weight:500;}
+.cal{background:var(--slate); border-radius:12px; padding:14px;}
+.cal-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:14px; font-weight:500;}
+.cal-head .nav{font-family:var(--mono); color:var(--steel); cursor:pointer;}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center;}
+.cal-grid .dow{font-family:var(--mono); font-size:10px; color:var(--steel); padding:4px 0;}
+.cal-grid .day{font-size:13px; padding:7px 0; border-radius:8px; color:var(--bone);}
+.cal-grid .day.muted{color:var(--steel); opacity:0.4;}
+.cal-grid .day.sel{background:var(--ember); color:#1a1209; font-weight:600;}
+.cal-grid .day.today{border:1px solid var(--hairline);}
+.opt-row{display:flex; align-items:center; gap:12px; padding:12px 2px; border-top:1px solid var(--hairline); font-size:14px;}
+.opt-row svg{width:18px; height:18px; stroke:var(--steel);}
+.opt-row .v{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--ember);}
+.btn-block{
+  width:100%; height:46px; border-radius:10px; border:none; background:var(--ember);
+  color:#1a1209; font-family:var(--font); font-size:15px; font-weight:600; margin-top:16px; cursor:pointer;
+}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<div class="cap"><span class="fcode">F01·A</span><b>F01 · TaskComposer</b> — полный ввод задачи (дата · приоритет · проект · теги · подзадачи)</div>
+
+<!-- ════ ОСНОВНОЙ ФРЕЙМ: composer развёрнут поверх scrim ════ -->
+<div class="phone">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+
+  <!-- подложка: экран Входящие -->
+  <div class="scrim-screen">
+    <div class="list-head">
+      <h1>Входящие</h1>
+      <span class="count">4 задачи</span>
+    </div>
+    <!-- проект Здоровье (тинт #5B8DEF.13) + приоритет high (полоса danger) -->
+    <div class="task-row proj-health p-high">
+      <div class="chk"></div>
+      <span class="t-title">Сдать анализы крови (ферритин, B12)</span>
+      <span class="t-meta">15 июн</span>
+    </div>
+    <!-- проект Финансы (тинт #C9A24B.13) + приоритет medium (полоса warning) -->
+    <div class="task-row proj-finance p-med">
+      <div class="chk"></div>
+      <span class="t-title">Созвон с бухгалтером по налогам</span>
+      <span class="t-meta">10:00</span>
+    </div>
+    <!-- проект Финансы, done -->
+    <div class="task-row proj-finance done-row">
+      <div class="chk done"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></div>
+      <span class="t-title">Оплатить Мультиспорт</span>
+    </div>
+    <!-- без проекта → фон --smoke, без приоритета → полоса прозрачная -->
+    <div class="task-row">
+      <div class="chk"></div>
+      <span class="t-title">Забрать посылку на почте</span>
+    </div>
+  </div>
+
+  <div class="scrim"></div>
+
+  <!-- bottom-sheet: TaskComposer (expanded) -->
+  <div class="sheet">
+    <div class="grab"></div>
+
+    <span class="ecode">A1</span>
+    <input class="input" value="Купить подарок маме ~Личное #покупки p1 завтра 18:00" readonly>
+
+    <!-- quickParse распознанные токены -->
+    <div class="qa-recognized">
+      <span class="qa-rec-chip due">завтра 18:00</span>
+      <span class="qa-rec-chip proj">~Личное</span>
+      <span class="qa-rec-chip tag">#покупки</span>
+      <span class="qa-rec-chip">высокий</span>
+    </div>
+
+    <!-- описание -->
+    <span class="ecode">A2</span>
+    <textarea class="input area" rows="2" style="margin-top:12px; resize:none;" readonly>Не забыть про цветы. Узнать размер по обуви.</textarea>
+
+    <!-- подзадачи -->
+    <div class="section-label">Подзадачи</div>
+    <div class="sub-list">
+      <div class="sub-row">
+        <span class="sub-circle"></span>
+        <span class="sub-t">Выбрать букет</span>
+        <button class="sub-x"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="sub-row">
+        <span class="sub-circle"></span>
+        <span class="sub-t">Заказать доставку</span>
+        <button class="sub-x"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+    </div>
+    <div class="sub-add">
+      <span class="ecode">A3</span>
+      <input class="input" placeholder="Добавить подзадачу..." readonly>
+      <button class="btn-plus">+</button>
+    </div>
+
+    <!-- composer-bar -->
+    <div class="composer-bar">
+      <!-- дата: задана -->
+      <button class="cbar-btn has-val">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+        <span class="cbar-txt">5 июн 18:00</span><span class="ecode">A4</span>
+      </button>
+      <!-- приоритет high (флаг залит red) -->
+      <button class="cbar-btn" style="position:relative;"><span class="ecode pin">A5</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FF5C5C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5" fill="#FF5C5C"/></svg>
+      </button>
+      <!-- проект -->
+      <button class="cbar-btn has-val">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7"/></svg>
+        <span class="cbar-txt">Личное</span><span class="ecode">A6</span>
+      </button>
+      <!-- теги: 1 -->
+      <button class="cbar-btn has-val">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.8L12 22l-8.6-8.2A5.5 5.5 0 0 1 12 5a5.5 5.5 0 0 1 8.6 8.8z"/><circle cx="15.5" cy="9" r="1.3"/></svg>
+        <span class="cbar-txt">1</span><span class="ecode">A7</span>
+      </button>
+      <!-- свернуть (expanded → IcoMore) -->
+      <button class="cbar-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <div class="spacer"></div>
+      <!-- send (active) -->
+      <button class="cbar-send" style="position:relative;"><span class="ecode pin">A8</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ ALT-ФРЕЙМ: DateSheet поверх свёрнутого composer ════ -->
+<div class="cap" style="margin-top:24px;"><span class="fcode">F01·B</span><b>ALT</b> — picker «date» открыт (DateSheet) · send disabled (пустой title)</div>
+
+<div class="phone" style="min-height:560px;">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+
+  <div class="scrim"></div>
+
+  <!-- DateSheet -->
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="menu-head">Дата</div>
+
+    <div class="seg">
+      <button>Сегодня</button>
+      <button class="on">Завтра<span class="ecode">B1</span></button>
+      <button>Через неделю</button>
+      <button>Дата</button>
+    </div>
+
+    <div class="cal">
+      <div class="cal-head">
+        <span class="nav">‹</span>
+        <span>Июнь 2026</span>
+        <span class="nav">›</span>
+      </div>
+      <div class="cal-grid">
+        <span class="dow">Пн</span><span class="dow">Вт</span><span class="dow">Ср</span><span class="dow">Чт</span><span class="dow">Пт</span><span class="dow">Сб</span><span class="dow">Вс</span>
+        <!-- 1 июня 2026 = понедельник → старт в колонке Пн -->
+        <span class="day">1</span><span class="day">2</span><span class="day">3</span><span class="day today">4</span><span class="day sel" style="position:relative;">5<span class="ecode pin">B2</span></span><span class="day">6</span><span class="day">7</span>
+        <span class="day">8</span><span class="day">9</span><span class="day">10</span><span class="day">11</span><span class="day">12</span><span class="day">13</span><span class="day">14</span>
+        <span class="day">15</span><span class="day">16</span><span class="day">17</span><span class="day">18</span><span class="day">19</span><span class="day">20</span><span class="day">21</span>
+        <span class="day">22</span><span class="day">23</span><span class="day">24</span><span class="day">25</span><span class="day">26</span><span class="day">27</span><span class="day">28</span>
+        <span class="day">29</span><span class="day">30</span><span class="day muted">1</span><span class="day muted">2</span><span class="day muted">3</span><span class="day muted">4</span><span class="day muted">5</span>
+      </div>
+    </div>
+
+    <div class="opt-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span>Время<span class="ecode">B3</span></span>
+      <span class="v">18:00</span>
+    </div>
+    <div class="opt-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span>Напоминание<span class="ecode">B4</span></span>
+      <span class="v" style="color:var(--steel);">нет</span>
+    </div>
+    <div class="opt-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a8 8 0 0 1 14-3l3 3M20 15a8 8 0 0 1-14 3l-3-3"/><path d="M21 3v6h-6M3 21v-6h6"/></svg>
+      <span>Повтор<span class="ecode">B5</span></span>
+      <span class="v" style="color:var(--steel);">нет</span>
+    </div>
+
+    <button class="btn-block">Применить<span class="ecode">B6</span></button>
+  </div>
+</div>
+
+</body>
+</html>

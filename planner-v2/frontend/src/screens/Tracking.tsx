@@ -203,24 +203,112 @@ function sparkPoints(vals: number[]): string {
   return vals.map((v, i) => `${(i * stepX).toFixed(1)},${(22 - ((v - min) / span) * 18).toFixed(1)}`).join(" ");
 }
 
+const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+function weekLabel(startISO: string, endISO: string): string {
+  const s = new Date(startISO + "T00:00:00"), e = new Date(endISO + "T00:00:00");
+  return `${s.getDate()}–${e.getDate()} ${MONTHS[e.getMonth()]}`;
+}
+
+function RingPct({ pct }: { pct: number }) {
+  const r = 20, circ = 2 * Math.PI * r;
+  const off = circ * (1 - Math.max(0, Math.min(1, pct)));
+  return (
+    <div style={{ position: "relative", width: 50, height: 50, flex: "0 0 auto" }}>
+      <svg width="50" height="50" viewBox="0 0 50 50" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="25" cy="25" r={r} fill="none" stroke="#2c2d31" strokeWidth="5" />
+        <circle cx="25" cy="25" r={r} fill="none" stroke="var(--accent)" strokeWidth="5" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={off} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent)" }}>
+        {Math.round(pct * 100)}%
+      </div>
+    </div>
+  );
+}
+
 function RetroView({ retro }: { retro: RetroOut | null }) {
+  const [odOpen, setOdOpen] = useState(true);
+  if (!retro) return <Empty text="Нет данных за неделю. Отмечай задачи и привычки." />;
+
+  const { tasks, habits } = retro;
+  const taskPct = tasks.planned ? tasks.done / tasks.planned : 0;
+  const habPct = habits.total_days ? habits.done_days / habits.total_days : 0;
+  const avg = habits.count ? (habits.done_days / 7).toFixed(1) : "0";
+  const weak = [...habits.items].sort((a, b) => a.week_done - b.week_done)[0];
+
   return (
     <>
-      <div className="trk-seclbl">Итог недели</div>
-      <button className="retro">
-        <span className="rl">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-            <path d="M4 19V9M9 19V5M14 19v-7M19 19V8" />
-          </svg>
-        </span>
-        <span className="rb">
-          <span className="rt">Ретро недели</span>
-          <span className="rs">{retro
-            ? <><b>{retro.done_days} / {retro.total_days} зачётов</b> · {retro.habits} привычек</>
-            : "нет данных, отмечай привычки"}</span>
-        </span>
-        <span className="rchev">›</span>
-      </button>
+      <div className="trk-seclbl">Итог недели · {weekLabel(retro.week_start, retro.week_end)}</div>
+
+      {/* ЗАДАЧИ */}
+      <div className="trk-seclbl" style={{ marginTop: 6 }}>Задачи</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 11 }}>
+        <RingPct pct={taskPct} />
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{tasks.done} / {tasks.planned} закрыто</div>
+          <div className="mono" style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>вклад в цели: +{tasks.impact_sum}%</div>
+        </div>
+      </div>
+      {tasks.by_project.length > 0 && (
+        <div className="hcard" style={{ padding: "2px 12px" }}>
+          {tasks.by_project.map((p, i) => (
+            <div key={p.project_id ?? "inbox"} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 0", borderBottom: i < tasks.by_project.length - 1 ? "1px solid var(--hairline)" : "none", fontSize: 13.5 }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: p.color }} />
+              <span style={{ flex: 1 }}>{p.name}</span>
+              <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12.5 }}><b style={{ color: "var(--text)" }}>{p.done}</b> / {p.total}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ПРОСРОЧЕНО — шторка */}
+      {tasks.overdue.length > 0 && (
+        <div className="hcard" style={{ padding: "2px 12px", marginTop: 9, borderColor: "rgba(255,92,92,.25)" }}>
+          <button onClick={() => setOdOpen((v) => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0 9px", color: "var(--red)", fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".4px" }}>
+            <span>Просрочено · {tasks.overdue.length}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ transform: odOpen ? "none" : "rotate(-90deg)", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+          {odOpen && tasks.overdue.map((o, i) => (
+            <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 0", borderTop: i === 0 ? "1px solid var(--hairline)" : "none", borderBottom: i < tasks.overdue.length - 1 ? "1px solid var(--hairline)" : "none", fontSize: 13.5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: o.color, flex: "0 0 auto" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.title}</div>
+                {o.project && <div className="mono" style={{ fontSize: 11, color: "var(--text-muted)" }}>{o.project}</div>}
+              </div>
+              <span className="mono" style={{ color: "var(--red)", fontWeight: 600, fontSize: 12, whiteSpace: "nowrap" }}>−{o.days_late} дн</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ПРИВЫЧКИ */}
+      <div className="trk-seclbl">Привычки</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 11 }}>
+        <RingPct pct={habPct} />
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{habits.done_days} / {habits.total_days} зачётов</div>
+          <div className="mono" style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{habits.count} привычки · ср. {avg}/день</div>
+        </div>
+      </div>
+      {habits.items.map((h) => (
+        <div key={h.id} className="hcard" style={{ ["--c" as string]: h.color, display: "flex", alignItems: "center", gap: 11 }}>
+          <span style={{ width: 4, alignSelf: "stretch", borderRadius: 3, background: h.color }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="hc-name">{h.name}</div>
+            <div className="wkrow" style={{ marginTop: 4 }}>
+              {h.week.map((on, i) => <i key={i} className={on ? "fill" : ""} style={{ ["--c" as string]: h.color }} />)}
+              <span className="wklbl">{h.week_done}/7</span>
+            </div>
+          </div>
+          {h.tag && <span className="imp" style={{ color: h.tag.startsWith("рекорд") ? "var(--accent)" : h.tag === "слабое" ? "var(--red)" : "#3FB68B" }}>{h.tag}</span>}
+        </div>
+      ))}
+
+      {/* ХАЙЛАЙТЫ */}
+      <div className="trk-seclbl">Хайлайты</div>
+      <div className="hcard" style={{ fontSize: 13, lineHeight: 1.5 }}>
+        {tasks.top_task && <div>★ <b>Двинул больше всего:</b> «{tasks.top_task.title}»{tasks.top_task.project ? ` (${tasks.top_task.project}, ${tasks.top_task.impact}%)` : ""}</div>}
+        {weak && <div style={{ color: "var(--text-muted)" }}>! <b style={{ color: "var(--text)" }}>Слабое место:</b> {weak.name} — {weak.week_done}/7</div>}
+      </div>
     </>
   );
 }

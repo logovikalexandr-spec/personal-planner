@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F04 · RecurrenceSheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  --accent:var(--ember);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#2a2a2e; min-height:100vh;
+  font-family:Geist, sans-serif; color:var(--bone);
+  display:flex; flex-direction:column; align-items:center;
+  gap:14px; padding:40px 20px 80px;
+}
+.mono{font-family:"Geist Mono", monospace}
+
+/* ── заголовок-плашка ── */
+.plate{
+  font-family:"Geist Mono", monospace; color:var(--steel);
+  font-size:13px; letter-spacing:.04em; text-align:center;
+  display:flex; gap:10px; align-items:baseline; justify-content:center;
+}
+.plate b{color:var(--ember); font-weight:500}
+.cap{
+  font-family:"Geist Mono", monospace; color:var(--steel);
+  font-size:11px; letter-spacing:.03em; margin-top:6px; text-align:center;
+}
+
+/* ── телефон-фрейм ── */
+.phone{
+  width:390px; min-height:844px; background:var(--onyx);
+  border-radius:28px; overflow:hidden; position:relative;
+  border:1px solid var(--hairline);
+  box-shadow:0 24px 60px rgba(0,0,0,.45);
+}
+.phone.alt{min-height:0}
+
+/* статусбар */
+.statusbar{
+  height:44px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px; font-size:14px;
+}
+.statusbar .t{font-family:"Geist Mono", monospace; font-weight:500}
+.statusbar .dots{display:flex; gap:5px}
+.statusbar .dots i{width:6px; height:6px; border-radius:50%; background:var(--steel); display:block}
+.statusbar .dots i:last-child{background:var(--bone)}
+
+/* ── подложка (затемнённый экран TaskDetail) ── */
+.screen{position:relative; height:800px}
+.bg-detail{padding:6px 18px 0; filter:saturate(.7)}
+.bg-topbar{display:flex; align-items:center; gap:14px; height:48px; color:var(--steel)}
+.bg-topbar svg{width:22px; height:22px}
+.bg-title{font-size:21px; font-weight:600; color:var(--bone); margin:10px 0 18px; line-height:1.25}
+.bg-row{
+  display:flex; align-items:center; gap:13px; padding:14px 0;
+  border-top:1px solid var(--hairline); color:var(--steel); font-size:15px;
+}
+.bg-row svg{width:20px; height:20px; flex:none}
+.bg-row .v{margin-left:auto; color:var(--bone); font-size:14px}
+.bg-row.hot{color:var(--ember)}
+.bg-row.hot .v{color:var(--ember)}
+
+.scrim{position:absolute; inset:0; background:rgba(0,0,0,0.5)}
+
+/* ── bottom-sheet ── */
+.sheet{
+  position:absolute; left:0; right:0; bottom:0;
+  background:var(--smoke); border-top-left-radius:20px; border-top-right-radius:20px;
+  padding:8px 16px calc(16px + env(safe-area-inset-bottom,0));
+  border-top:1px solid var(--hairline);
+}
+.sheet-grip{
+  width:38px; height:4px; border-radius:2px; background:var(--slate);
+  margin:6px auto 10px;
+}
+.sheet-head{display:flex; align-items:center; justify-content:space-between; padding:2px 2px 12px}
+.sheet-title{font-size:17px; font-weight:600}
+.sheet-done{
+  background:var(--ember); color:#1a1209; border:none; cursor:pointer;
+  font-family:inherit; font-size:14px; font-weight:600;
+  padding:8px 16px; border-radius:10px;
+}
+
+/* option-row (пресет / конец) */
+.opt-row{
+  width:100%; display:flex; align-items:center; gap:10px;
+  background:var(--smoke); border:none; cursor:pointer;
+  font-family:inherit; color:var(--bone); font-size:15px;
+  padding:13px 4px; text-align:left;
+  border-bottom:1px solid var(--hairline);
+}
+.opt-row:last-of-type{border-bottom:none}
+.opt-row.sel .opt-label{color:var(--ember); font-weight:500}
+.opt-label{flex:1}
+.opt-check{display:flex; color:var(--ember)}
+.opt-check svg{width:18px; height:18px}
+
+/* group label */
+.grp-label{
+  font-family:"Geist Mono", monospace; font-size:11px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--steel);
+  margin:18px 4px 8px;
+}
+
+/* stepper */
+.stepper-row{display:flex; align-items:center; gap:12px; padding:4px}
+.stepper-row .muted{color:var(--steel); font-size:14px}
+.stepper-btn{
+  width:36px; height:36px; border-radius:9px;
+  background:var(--slate); border:1px solid var(--hairline); cursor:pointer;
+  color:var(--bone); font-size:20px; line-height:1; font-family:inherit;
+  display:flex; align-items:center; justify-content:center;
+}
+.stepper-val{font-size:17px; font-weight:600; min-width:26px; text-align:center}
+
+/* weekday cells */
+.wd-row{display:flex; gap:7px; padding:10px 4px 2px}
+.wd-cell{
+  flex:1; height:40px; border-radius:10px; cursor:pointer;
+  background:var(--slate); border:1px solid var(--hairline);
+  color:var(--steel); font-family:inherit; font-size:13px; font-weight:500;
+}
+.wd-cell.on{
+  background:var(--ember-soft); border-color:transparent; color:var(--ember);
+}
+
+/* segmented (база) */
+.seg{
+  display:flex; gap:6px; background:var(--slate); border:1px solid var(--hairline);
+  border-radius:11px; padding:4px;
+}
+.seg button{
+  flex:1; padding:9px 8px; border:none; cursor:pointer; border-radius:8px;
+  background:transparent; color:var(--steel); font-family:inherit;
+  font-size:14px; font-weight:500;
+}
+.seg button.seg-on{background:var(--ember-soft); color:var(--ember)}
+
+/* end detail input */
+.end-detail{display:flex; align-items:center; gap:10px; padding:4px 4px 8px}
+.dr-input{
+  background:var(--slate); border:1px solid var(--hairline); border-radius:9px;
+  color:var(--bone); font-family:"Geist Mono", monospace; font-size:14px;
+  padding:9px 12px;
+}
+.end-detail .muted{color:var(--steel); font-size:14px}
+
+/* alt-фрейм sheet статичный (не absolute) */
+.alt .sheet{position:static; border-radius:0; padding-bottom:18px}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<!-- ───────── PRIMARY: weekly custom ───────── -->
+<div class="plate"><span class="fcode">F04·A</span><b>F04</b> · Повтор задачи — bottom-sheet (кастом «Каждую неделю»)</div>
+<div class="phone">
+  <div class="statusbar">
+    <span class="t">9:41</span>
+    <span class="dots"><i></i><i></i><i></i></span>
+  </div>
+
+  <div class="screen">
+    <!-- подложка: экран детали задачи -->
+    <div class="bg-detail">
+      <div class="bg-topbar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <div class="bg-title">Полить цветы и опрыскать монстеру</div>
+      <div class="bg-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+        <span>Дата</span><span class="v mono">Чт, 4 июн · 09:00</span>
+      </div>
+      <div class="bg-row hot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a8 8 0 0 1 14-3l3 3M20 15a8 8 0 0 1-14 3l-3-3"/><path d="M21 3v6h-6M3 21v-6h6"/></svg>
+        <span>Повтор</span><span class="v">Каждую неделю · Пн, Чт</span>
+      </div>
+      <div class="bg-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span>Напоминание</span><span class="v">За 30 мин</span>
+      </div>
+    </div>
+
+    <div class="scrim"></div>
+
+    <!-- bottom-sheet -->
+    <div class="sheet">
+      <div class="sheet-grip"></div>
+      <div class="sheet-head">
+        <span class="sheet-title">Повтор</span>
+        <button class="sheet-done">Готово<span class="ecode">A8</span></button>
+      </div>
+
+      <!-- пресеты -->
+      <button class="opt-row"><span class="opt-label">Не повторять</span></button>
+      <button class="opt-row"><span class="opt-label">Каждый день</span></button>
+      <button class="opt-row sel"><span class="opt-label">Каждую неделю<span class="ecode">A1</span></span><span class="opt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+      <button class="opt-row"><span class="opt-label">Каждый месяц</span></button>
+      <button class="opt-row"><span class="opt-label">Каждый год</span></button>
+
+      <!-- интервал -->
+      <div class="grp-label">Интервал</div>
+      <div class="stepper-row">
+        <span class="muted">Каждые</span>
+        <button class="stepper-btn">−</button>
+        <span class="stepper-val mono">2<span class="ecode">A2</span></span>
+        <button class="stepper-btn">+</button>
+        <span class="muted">нед.</span>
+      </div>
+
+      <!-- дни недели (weekly) -->
+      <div class="wd-row">
+        <button class="wd-cell on">Пн<span class="ecode">A3</span></button>
+        <button class="wd-cell">Вт</button>
+        <button class="wd-cell">Ср</button>
+        <button class="wd-cell on">Чт</button>
+        <button class="wd-cell">Пт</button>
+        <button class="wd-cell">Сб</button>
+        <button class="wd-cell">Вс</button>
+      </div>
+
+      <!-- база -->
+      <div class="grp-label">База повтора</div>
+      <div class="seg">
+        <button class="seg-on">по плану<span class="ecode">A4</span></button>
+        <button>по выполн.</button>
+      </div>
+
+      <!-- конец -->
+      <div class="grp-label">Заканчивается</div>
+      <button class="opt-row"><span class="opt-label">Никогда<span class="ecode">A5</span></span></button>
+      <button class="opt-row sel"><span class="opt-label">В дату…<span class="ecode">A6</span></span><span class="opt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+      <div class="end-detail">
+        <span class="dr-input">2026-09-01<span class="ecode">A7</span></span>
+      </div>
+      <button class="opt-row"><span class="opt-label">После N раз…</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────── ALT: только пресеты (none / свёрнутый) ───────── -->
+<div class="plate" style="margin-top:26px"><span class="fcode">F04·B</span><b>F04 · alt</b> · «Не повторять» — кастом-блок скрыт</div>
+<div class="phone alt">
+  <div class="statusbar">
+    <span class="t">9:41</span>
+    <span class="dots"><i></i><i></i><i></i></span>
+  </div>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <span class="sheet-title">Повтор</span>
+      <button class="sheet-done">Готово</button>
+    </div>
+    <button class="opt-row sel"><span class="opt-label">Не повторять<span class="ecode">B1</span></span><span class="opt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+    <button class="opt-row"><span class="opt-label">Каждый день</span></button>
+    <button class="opt-row"><span class="opt-label">Каждую неделю</span></button>
+    <button class="opt-row"><span class="opt-label">Каждый месяц</span></button>
+    <button class="opt-row"><span class="opt-label">Каждый год</span></button>
+  </div>
+</div>
+<div class="cap">preset=none → isCustom=false → onApply(null)</div>
+
+<!-- ───────── ALT 2: monthly + count ───────── -->
+<div class="plate" style="margin-top:26px"><span class="fcode">F04·C</span><b>F04 · alt</b> · «Каждый месяц» + конец «После N раз»</div>
+<div class="phone alt">
+  <div class="statusbar">
+    <span class="t">9:41</span>
+    <span class="dots"><i></i><i></i><i></i></span>
+  </div>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <span class="sheet-title">Повтор</span>
+      <button class="sheet-done">Готово</button>
+    </div>
+    <button class="opt-row"><span class="opt-label">Не повторять</span></button>
+    <button class="opt-row"><span class="opt-label">Каждый день</span></button>
+    <button class="opt-row"><span class="opt-label">Каждую неделю</span></button>
+    <button class="opt-row sel"><span class="opt-label">Каждый месяц<span class="ecode">C1</span></span><span class="opt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+    <button class="opt-row"><span class="opt-label">Каждый год</span></button>
+
+    <div class="grp-label">Интервал</div>
+    <div class="stepper-row">
+      <span class="muted">Каждые</span>
+      <button class="stepper-btn">−</button>
+      <span class="stepper-val mono">1<span class="ecode">C2</span></span>
+      <button class="stepper-btn">+</button>
+      <span class="muted">мес.</span>
+    </div>
+
+    <div class="grp-label">База повтора</div>
+    <div class="seg">
+      <button>по плану</button>
+      <button class="seg-on">по выполн.<span class="ecode">C3</span></button>
+    </div>
+
+    <div class="grp-label">Заканчивается</div>
+    <button class="opt-row"><span class="opt-label">Никогда</span></button>
+    <button class="opt-row"><span class="opt-label">В дату…</span></button>
+    <button class="opt-row sel"><span class="opt-label">После N раз…<span class="ecode">C4</span></span><span class="opt-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></button>
+    <div class="end-detail">
+      <span class="dr-input" style="min-width:90px">12<span class="ecode">C5</span></span>
+      <span class="muted">раз</span>
+    </div>
+  </div>
+</div>
+<div class="cap">freq=monthly · base=completion · end.type=count (нет weekday-ряда для monthly)</div>
+
+</body>
+</html>

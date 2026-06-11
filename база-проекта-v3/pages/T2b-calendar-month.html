@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Календарь — Месяц</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --fin:#C9A24B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;color:var(--bone);display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .phone{width:390px;height:844px;background:var(--onyx);border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;font-weight:600;flex:0 0 auto}
+  .scroll{flex:1;overflow-y:auto;padding:6px 18px 100px}
+  .scroll::-webkit-scrollbar{display:none}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:2px}
+  .sub{color:var(--steel);font-size:13px;margin-bottom:16px}
+
+  /* сегментед */
+  .seg{display:flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:12px;padding:3px;margin-bottom:14px}
+  .seg button{flex:1;border:0;background:transparent;color:var(--steel);font-family:inherit;font-size:13px;font-weight:500;padding:8px 0;border-radius:9px;cursor:pointer}
+  .seg button.on{background:var(--slate);color:var(--bone);font-weight:600}
+
+  .monthrow{display:flex;align-items:center;justify-content:space-between;margin:0 2px 14px}
+  .monthrow .m{font-size:16px;font-weight:600}
+  .monthrow .nav{display:flex;gap:14px;color:var(--steel);font-size:18px}
+  .monthrow .nav span{cursor:pointer}
+
+  /* заголовки дней недели */
+  .dow{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:7px}
+  .dow div{text-align:center;font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.5px;color:var(--steel)}
+  .dow .we{color:#6c6d73}
+
+  /* месяц-сетка */
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .cell{aspect-ratio:1/1.18;background:var(--card);border:1px solid var(--hairline);border-radius:11px;padding:6px 5px 5px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .cell.out{background:transparent;border-color:transparent}
+  .cell.out .num{color:#46474c}
+  .num{font-size:13px;font-weight:600;line-height:1;margin-bottom:auto}
+  .cell.we .num{color:var(--steel)}
+  .cell.today{border-color:var(--ember);box-shadow:0 0 0 1px var(--ember)}
+  .cell.today .num{color:var(--ember)}
+
+  /* флажок-веха */
+  .flag{display:flex;align-items:center;gap:3px;margin-bottom:3px}
+  .flag svg{width:9px;height:9px;flex:0 0 auto;display:block}
+  .flag .ft{font-size:8.5px;line-height:1.05;color:var(--steel);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  /* точки задач */
+  .dots{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+  .pt{width:6px;height:6px;border-radius:50%}
+  .more{font-size:8.5px;color:var(--steel);font-family:"Geist Mono",monospace;margin-left:1px}
+
+  /* кнопка «Сегодня» в шапке месяца */
+  .today-btn{font-family:"Geist Mono",monospace;font-size:11px;color:var(--ember);border:1px solid rgba(238,138,60,.4);border-radius:8px;padding:4px 10px;background:var(--ember-soft)}
+  /* выбранный день (≠ сегодня): заливка + ember-кант */
+  .cell.sel{background:var(--ember-soft);border-color:var(--ember)}
+  .cell.sel.today{box-shadow:0 0 0 1px var(--ember)}
+
+  /* сводка вех месяца */
+  .mstrip{margin:14px 0 6px}
+  .mstrip .cap{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.4px;color:var(--steel);text-transform:uppercase;margin-bottom:7px}
+  .mchips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px}
+  .mchips::-webkit-scrollbar{display:none}
+  .mchip{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--hairline);border-radius:9px;padding:6px 9px;font-size:11.5px}
+  .mchip .dt{font-family:"Geist Mono",monospace;color:var(--steel);font-size:10.5px}
+  .mchip svg{width:10px;height:10px;flex:0 0 auto}
+
+  /* ПАНЕЛЬ ВЫБРАННОГО ДНЯ под сеткой */
+  .daypanel{margin-top:14px}
+  .dp-hdr{display:flex;align-items:baseline;gap:9px;margin:0 2px 9px}
+  .dp-hdr .d{font-size:15px;font-weight:700;color:var(--ember)}
+  .dp-hdr .cnt{font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .dp-task{display:flex;align-items:flex-start;gap:11px;background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:10px 12px;margin-bottom:7px;position:relative;overflow:hidden}
+  .dp-task::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c)}
+  .dp-cb{flex:0 0 auto;width:18px;height:18px;border-radius:50%;border:2px solid var(--c);margin-top:1px}
+  .dp-nm{font-size:14px;font-weight:500;line-height:1.3}
+  .dp-sub{display:flex;gap:8px;align-items:center;margin-top:4px;flex-wrap:wrap}
+  .dp-time{font-size:11.5px;color:var(--steel);font-family:"Geist Mono",monospace}
+  .dp-cant{font-size:10.5px;font-weight:600;font-family:"Geist Mono",monospace;padding:2px 7px;border-radius:6px}
+  .dp-empty{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:13px;color:var(--steel);font-style:italic}
+
+  /* мини-легенда точек */
+  .keys{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;background:var(--smoke);border:1px solid var(--hairline);border-radius:13px;padding:11px 12px;margin-top:14px}
+  .key{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--steel)}
+  .key .pt{width:8px;height:8px}
+
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:78px;background:var(--card);border-top:1px solid var(--hairline);display:grid;grid-template-columns:repeat(5,1fr);padding-bottom:14px}
+  .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:10px;color:var(--steel)}
+  .tab.active{color:var(--ember)}
+  .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8}
+
+  .legend{width:300px;font-size:13px;line-height:1.7}
+  .legend h2{font-size:16px;margin-bottom:10px}
+  .legend .row{margin-bottom:13px;padding-left:12px;border-left:2px solid var(--ember)}
+  .legend b{color:var(--ember)}
+  .legend .muted{color:#9a9aa2}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style></head>
+<body>
+
+<div class="phone">
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="scroll">
+    <h1><span class="fcode">T2b·A</span>Календарь · ↔ V2 P02</h1>
+    <div class="sub">Обзор спреда и дедлайнов по проектам.</div>
+
+    <div class="seg">
+      <button>Неделя</button>
+      <button class="on">Месяц<span class="ecode">A1</span></button>
+      <button>Лента</button>
+    </div>
+
+    <div class="monthrow">
+      <div class="m">Июнь 2026</div>
+      <div class="nav" style="position:relative"><span class="ecode pin">A2</span><button class="today-btn">Сегодня</button><span>‹</span><span>›</span></div>
+    </div>
+
+    <div class="dow">
+      <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div class="we">Сб</div><div class="we">Вс</div>
+    </div>
+
+    <div class="grid" style="position:relative"><span class="ecode pin">A3</span>
+      <!-- неделя 1: 1 июня = Пн -->
+      <div class="cell">
+        <div class="num">1</div>
+        <div class="dots"><span class="pt" style="background:var(--zima)"></span><span class="pt" style="background:var(--plan)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">2</div>
+        <div class="dots"><span class="pt" style="background:var(--health)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">3</div>
+        <div class="dots"><span class="pt" style="background:var(--zima)"></span><span class="pt" style="background:var(--fin)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">4</div>
+      </div>
+      <div class="cell">
+        <div class="num">5</div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span><span class="pt" style="background:var(--plan)"></span><span class="pt" style="background:var(--health)"></span></div>
+      </div>
+      <div class="cell we">
+        <div class="num">6</div>
+      </div>
+      <div class="cell we">
+        <div class="num">7</div>
+        <div class="dots"><span class="pt" style="background:var(--zima)"></span></div>
+      </div>
+
+      <!-- неделя 2 -->
+      <div class="cell">
+        <div class="num">8</div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span></div>
+      </div>
+      <div class="cell today"><span class="ecode pin">A4</span>
+        <div class="num">9</div>
+        <div class="dots"><span class="pt" style="background:var(--zima)"></span><span class="pt" style="background:var(--health)"></span><span class="pt" style="background:var(--plan)"></span><span class="more">+2</span></div>
+      </div>
+      <div class="cell">
+        <div class="num">10</div>
+        <div class="dots"><span class="pt" style="background:var(--fin)"></span></div>
+      </div>
+      <div class="cell sel">
+        <div class="num">11</div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span><span class="pt" style="background:var(--zima)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">12</div>
+        <div class="dots"><span class="pt" style="background:var(--health)"></span></div>
+      </div>
+      <div class="cell we">
+        <div class="num">13</div>
+      </div>
+      <div class="cell we">
+        <div class="num">14</div>
+        <div class="dots"><span class="pt" style="background:var(--zima)"></span></div>
+      </div>
+
+      <!-- неделя 3 -->
+      <div class="cell">
+        <div class="num">15</div>
+        <div class="flag"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#5B8DEF" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#5B8DEF"/></svg><span class="ft">Анализы</span><span class="ecode">A5</span></div>
+        <div class="dots"><span class="pt" style="background:var(--health)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">16</div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">17</div>
+        <div class="dots"><span class="pt" style="background:var(--fin)"></span><span class="pt" style="background:var(--plan)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">18</div>
+        <div class="dots"><span class="pt" style="background:var(--zima)"></span><span class="pt" style="background:var(--health)"></span><span class="pt" style="background:var(--plan)"></span><span class="more">+1</span></div>
+      </div>
+      <div class="cell">
+        <div class="num">19</div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span></div>
+      </div>
+      <div class="cell we">
+        <div class="num">20</div>
+      </div>
+      <div class="cell we">
+        <div class="num">21</div>
+        <div class="dots"><span class="pt" style="background:var(--health)"></span></div>
+      </div>
+
+      <!-- неделя 4 -->
+      <div class="cell">
+        <div class="num">22</div>
+        <div class="flag"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#5B8DEF" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#5B8DEF"/></svg><span class="ft">Протокол</span></div>
+        <div class="dots"><span class="pt" style="background:var(--health)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">23</div>
+        <div class="dots"><span class="pt" style="background:var(--zima)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">24</div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span><span class="pt" style="background:var(--fin)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">25</div>
+        <div class="dots"><span class="pt" style="background:var(--zima)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">26</div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span><span class="pt" style="background:var(--health)"></span></div>
+      </div>
+      <div class="cell we">
+        <div class="num">27</div>
+      </div>
+      <div class="cell we">
+        <div class="num">28</div>
+        <div class="dots"><span class="pt" style="background:var(--fin)"></span></div>
+      </div>
+
+      <!-- неделя 5 -->
+      <div class="cell">
+        <div class="num">29</div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span></div>
+      </div>
+      <div class="cell">
+        <div class="num">30</div>
+        <div class="flag"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#9B6BE0" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#9B6BE0"/></svg><span class="ft">v2 запуск</span></div>
+        <div class="dots"><span class="pt" style="background:var(--plan)"></span><span class="pt" style="background:var(--plan)"></span><span class="more">+3</span></div>
+      </div>
+      <div class="cell out"><div class="num">1</div></div>
+      <div class="cell out"><div class="num">2</div></div>
+      <div class="cell out"><div class="num">3</div></div>
+      <div class="cell out we"><div class="num">4</div></div>
+      <div class="cell out we"><div class="num">5</div></div>
+    </div>
+
+    <!-- СВОДКА ВЕХ МЕСЯЦА -->
+    <div class="mstrip">
+      <div class="cap">Вехи июня · 3</div>
+      <div class="mchips">
+        <div class="mchip"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#5B8DEF" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#5B8DEF"/></svg><span class="dt">15.06</span> Анализы</div>
+        <div class="mchip"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#5B8DEF" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#5B8DEF"/></svg><span class="dt">22.06</span> Протокол</div>
+        <div class="mchip"><svg viewBox="0 0 12 12"><path d="M2 1v10" stroke="#9B6BE0" stroke-width="1.4" fill="none"/><path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill="#9B6BE0"/></svg><span class="dt">30.06</span> v2 запуск</div>
+      </div>
+    </div>
+
+    <!-- ПАНЕЛЬ ВЫБРАННОГО ДНЯ (тап дня → список тут, не уходя с экрана) -->
+    <div class="daypanel">
+      <div class="dp-hdr"><span class="d">Ср 11 июня</span><span class="cnt">2 задачи</span></div>
+      <div class="dp-task" style="--c:var(--plan)">
+        <div class="dp-cb"></div>
+        <div><div class="dp-nm">Планёрка planner</div>
+          <div class="dp-sub"><span class="dp-time">10:00</span><span class="dp-cant" style="color:var(--plan);background:rgba(155,107,224,.13)">planner</span></div></div>
+      </div>
+      <div class="dp-task" style="--c:var(--zima)">
+        <div class="dp-cb"></div>
+        <div><div class="dp-nm">Юр.пакет ZIMA</div>
+          <div class="dp-sub"><span class="dp-cant" style="color:var(--zima);background:rgba(63,182,139,.13)">ZIMA</span><span class="dp-cant" style="color:var(--steel);background:var(--slate)">этап 4</span></div></div>
+      </div>
+    </div>
+
+    <div class="keys">
+      <div class="key"><span class="pt" style="background:var(--zima)"></span>ZIMA</div>
+      <div class="key"><span class="pt" style="background:var(--health)"></span>Здоровье</div>
+      <div class="key"><span class="pt" style="background:var(--plan)"></span>planner</div>
+      <div class="key"><span class="pt" style="background:var(--fin)"></span>Финансы</div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>Задачи</div>
+    <div class="tab active"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/></svg>Календарь</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 6h10M4 12h14M4 18h7"/></svg>Гант</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Цели</div>
+    <div class="tab"><svg viewBox="0 0 24 24"><path d="M4 19V9M9 19V5M14 19v-7M19 19V8"/></svg>Привычки</div>
+  </div>
+</div>
+
+<div class="legend">
+  <h2><span class="fcode">T2b·B</span>Наполнение «Календарь — Месяц» · ↔ V2 P02</h2>
+  <div class="row"><b>Месяц = обзор</b> спреда и дедлайнов проектов/этапов. Видишь, где густо, где пусто, где вехи. <span class="muted">Это не планирование — планируешь в «Неделе».</span></div>
+  <div class="row"><b>Точки</b> = задачи по проектам (цвет = проект). До 3 точек в ячейке, дальше <b>+N</b> (переполнение).</div>
+  <div class="row"><b>Флажки</b> = вехи/дедлайны этапов (флажок цвета проекта + мелкая подпись): 15.06 анализы, 22.06 протокол, 30.06 запуск v2.</div>
+  <div class="row"><b>Сегодня (9)</b> — ember-кольцо. <b>Тап дня</b> → «Задачи» на эту дату.</div>
+  <div class="row muted">Не дублирует «Задачи (день)»: тут только обзор-спред, детальный список задач — в «Задачах».</div>
+</div>
+
+</body></html>

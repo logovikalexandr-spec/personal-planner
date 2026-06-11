@@ -368,3 +368,41 @@ async def on_archive_callback(update, context):
     await actions.log(action_type="move", author_id=user["Id"],
                       inbox_id=item_id, user_decision="archived")
     await q.edit_message_text(f"🗑 #{item_id} архив")
+
+
+async def on_open_callback(update: Update,
+                           context: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    await q.answer()
+    item_id = int(q.data.split(":", 1)[1])
+    users = context.bot_data["users_repo"]
+    user = await users.get_by_telegram_id(q.from_user.id)
+    if user is None:
+        await q.edit_message_text("Доступа нет.")
+        return
+    inbox = context.bot_data["inbox_repo"]
+    item = await inbox.get(item_id)
+    if item is None:
+        await q.edit_message_text("Item не найден.")
+        return
+    status = item.get("status", "new")
+    title = item.get("title") or "(без названия)"
+    body = item.get("summary") or (item.get("raw_content") or "")[:300]
+    text = f"#{item_id} {title}\n{body}"
+    if status == "processed":
+        kb = _processed_keyboard(item_id)
+    elif status == "archived":
+        kb = InlineKeyboardMarkup([[
+            InlineKeyboardButton("🔄 Восстановить",
+                                 callback_data=f"reclassify:{item_id}"),
+        ]])
+    else:
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("📥 Обработать",
+                                  callback_data=f"process:{item_id}")],
+            [InlineKeyboardButton("✏️ Иначе",
+                                  callback_data=f"clarify:{item_id}"),
+             InlineKeyboardButton("🗑 Архив",
+                                  callback_data=f"archive:{item_id}")],
+        ])
+    await q.edit_message_text(text, reply_markup=kb)

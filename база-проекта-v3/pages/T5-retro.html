@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T5 Ретро недели — задачи + привычки</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.13);
+    --danger:#FF5C5C; --warning:#FFB02E; --hairline:rgba(255,255,255,.07);
+    --zima:#3FB68B; --health:#5B8DEF; --plan:#9B6BE0; --fin:#E0B15B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#202024;display:flex;justify-content:center;padding:26px;font-family:Geist,sans-serif}
+  .phone{width:390px;background:var(--onyx);color:var(--bone);border-radius:26px;overflow:hidden;padding:20px 16px 24px;-webkit-font-smoothing:antialiased}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  .seg{display:flex;background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:3px;margin:14px 0 18px}
+  .seg i{flex:1;text-align:center;font-style:normal;font-size:13px;font-weight:600;color:var(--steel);padding:8px 0;border-radius:9px}
+  .seg i.on{background:var(--slate);color:var(--bone)}
+  .lbl{font-family:"Geist Mono";font-size:10.5px;color:var(--steel);text-transform:uppercase;letter-spacing:.5px;margin:18px 2px 9px;display:flex;align-items:center;gap:8px}
+
+  /* сводка-голова домена (ring + N/M) */
+  .head{display:flex;align-items:center;gap:13px;margin-bottom:11px}
+  .ring{flex:0 0 auto;width:50px;height:50px;position:relative}
+  .ring svg{transform:rotate(-90deg)}
+  .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:"Geist Mono";color:var(--ember)}
+  .head .v{font-size:19px;font-weight:700}
+  .head .k{font-size:11px;color:var(--steel);font-family:"Geist Mono";margin-top:2px}
+
+  .card{background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:4px 12px}
+  .prow{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13.5px}
+  .prow:last-child{border:none}
+  .prow .dot{width:9px;height:9px;border-radius:50%;background:var(--c)}
+  .prow .nm{flex:1}
+  .prow .ct{font-family:"Geist Mono";font-size:12.5px;color:var(--steel)}
+  .prow .ct b{color:var(--bone)}
+  .foot{font-size:12px;color:var(--steel);font-family:"Geist Mono";padding:9px 2px 2px}
+  .foot b{color:var(--ember)}
+
+  /* просрочено-список */
+  .od{background:var(--card);border:1px solid rgba(255,92,92,.25);border-radius:12px;padding:4px 12px;margin-top:9px}
+  .odh{width:100%;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-family:"Geist Mono";font-size:11px;color:var(--danger);text-transform:uppercase;letter-spacing:.4px;padding:11px 0 9px;border-bottom:1px solid var(--hairline)}
+  .odchev{color:var(--danger);transition:transform .2s ease}
+  .od.closed .odchev{transform:rotate(-90deg)}
+  .od.closed .odh{border-bottom:none}
+  .odlist{overflow:hidden;max-height:200px;transition:max-height .22s ease}
+  .od.closed .odlist{max-height:0}
+  .odrow{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--hairline);font-size:13.5px}
+  .odrow:last-child{border:none}
+  .odrow .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+  .odrow .nm{flex:1}
+  .odrow .nm .pj{font-size:11px;color:var(--steel);font-family:"Geist Mono"}
+  .odrow .late{font-family:"Geist Mono";font-size:12px;color:var(--danger);font-weight:600;white-space:nowrap}
+
+  /* привычки разбор */
+  .hrow{display:flex;align-items:center;gap:11px;background:var(--card);border:1px solid var(--hairline);border-radius:12px;padding:11px 12px;margin-bottom:8px}
+  .hrow .c{width:4px;align-self:stretch;border-radius:3px;background:var(--c)}
+  .hrow .nm{flex:1;min-width:0}
+  .hrow .nm .n{font-size:14px;font-weight:600}
+  .hrow .nm .m{font-size:11.5px;color:var(--steel);font-family:"Geist Mono";margin-top:3px;display:flex;align-items:center;gap:5px}
+  .dots{display:flex;gap:3px}
+  .dots i{width:9px;height:9px;border-radius:50%;background:var(--slate)}
+  .dots i.on{background:var(--c)}
+  .tag{font-size:10px;font-family:"Geist Mono";padding:2px 7px;border-radius:6px;white-space:nowrap}
+  .tag.rec{background:rgba(238,138,60,.15);color:var(--ember)}
+  .tag.win{background:rgba(63,182,139,.15);color:var(--zima)}
+  .tag.bad{background:rgba(255,92,92,.13);color:var(--danger)}
+
+  .mrow{display:flex;align-items:center;justify-content:space-between;padding:10px 4px;border-bottom:1px solid var(--hairline);font-size:13.5px}
+  .mrow:last-child{border:none}
+  .mrow .d{font-family:"Geist Mono";font-weight:600}
+  .good{color:var(--zima)}
+
+  .hl .h{display:flex;align-items:flex-start;gap:9px;font-size:13px;padding:5px 0}
+  .hl .h .ic{flex:0 0 auto;width:18px;height:18px;color:var(--ember)}
+  .hl .h.bad .ic{color:var(--danger)}
+  .ai{display:flex;gap:10px;background:var(--ember-soft);border:1px solid rgba(238,138,60,.2);border-radius:12px;padding:12px;margin-top:8px;font-size:12.5px;color:var(--steel)}
+  .ai b{color:var(--bone)}
+</style></head>
+<body>
+<div class="phone">
+  <h1>Привычки</h1>
+  <div class="seg"><i>Привычки</i><i>Метрики</i><i class="on">Ретро</i></div>
+
+  <div class="lbl">Итог недели · 8–14 июня</div>
+
+  <!-- ЗАДАЧИ -->
+  <div class="lbl" style="margin-top:4px">Задачи</div>
+  <div class="head">
+    <div class="ring"><svg width="50" height="50" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke="#2c2d31" stroke-width="5"/><circle cx="25" cy="25" r="20" fill="none" stroke="var(--ember)" stroke-width="5" stroke-linecap="round" stroke-dasharray="126" stroke-dashoffset="42"/></svg><b>67%</b></div>
+    <div><div class="v">12 / 18 закрыто</div><div class="k">вклад в цели: +185%</div></div>
+  </div>
+  <div class="card">
+    <div class="prow"><span class="dot" style="--c:var(--zima)"></span><span class="nm">ZIMA</span><span class="ct"><b>5</b> / 7</span></div>
+    <div class="prow"><span class="dot" style="--c:var(--health)"></span><span class="nm">Здоровье</span><span class="ct"><b>4</b> / 5</span></div>
+    <div class="prow"><span class="dot" style="--c:var(--fin)"></span><span class="nm">Финансы</span><span class="ct"><b>3</b> / 4</span></div>
+    <div class="prow"><span class="dot" style="--c:var(--plan)"></span><span class="nm">Планировщик</span><span class="ct"><b>0</b> / 2</span></div>
+  </div>
+
+  <div class="od" id="od">
+    <button class="odh" onclick="document.getElementById('od').classList.toggle('closed')">
+      <span>Просрочено · 2</span>
+      <svg class="odchev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="odlist">
+      <div class="odrow"><span class="dot" style="--c:var(--fin)"></span><div class="nm">Оплатить аренду<div class="pj">Финансы</div></div><span class="late">−3 дня</span></div>
+      <div class="odrow"><span class="dot" style="--c:var(--zima)"></span><div class="nm">Позвонить юристу<div class="pj">ZIMA</div></div><span class="late">−1 день</span></div>
+    </div>
+  </div>
+
+  <!-- ПРИВЫЧКИ (сводка переехала сюда) -->
+  <div class="lbl">Привычки</div>
+  <div class="head">
+    <div class="ring"><svg width="50" height="50" viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke="#2c2d31" stroke-width="5"/><circle cx="25" cy="25" r="20" fill="none" stroke="var(--ember)" stroke-width="5" stroke-linecap="round" stroke-dasharray="126" stroke-dashoffset="42"/></svg><b>67%</b></div>
+    <div><div class="v">14 / 21 зачётов</div><div class="k">3 привычки · ср. 4.7/день</div></div>
+  </div>
+  <div class="hrow" style="--c:var(--health)"><span class="c"></span><div class="nm"><div class="n">Зарядка + валик</div>
+    <div class="m"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span> 5/7</div></div><span class="tag rec">рекорд 12</span></div>
+  <div class="hrow" style="--c:var(--zima)"><span class="c"></span><div class="nm"><div class="n">Без травы</div>
+    <div class="m"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span> 7/7</div></div><span class="tag win">цель близко</span></div>
+  <div class="hrow" style="--c:var(--zima)"><span class="c"></span><div class="nm"><div class="n">Вода 2л</div>
+    <div class="m"><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i class="on"></i><i></i><i></i></span> 4/7</div></div><span class="tag bad">слабое</span></div>
+
+  <div class="lbl">Метрики недели</div>
+  <div class="card">
+    <div class="mrow"><span>Вес <span style="color:var(--steel);font-size:11px">· цель ↑ масса</span></span><span class="d good">▲ 0.7 кг</span></div>
+    <div class="mrow"><span>Сон</span><span class="d good">▲ 0.8 ч</span></div>
+  </div>
+
+  <div class="lbl">Хайлайты</div>
+  <div class="card" style="padding:8px 12px">
+    <div style="display:flex;gap:9px;padding:5px 0;font-size:13px"><svg style="width:18px;height:18px;color:var(--ember);flex:0 0 auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><span><b>Двинул больше всего:</b> «Согласовать цену» (ZIMA, вклад 80%)</span></div>
+    <div style="display:flex;gap:9px;padding:5px 0;font-size:13px"><svg style="width:18px;height:18px;color:var(--ember);flex:0 0 auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3v4M3 5h4M13 3l2.5 6.5L22 12l-6.5 2.5L13 21l-2.5-6.5L4 12l6.5-2.5z"/></svg><span><b>Рекорд стрика:</b> Зарядка — 12 дней</span></div>
+    <div style="display:flex;gap:9px;padding:5px 0;font-size:13px"><svg style="width:18px;height:18px;color:var(--danger);flex:0 0 auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg><span><b>Слабое место:</b> Планировщик 0/2 · Вода 4/7</span></div>
+  </div>
+
+  <div class="ai"><svg width="16" height="16" style="flex:0 0 auto" viewBox="0 0 24 24" fill="var(--ember)"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>
+    <span><b>Заметка ассистента:</b> появится после разбора недели в чате (Claude). Напр. «Планировщик встал — вынеси 1 задачу на понедельник утром».</span></div>
+</div>
+</body></html>

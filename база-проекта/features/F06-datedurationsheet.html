@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F06 — DateDurationSheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --accent:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+  --font:Geist, sans-serif;
+  --mono:"Geist Mono", monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:#2a2a2e; color:var(--bone);
+  font-family:var(--font); -webkit-font-smoothing:antialiased;
+  display:flex; flex-direction:column; align-items:center; gap:14px; padding:32px 16px 64px;
+}
+.mono{font-family:var(--mono);}
+.cap{font-family:var(--mono); color:var(--steel); font-size:12px; letter-spacing:0.4px;}
+.plate{
+  font-family:var(--mono); color:var(--steel); font-size:13px; letter-spacing:0.6px;
+  margin-bottom:2px; text-align:center;
+}
+.plate b{color:var(--bone); font-weight:600;}
+
+/* phone frame */
+.phone{
+  position:relative; width:390px; min-height:844px; background:var(--onyx);
+  border-radius:28px; overflow:hidden; border:1px solid var(--hairline);
+  box-shadow:0 24px 60px rgba(0,0,0,0.5);
+}
+.phone.short{min-height:560px;}
+.statusbar{
+  height:44px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px; font-family:var(--mono); font-size:14px; color:var(--bone);
+}
+.statusbar .dots{display:flex; gap:5px; align-items:center;}
+.statusbar .dots i{width:6px; height:6px; border-radius:50%; background:var(--steel); display:block;}
+.statusbar .dots i.on{background:var(--bone);}
+
+/* underlying screen (TaskDetail-ish) dimmed */
+.screen{padding:8px 16px 0;}
+.scr-top{display:flex; align-items:center; gap:14px; padding:8px 0 16px; color:var(--steel);}
+.scr-top svg{width:22px; height:22px;}
+.scr-title{font-size:22px; font-weight:700; color:var(--bone); letter-spacing:-0.4px; margin:4px 0 18px; line-height:1.25;}
+/* task card on backdrop = project tint 0.13 + priority left-bar */
+.scr-task{
+  background:rgba(201,162,75,0.13); border-left:3px solid var(--danger);
+  border-radius:10px; padding:12px 14px; margin:4px 0 18px;
+}
+.scr-task .scr-title{margin:0; font-size:18px;}
+.scr-row{
+  display:flex; align-items:center; gap:12px; padding:14px 4px;
+  border-top:1px solid var(--hairline); color:var(--bone); font-size:15px;
+}
+.scr-row .g{color:var(--steel); display:inline-flex;}
+.scr-row .g svg{width:20px; height:20px;}
+.scr-row .v{margin-left:auto; color:var(--steel); font-size:14px;}
+.scr-row .v.on{color:var(--ember);}
+
+/* scrim + sheet */
+.scrim{position:absolute; inset:0; background:rgba(0,0,0,0.5);}
+.sheet{
+  position:absolute; left:0; right:0; bottom:0; background:var(--smoke);
+  border-radius:20px 20px 0 0; padding:20px 16px 28px;
+  display:flex; flex-direction:column; gap:14px;
+}
+.sheet-grip{width:40px; height:4px; border-radius:2px; background:rgba(255,255,255,0.12); margin:0 auto 8px;}
+.sheet-head{display:flex; align-items:center; padding:0 4px 6px;}
+.sheet-title{font-size:17px; font-weight:600;}
+.sheet-done{margin-left:auto; border:none; background:none; color:var(--ember); font-weight:600; font-size:15px; cursor:pointer; padding:6px 4px;}
+
+/* segmented */
+.seg{display:flex; background:var(--slate); border-radius:999px; padding:3px; margin-bottom:4px;}
+.seg button{flex:1; border:none; background:none; color:var(--steel); font-size:15px; font-weight:600; padding:8px; border-radius:999px; cursor:pointer; font-family:var(--font);}
+.seg .seg-on{background:var(--smoke); color:var(--bone); box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+
+/* mini calendar */
+.cal-mini-head{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+.cal-nav{width:38px; height:38px; border-radius:50%; border:none; background:var(--slate); color:var(--bone); font-size:18px; cursor:pointer; flex:0 0 auto; display:flex; align-items:center; justify-content:center;}
+.cal-month{flex:1; text-align:center; font-weight:600; text-transform:capitalize;}
+.cal-mini{display:grid; grid-template-columns:repeat(7,1fr); gap:2px;}
+.cal-mini-wd{text-align:center; font-size:11px; color:var(--steel); padding:4px 0;}
+.cal-mini-day{aspect-ratio:1; border:none; background:none; color:var(--bone); border-radius:50%; cursor:pointer; font-size:15px; font-family:var(--mono); display:flex; align-items:center; justify-content:center;}
+.cal-mini-day.today{color:var(--ember); font-weight:700;}
+.cal-mini-day.sel{background:var(--ember); color:#1a1209; font-weight:700;}
+.cal-mini-day.empty{visibility:hidden;}
+
+/* rows */
+.dr-row{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 4px; border-top:1px solid var(--hairline);}
+.dr-label{display:flex; align-items:center; gap:10px;}
+.dr-input{background:var(--slate); color:var(--bone); border:none; border-radius:8px; padding:8px 10px; font-size:15px; font-family:var(--font); min-width:110px;}
+.dd-glyph{display:inline-flex; color:var(--steel); flex:0 0 auto;}
+.dd-glyph svg{width:20px; height:20px;}
+
+/* toggle */
+.toggle{border:none; cursor:pointer; flex:0 0 auto; width:44px; height:26px; border-radius:13px; background:var(--ember); position:relative;}
+.toggle::after{content:""; position:absolute; width:20px; height:20px; border-radius:50%; background:#fff; top:3px; right:3px;}
+.toggle.off{background:var(--slate);}
+.toggle.off::after{right:auto; left:3px;}
+
+/* dd-entry */
+.dd-entry{display:flex; align-items:center; gap:14px; width:100%; border:none; background:none; color:var(--bone); font-size:15px; padding:13px 4px; cursor:pointer; text-align:left; border-top:1px solid var(--hairline); font-family:var(--font);}
+.dd-entry-label{flex:1 1 auto;}
+.dd-entry-val{color:var(--steel); font-size:14px;}
+.dd-entry-val.active{color:var(--ember);}
+.dd-entry-chev{display:inline-flex; color:var(--steel);}
+.dd-entry-chev svg{width:16px; height:16px;}
+
+/* chips (duration) */
+.row{display:flex;}
+.btn-chip{background:var(--slate); color:var(--bone); border:1px solid var(--hairline); border-radius:999px; padding:11px 16px; min-height:44px; font-size:14px; font-weight:500; cursor:pointer; font-family:var(--font);}
+.btn-chip.active{background:var(--ember-soft); color:var(--ember); border-color:transparent;}
+.btn-chip:disabled{opacity:0.4; cursor:default;}
+.muted{color:var(--steel); font-size:14px;}
+
+.spacer{height:24px;}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<div class="plate"><b>F06</b> · DateDurationSheet — выбор даты, времени и длительности</div>
+
+<!-- MAIN: вкладка «Дата» открыта -->
+<div class="phone">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+
+  <!-- подложка: экран детали задачи -->
+  <div class="screen">
+    <div class="scr-top">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </div>
+    <div class="scr-task"><div class="scr-title">Подготовить квартальный отчёт по налогам</div></div>
+    <div class="scr-row">
+      <span class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span>
+      <span>Дата и время</span>
+      <span class="v on">9 июн, 11:00</span>
+    </div>
+    <div class="scr-row">
+      <span class="g"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7"/></svg></span>
+      <span>Проект</span>
+      <span class="v" style="color:#C9A24B;">Финансы</span>
+    </div>
+  </div>
+
+  <!-- scrim + sheet -->
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <span class="sheet-title">Дата и время</span>
+      <button class="sheet-done">Готово<span class="ecode">A1</span></button>
+    </div>
+
+    <div class="seg">
+      <button class="seg-on">Дата<span class="ecode">A2</span></button>
+      <button>Длительность<span class="ecode">A3</span></button>
+    </div>
+
+    <div class="cal-mini-head">
+      <button class="cal-nav" style="position:relative;">‹<span class="ecode pin">A4</span></button>
+      <span class="cal-month">июнь 2026</span>
+      <button class="cal-nav" style="position:relative;">›<span class="ecode pin">A5</span></button>
+    </div>
+    <div class="cal-mini">
+      <div class="cal-mini-wd">Пн</div><div class="cal-mini-wd">Вт</div><div class="cal-mini-wd">Ср</div><div class="cal-mini-wd">Чт</div><div class="cal-mini-wd">Пт</div><div class="cal-mini-wd">Сб</div><div class="cal-mini-wd">Вс</div>
+      <button class="cal-mini-day">1</button>
+      <button class="cal-mini-day">2</button>
+      <button class="cal-mini-day">3</button>
+      <button class="cal-mini-day today">4</button>
+      <button class="cal-mini-day">5</button>
+      <button class="cal-mini-day">6</button>
+      <button class="cal-mini-day">7</button>
+      <button class="cal-mini-day">8</button>
+      <button class="cal-mini-day sel">9</button>
+      <button class="cal-mini-day">10</button>
+      <button class="cal-mini-day">11</button>
+      <button class="cal-mini-day">12</button>
+      <button class="cal-mini-day">13</button>
+      <button class="cal-mini-day">14</button>
+      <button class="cal-mini-day">15</button>
+      <button class="cal-mini-day">16</button>
+      <button class="cal-mini-day">17</button>
+      <button class="cal-mini-day">18</button>
+      <button class="cal-mini-day">19</button>
+      <button class="cal-mini-day">20</button>
+      <button class="cal-mini-day">21</button>
+      <button class="cal-mini-day">22</button>
+      <button class="cal-mini-day">23</button>
+      <button class="cal-mini-day">24</button>
+      <button class="cal-mini-day">25</button>
+      <button class="cal-mini-day">26</button>
+      <button class="cal-mini-day">27</button>
+      <button class="cal-mini-day">28</button>
+      <button class="cal-mini-day">29</button>
+      <button class="cal-mini-day">30</button>
+    </div>
+
+    <!-- Время (не all-day) -->
+    <div class="dr-row">
+      <span class="dr-label">
+        <span class="dd-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+        Время<span class="ecode">A6</span>
+      </span>
+      <input type="time" class="dr-input" value="11:00">
+    </div>
+
+    <!-- Весь день -->
+    <div class="dr-row">
+      <span>Весь день</span>
+      <button class="toggle off" role="switch" aria-checked="false" aria-label="Весь день"></button>
+    </div>
+
+    <!-- Повтор -->
+    <button class="dd-entry">
+      <span class="dd-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a8 8 0 0 1 14-3l3 3M20 15a8 8 0 0 1-14 3l-3-3"/><path d="M21 3v6h-6M3 21v-6h6"/></svg></span>
+      <span class="dd-entry-label">Повтор<span class="ecode">A7</span></span>
+      <span class="dd-entry-val mono active">Каждый месяц</span>
+      <span class="dd-entry-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+
+    <!-- Напоминание -->
+    <button class="dd-entry">
+      <span class="dd-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+      <span class="dd-entry-label">Напоминание<span class="ecode">A8</span></span>
+      <span class="dd-entry-val mono active">за 1 ч.</span>
+      <span class="dd-entry-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+    </button>
+  </div>
+</div>
+
+<div class="cap"><span class="fcode">F06·A</span>состояние: вкладка «Дата» — выбран 9 июня, время 11:00, повтор/напоминание заданы</div>
+
+<div class="spacer"></div>
+
+<!-- ALT: вкладка «Длительность» открыта, чип активен -->
+<div class="plate"><b>F06</b> · alt — вкладка «Длительность»</div>
+<div class="phone short">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+  <div class="screen" style="opacity:0.25;">
+    <div class="scr-task" style="margin-top:40px;"><div class="scr-title">Подготовить квартальный отчёт по налогам</div></div>
+  </div>
+
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <span class="sheet-title">Дата и время</span>
+      <button class="sheet-done">Готово<span class="ecode">B1</span></button>
+    </div>
+
+    <div class="seg">
+      <button>Дата<span class="ecode">B2</span></button>
+      <button class="seg-on">Длительность<span class="ecode">B3</span></button>
+    </div>
+
+    <div class="muted" style="margin-bottom:12px;">Начало 11:00. Выбери длительность:</div>
+    <div class="row" style="flex-wrap:wrap; gap:8px;">
+      <button class="btn-chip">15 мин<span class="ecode">B4</span></button>
+      <button class="btn-chip">30 мин<span class="ecode">B5</span></button>
+      <button class="btn-chip">1 ч<span class="ecode">B6</span></button>
+      <button class="btn-chip active">1.5 ч<span class="ecode">B7</span></button>
+      <button class="btn-chip">2 ч<span class="ecode">B8</span></button>
+    </div>
+    <div class="muted" style="margin-top:12px;">Конец: 12:30</div>
+  </div>
+</div>
+
+<div class="cap"><span class="fcode">F06·B</span>состояние: вкладка «Длительность» — начало 11:00, выбран чип 1.5 ч → конец 12:30</div>
+
+<div class="spacer"></div>
+
+<!-- ALT 2: длительность недоступна (all-day / нет времени) -->
+<div class="plate"><b>F06</b> · alt — длительность недоступна (нет времени начала)</div>
+<div class="phone short">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="dots"><i class="on"></i><i class="on"></i><i></i></span>
+  </div>
+  <div class="screen" style="opacity:0.25;">
+    <div class="scr-task" style="margin-top:40px; background:rgba(155,140,203,0.13); border-left-color:var(--ember);"><div class="scr-title">Прочитать книгу по системному дизайну</div></div>
+  </div>
+
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <span class="sheet-title">Дата и время</span>
+      <button class="sheet-done">Готово<span class="ecode">C1</span></button>
+    </div>
+
+    <div class="seg">
+      <button>Дата<span class="ecode">C2</span></button>
+      <button class="seg-on">Длительность<span class="ecode">C3</span></button>
+    </div>
+
+    <div class="muted" style="margin-bottom:12px;">Сначала задай время начала на вкладке «Дата».</div>
+    <div class="row" style="flex-wrap:wrap; gap:8px;">
+      <button class="btn-chip" disabled>15 мин<span class="ecode">C4</span></button>
+      <button class="btn-chip" disabled>30 мин<span class="ecode">C5</span></button>
+      <button class="btn-chip" disabled>1 ч<span class="ecode">C6</span></button>
+      <button class="btn-chip" disabled>1.5 ч<span class="ecode">C7</span></button>
+      <button class="btn-chip" disabled>2 ч<span class="ecode">C8</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="cap"><span class="fcode">F06·C</span>состояние: чипы длительности disabled — время начала не задано</div>
+
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F14 · BottomTabs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+  --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C;
+  --ember-soft:rgba(238,138,60,0.16); --danger:#FF5C5C; --warning:#FFB02E;
+  --hairline:rgba(255,255,255,0.07);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:#2a2a2e; min-height:100vh;
+  font-family:Geist, sans-serif; color:var(--bone);
+  display:flex; flex-direction:column; align-items:center;
+  gap:18px; padding:40px 16px 80px;
+}
+.mono{font-family:"Geist Mono", monospace}
+
+.caption{
+  font-family:"Geist Mono", monospace; font-size:12px; color:var(--steel);
+  letter-spacing:.04em; text-transform:uppercase;
+}
+.plate{
+  display:flex; align-items:baseline; gap:10px;
+  font-family:"Geist Mono", monospace; color:var(--steel); font-size:13px;
+}
+.plate .num{color:var(--ember); font-weight:500}
+.plate .ttl{color:var(--bone)}
+
+/* phone frame */
+.phone{
+  width:390px; min-height:844px; background:var(--onyx);
+  border-radius:28px; overflow:hidden; position:relative;
+  border:1px solid var(--hairline);
+  box-shadow:0 0 0 1px rgba(0,0,0,.4);
+  display:flex; flex-direction:column;
+}
+.statusbar{
+  height:44px; flex:0 0 44px; display:flex; align-items:center;
+  justify-content:space-between; padding:0 22px;
+}
+.statusbar .time{font-family:"Geist Mono", monospace; font-size:14px; font-weight:500; color:var(--bone)}
+.statusbar .dots{display:flex; gap:5px; align-items:center}
+.statusbar .dots i{width:6px; height:6px; border-radius:50%; background:var(--steel); display:block}
+.statusbar .dots i:last-child{background:var(--bone)}
+
+.screen{flex:1; display:flex; flex-direction:column; overflow:hidden}
+
+/* content area */
+.head{padding:6px 20px 14px}
+.head h1{font-size:26px; font-weight:700; letter-spacing:-.02em}
+.head .sub{margin-top:3px; color:var(--steel); font-size:13px; font-family:"Geist Mono", monospace}
+
+.section-label{
+  padding:14px 20px 8px; font-size:12px; color:var(--steel);
+  font-family:"Geist Mono", monospace; letter-spacing:.04em; text-transform:uppercase;
+}
+.list{padding:0 16px; display:flex; flex-direction:column; gap:8px}
+
+.task{
+  background:var(--smoke); border-radius:12px;
+  padding:13px 14px 13px 15px; display:flex; align-items:flex-start; gap:12px;
+  position:relative; overflow:hidden;
+}
+.task::before{
+  content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+}
+.task.high::before{background:var(--danger)}
+.task.medium::before{background:var(--warning)}
+.task.low::before{background:var(--ember)}
+
+/* project tint = background 0.13 of project hex */
+.task.p-delo{background:rgba(155,140,203,0.13)}
+.task.p-health{background:rgba(91,141,239,0.13)}
+.task.p-fin{background:rgba(201,162,75,0.13)}
+
+.cb{
+  width:22px; height:22px; flex:0 0 22px; border-radius:50%;
+  border:1.5px solid var(--steel); background:transparent;
+  display:flex; align-items:center; justify-content:center; margin-top:1px;
+}
+.cb.done{background:var(--ember); border-color:var(--ember)}
+.cb.done svg{width:13px; height:13px; stroke:#fff; stroke-width:2.6; fill:none}
+
+.task .body{flex:1; min-width:0}
+.task .t-title{font-size:15px; font-weight:500; line-height:1.3}
+.task.is-done .t-title{color:var(--steel); text-decoration:line-through}
+.task .meta{
+  margin-top:5px; display:flex; align-items:center; gap:10px;
+  font-size:12px; color:var(--steel); font-family:"Geist Mono", monospace;
+}
+.task .meta svg{width:13px; height:13px; stroke:var(--steel); fill:none; vertical-align:middle}
+.task .meta .proj{font-weight:500}
+.task .meta .proj.delo{color:#9B8CCB}
+.task .meta .proj.health{color:#5B8DEF}
+.task .meta .proj.fin{color:#C9A24B}
+
+/* tabbar */
+.tabbar{
+  flex:0 0 auto; background:var(--smoke); border-top:1px solid var(--hairline);
+  display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom)) 6px;
+}
+.tabbar button{
+  flex:1; background:none; border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:6px 0 4px; position:relative; color:var(--steel);
+  font-family:Geist, sans-serif;
+}
+.tabbar button svg{width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+.tabbar button span{font-size:11px; font-weight:500; letter-spacing:.01em}
+.tabbar button.active{color:var(--ember)}
+.tabbar button.active svg{stroke:var(--ember)}
+.tabbar button.active .dot-fill{fill:var(--ember)}
+
+.tab-badge{
+  position:absolute; top:0; left:calc(50% + 10px);
+  min-width:17px; height:17px; padding:0 4px; border-radius:9px;
+  background:var(--danger); color:#fff; font-size:10px; font-weight:600;
+  font-family:"Geist Mono", monospace;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid var(--smoke);
+}
+
+/* small alt frame */
+.phone.alt{min-height:auto; padding-bottom:0}
+.alt-stage{display:flex; flex-direction:column; align-items:center; gap:10px}
+.row{display:flex; gap:28px; flex-wrap:wrap; justify-content:center; align-items:flex-start}
+.fcode{display:inline-block;background:var(--accent,#EE8A3C);color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.3px}
+.ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent,#EE8A3C);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+.ecode.pin{position:absolute;top:-7px;right:-7px;margin:0;z-index:12;box-shadow:0 1px 3px rgba(0,0,0,.5)}
+</style>
+</head>
+<body>
+
+<div class="plate"><span class="fcode">F14·A</span><span class="num">F14</span><span class="ttl">Нижняя навигация · BottomTabs</span></div>
+
+<div class="phone">
+  <div class="statusbar">
+    <span class="time">9:41</span>
+    <span class="dots"><i></i><i></i><i></i></span>
+  </div>
+
+  <div class="screen">
+    <div class="head">
+      <h1>Сегодня</h1>
+      <div class="sub">среда · 4 июня</div>
+    </div>
+
+    <div class="section-label">Просрочено</div>
+    <div class="list">
+      <div class="task high p-delo">
+        <div class="cb"></div>
+        <div class="body">
+          <div class="t-title">Отправить отчёт по ZIMA за май</div>
+          <div class="meta"><span class="proj delo">Дело</span><span>вчера 18:00</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Сегодня</div>
+    <div class="list">
+      <div class="task medium p-health">
+        <div class="cb"></div>
+        <div class="body">
+          <div class="t-title">Сдать анализы крови (натощак)</div>
+          <div class="meta">
+            <span class="proj health">Здоровье</span>
+            <span>09:30</span>
+            <span><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7"/><path d="M10.5 20a2 2 0 0 0 3 0"/></svg></span>
+          </div>
+        </div>
+      </div>
+      <div class="task low p-fin">
+        <div class="cb"></div>
+        <div class="body">
+          <div class="t-title">Перенести деньги на счёт MR в Ledger</div>
+          <div class="meta"><span class="proj fin">Финансы</span><span>14:00</span></div>
+        </div>
+      </div>
+      <div class="task medium p-delo">
+        <div class="cb"></div>
+        <div class="body">
+          <div class="t-title">Прозвонить мастеров по залогам 500</div>
+          <div class="meta">
+            <span class="proj delo">Дело</span>
+            <span><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9a8 8 0 0 1 14-3M20 15a8 8 0 0 1-14 3"/><path d="M18 3v3.5h-3.5M6 21v-3.5h3.5"/></svg></span>
+          </div>
+        </div>
+      </div>
+      <div class="task is-done low p-health">
+        <div class="cb done"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg></div>
+        <div class="body">
+          <div class="t-title">Валик-протокол утром</div>
+          <div class="meta"><span class="proj health">Здоровье</span><span>07:00</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BottomTabs: active = today (ember), inbox badge -->
+  <nav class="tabbar">
+    <button class="active">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h4"/></svg>
+      <span>Сегодня<span class="ecode">A1</span></span>
+      <span class="tab-badge">3</span>
+    </button>
+    <button>
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+      <span>Календарь<span class="ecode">A2</span></span>
+    </button>
+    <button>
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Обзор<span class="ecode">A3</span></span>
+    </button>
+    <button>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+      <span>Цели<span class="ecode">A4</span></span>
+    </button>
+    <button>
+      <svg viewBox="0 0 24 24"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+      <span>Трекинг<span class="ecode">A5</span></span>
+    </button>
+  </nav>
+</div>
+
+<!-- ── ALT: матрица состояний таб-бара ── -->
+<div class="caption" style="margin-top:14px">состояния таб-бара</div>
+<div class="row">
+
+  <!-- alt 1: inbox=0 (бейдж скрыт) -->
+  <div class="alt-stage">
+    <div class="phone alt" style="width:330px">
+      <nav class="tabbar">
+        <button class="active">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h4"/></svg>
+          <span>Сегодня</span>
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+          <span>Календарь</span>
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          <span>Обзор</span>
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+          <span>Цели</span>
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+          <span>Трекинг</span>
+        </button>
+      </nav>
+    </div>
+    <div class="caption"><span class="fcode">F14·B</span>inbox = 0 · бейдж скрыт · active=Сегодня</div>
+  </div>
+
+  <!-- alt 2: active=Трекинг + большой бейдж -->
+  <div class="alt-stage">
+    <div class="phone alt" style="width:330px">
+      <nav class="tabbar">
+        <button>
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h4"/></svg>
+          <span>Сегодня</span>
+          <span class="tab-badge">12</span>
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg>
+          <span>Календарь</span>
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          <span>Обзор</span>
+        </button>
+        <button>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.5"/></svg>
+          <span>Цели</span>
+        </button>
+        <button class="active">
+          <svg viewBox="0 0 24 24"><path d="M4 4v15a1 1 0 0 0 1 1h15"/><path d="M7.5 14.5l3.5-4 3 2.5 4.5-6"/></svg>
+          <span>Трекинг</span>
+        </button>
+      </nav>
+    </div>
+    <div class="caption"><span class="fcode">F14·C</span>inbox = 12 · active=Трекинг</div>
+  </div>
+
+</div>
+
+</body>
+</html>
