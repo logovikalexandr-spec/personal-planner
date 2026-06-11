@@ -104,3 +104,56 @@ export interface Milestone {
 
 // Форк B: три ракурса одного таба «Календарь».
 export type CalendarView = "week" | "month" | "agenda";
+
+// ── Форк E: привычки + метрики (зеркало HabitOut/MetricOut бэка) ──
+export interface HabitOut {
+  id: number;
+  name: string;
+  color: string;
+  mark_type: "check" | "count";
+  target?: number | null;
+  unit?: string | null;
+  step?: number | null;
+  schedule_kind: string;
+  schedule_n?: number | null;
+  schedule_days?: number[] | null;
+  goal_date?: string | null;
+  goal_total?: number | null;
+  record_streak: number;
+  archived: boolean;
+  order_index: number;
+  today_value: number;
+  done_today: boolean;
+  streak: number;
+  week: boolean[];   // 7 дней пн..вс по зачёту
+  heat7: number[];   // градиент 0-4 за 7 дней
+}
+
+export interface MetricEntryOut { entry_date: string; value: number; }
+export interface MetricOut {
+  id: number;
+  name: string;
+  unit?: string | null;
+  good_direction: "up" | "down";
+  color: string;
+  archived: boolean;
+  order_index: number;
+  latest?: number | null;
+  delta?: number | null;
+  entries: MetricEntryOut[];
+}
+
+export interface HabitInput {
+  name: string;
+  color?: string;
+  mark_type?: "check" | "count";
+  target?: number | null;
+  unit?: string | null;
+  step?: number | null;
+}
+export interface MetricInput {
+  name: string;
+  unit?: string | null;
+  good_direction?: "up" | "down";
+  color?: string;
+}

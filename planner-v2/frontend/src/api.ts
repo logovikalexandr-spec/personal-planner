@@ -1,6 +1,7 @@
 import { tg } from "./telegram";
 import type {
-  CheckItem, Counts, InboxItem, Milestone, Priority, Project, RecurrenceJson,
+  CheckItem, Counts, HabitInput, HabitOut, InboxItem, MetricInput, MetricOut,
+  Milestone, Priority, Project, RecurrenceJson,
   Reminder, ReminderInput, Tag, Task, TaskDetail,
 } from "./types";
 
@@ -109,3 +110,27 @@ export const createTag = (name: string, color?: string | null) =>
 export const getInbox = () => req<InboxItem[]>("/api/inbox");
 export const triageInbox = (id: number, projectId: number, title: string, priority: Priority = "none") =>
   req<Task>(`/api/inbox/${id}/triage`, { method: "POST", body: JSON.stringify({ project_id: projectId, title, priority }) });
+
+// ── Форк E: привычки + метрики ──
+export const getHabits = (on?: string) =>
+  req<HabitOut[]>(`/api/habits${on ? `?on=${on}` : ""}`);
+export const createHabit = (data: HabitInput) =>
+  req<HabitOut>("/api/habits", { method: "POST", body: JSON.stringify(data) });
+export const deleteHabit = (id: number) => reqVoid(`/api/habits/${id}`, { method: "DELETE" });
+export const toggleHabit = (id: number, date: string) =>
+  req<HabitOut>(`/api/habits/${id}/toggle`, { method: "POST", body: JSON.stringify({ date }) });
+export const addHabit = (id: number, date: string, delta: number) =>
+  req<HabitOut>(`/api/habits/${id}/add`, { method: "POST", body: JSON.stringify({ date, delta }) });
+export const backfillHabit = (id: number, date: string, value: number) =>
+  req<HabitOut>(`/api/habits/${id}/backfill`, { method: "POST", body: JSON.stringify({ date, value }) });
+
+export const getMetrics = () => req<MetricOut[]>("/api/metrics");
+export const createMetric = (data: MetricInput) =>
+  req<MetricOut>("/api/metrics", { method: "POST", body: JSON.stringify(data) });
+export const deleteMetric = (id: number) => reqVoid(`/api/metrics/${id}`, { method: "DELETE" });
+export const measureMetric = (id: number, date: string, value: number) =>
+  req<MetricOut>(`/api/metrics/${id}/measure`, { method: "POST", body: JSON.stringify({ date, value }) });
+
+export interface RetroOut { week_start: string; week_end: string; habits: number; done_days: number; total_days: number; }
+export const getRetro = (weekStart: string) =>
+  req<RetroOut>(`/api/tracking/retro?week_start=${weekStart}`);
