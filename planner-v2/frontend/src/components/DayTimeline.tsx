@@ -1,6 +1,7 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { IcoBellMicro, IcoRepeatMicro, IcoCheck } from "./icons";
 import { tg } from "../telegram";
+import { shouldShowImpact } from "../lib/impact";
 import type { Priority, Project, Task } from "../types";
 import {
   HOUR_H, STEP_MIN, PX_PER_MIN, DAY_END,
@@ -436,6 +437,7 @@ export const DayTimeline = memo(function DayTimeline({
                   <span>{hhmm(labelStart)}–{hhmm(labelEnd)}</span>
                   {t.recurrence ? <IcoRepeatMicro /> : null}
                   {t.reminder_at ? <IcoBellMicro /> : null}
+                  {shouldShowImpact(t) ? <span className="imp">{t.impact}%</span> : null}
                 </div>
               </div>
               {enabled && activeId === t.id && (

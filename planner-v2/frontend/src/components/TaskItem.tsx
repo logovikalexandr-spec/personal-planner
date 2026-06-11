@@ -1,6 +1,7 @@
 import { memo, useRef, useState } from "react";
 import type { Task } from "../types";
 import { tg } from "../telegram";
+import { shouldShowImpact } from "../lib/impact";
 import { IcoCalendar2, IcoMove, IcoTrash, IcoCheck, IcoSelectCircle, IcoXCircle } from "./icons";
 
 // Волна 2 F2 — строка задачи со свайпом + long-press → multi-select. Мокапы B (swipe) + D (select/won't-do).
@@ -237,12 +238,13 @@ function TaskItemBase({
           <div className={done || wontDo ? "title-done" : ""}>{task.title}</div>
           {wontDo ? (
             <div className="muted mono" style={{ fontSize: 13, marginTop: 2 }}>Won't Do</div>
-          ) : (task.due_date || task.due_time) ? (
+          ) : (task.due_date || task.due_time || shouldShowImpact(task)) ? (
             <div
               className="mono"
-              style={{ fontSize: 13, marginTop: 2, color: isOverdue ? "var(--red)" : "var(--steel)" }}
+              style={{ fontSize: 13, marginTop: 2, color: isOverdue ? "var(--red)" : "var(--steel)", display: "flex", alignItems: "center", gap: 6 }}
             >
-              {fmtMeta(task.due_date, task.due_time)}
+              {(task.due_date || task.due_time) && <span>{fmtMeta(task.due_date, task.due_time)}</span>}
+              {shouldShowImpact(task) && <span className="imp">{task.impact}%</span>}
             </div>
           ) : null}
         </div>

@@ -302,6 +302,19 @@ export function TaskDetail({
           </span>
         </button>
 
+        <div className="detail-row">
+          <span className="detail-lab">
+            <span className="detail-glyph">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4" /></svg>
+            </span>Вклад в успех
+          </span>
+          <span className="detail-val">
+            {task.impact != null
+              ? <span className="imp">{task.impact}%</span>
+              : <span className="muted mono">Ещё не оценено · обсуди с ассистентом</span>}
+          </span>
+        </div>
+
         <button className="detail-row" onClick={() => setPicker("date")}>
           <span className="detail-lab"><span className="detail-glyph"><IcoRepeat /></span>Повтор</span>
           <span className="detail-val mono" style={{ color: task.recurrence_json ? "var(--text)" : "var(--text-muted)" }}>
