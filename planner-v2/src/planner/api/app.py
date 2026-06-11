@@ -15,6 +15,7 @@ from planner.api.routes import (
     stages,
     tags,
     tasks,
+    tracking,
 )
 
 
@@ -30,6 +31,7 @@ def create_app() -> FastAPI:
     app.include_router(inbox.router)
     app.include_router(counts.router)
     app.include_router(stages.router)
+    app.include_router(tracking.router)
     app.include_router(milestones.router)
 
     # Telegram кэширует Mini App агрессивно. index.html (HTML) не кэшируем,

@@ -276,3 +276,95 @@ class TriageIn(BaseModel):
     title: str
     priority: str = "none"
     due_date: date | None = None
+
+
+# ── Форк E: привычки + метрики ─────────────────────────────────────────────── #
+class HabitCreate(BaseModel):
+    name: str
+    color: str = "#5B8DEF"
+    mark_type: str = "check"
+    target: float | None = None
+    unit: str | None = None
+    step: float | None = None
+    schedule_kind: str = "daily"
+    schedule_n: int | None = None
+    schedule_days: list[int] | None = None
+    goal_date: date | None = None
+    goal_total: int | None = None
+
+
+class HabitPatch(BaseModel):
+    name: str | None = None
+    color: str | None = None
+    mark_type: str | None = None
+    target: float | None = None
+    unit: str | None = None
+    step: float | None = None
+    schedule_kind: str | None = None
+    schedule_n: int | None = None
+    schedule_days: list[int] | None = None
+    goal_date: date | None = None
+    goal_total: int | None = None
+    archived: bool | None = None
+    order_index: int | None = None
+
+
+class HabitOut(BaseModel):
+    id: int
+    name: str
+    color: str
+    mark_type: str
+    target: float | None = None
+    unit: str | None = None
+    step: float | None = None
+    schedule_kind: str
+    schedule_n: int | None = None
+    schedule_days: list[int] | None = None
+    goal_date: date | None = None
+    goal_total: int | None = None
+    record_streak: int
+    archived: bool
+    order_index: int
+    # computed (на дату запроса)
+    today_value: float = 0
+    done_today: bool = False
+    streak: int = 0
+    week: list[bool] = []       # 7 дней по зачёту (пн..вс окна)
+    heat7: list[int] = []       # градиент-уровни 0-4 за 7 дней
+
+
+class HabitEntryIn(BaseModel):
+    date: date
+    delta: float | None = None   # для add (count)
+    value: float | None = None   # для backfill (абсолютное)
+
+
+class MetricCreate(BaseModel):
+    name: str
+    unit: str | None = None
+    good_direction: str = "up"
+    color: str = "#3FB68B"
+
+
+class MetricEntryOut(BaseModel):
+    entry_date: date
+    value: float
+    model_config = {"from_attributes": True}
+
+
+class MetricOut(BaseModel):
+    id: int
+    name: str
+    unit: str | None = None
+    good_direction: str
+    color: str
+    archived: bool
+    order_index: int
+    latest: float | None = None
+    delta: float | None = None       # latest - предыдущий
+    entries: list[MetricEntryOut] = []
+
+
+class MetricMeasureIn(BaseModel):
+    date: date
+    value: float
