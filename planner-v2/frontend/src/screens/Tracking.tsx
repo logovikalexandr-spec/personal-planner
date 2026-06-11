@@ -226,7 +226,7 @@ function RingPct({ pct }: { pct: number }) {
   );
 }
 
-function RetroView({ retro, onTaskToggle }: { retro: RetroOut | null; onTaskToggle: (t: Task) => void }) {
+function RetroView({ retro, metrics, onTaskToggle }: { retro: RetroOut | null; metrics: MetricOut[]; onTaskToggle: (t: Task) => void }) {
   const [odOpen, setOdOpen] = useState(true);
   if (!retro) return <Empty text="Нет данных за неделю. Отмечай задачи и привычки." />;
 
@@ -235,6 +235,8 @@ function RetroView({ retro, onTaskToggle }: { retro: RetroOut | null; onTaskTogg
   const habPct = habits.total_days ? habits.done_days / habits.total_days : 0;
   const avg = habits.count ? (habits.done_days / 7).toFixed(1) : "0";
   const weak = [...habits.items].sort((a, b) => a.week_done - b.week_done)[0];
+  const recordHabit = habits.items.find((h) => h.tag?.startsWith("рекорд"));
+  const weakProj = [...tasks.by_project].sort((a, b) => a.done / (a.total || 1) - b.done / (b.total || 1))[0];
 
   return (
     <>
@@ -263,7 +265,7 @@ function RetroView({ retro, onTaskToggle }: { retro: RetroOut | null; onTaskTogg
 
       {/* ПРОСРОЧЕНО — шторка */}
       {tasks.overdue.length > 0 && (
-        <div className="hcard" style={{ padding: "2px 12px", marginTop: 9, borderColor: "rgba(255,92,92,.25)" }}>
+        <div className="hcard" style={{ padding: "2px 12px", marginTop: 9, border: "1px solid rgba(255,92,92,.5)", background: "rgba(255,92,92,.05)" }}>
           <button onClick={() => setOdOpen((v) => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0 9px", color: "var(--red)", fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".4px" }}>
             <span>Просрочено · {tasks.overdue.length}</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ transform: odOpen ? "none" : "rotate(-90deg)", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
@@ -301,11 +303,55 @@ function RetroView({ retro, onTaskToggle }: { retro: RetroOut | null; onTaskTogg
         </div>
       ))}
 
+      {/* МЕТРИКИ НЕДЕЛИ */}
+      {metrics.length > 0 && (
+        <>
+          <div className="trk-seclbl">Метрики недели</div>
+          <div className="hcard" style={{ padding: "2px 12px" }}>
+            {metrics.map((m, i) => {
+              const good = m.delta == null ? null : (m.good_direction === "down" ? m.delta < 0 : m.delta > 0);
+              return (
+                <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < metrics.length - 1 ? "1px solid var(--hairline)" : "none", fontSize: 13.5 }}>
+                  <span>{m.name}{m.good_direction === "up" ? <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · цель ↑</span> : null}</span>
+                  {m.delta != null && (
+                    <span className="mono" style={{ fontWeight: 600, color: good ? "#3FB68B" : "var(--text-muted)" }}>
+                      {m.delta < 0 ? "▼" : "▲"} {Math.abs(m.delta).toFixed(1)} {m.unit ?? ""}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       {/* ХАЙЛАЙТЫ */}
       <div className="trk-seclbl">Хайлайты</div>
-      <div className="hcard" style={{ fontSize: 13, lineHeight: 1.5 }}>
-        {tasks.top_task && <div>★ <b>Двинул больше всего:</b> «{tasks.top_task.title}»{tasks.top_task.project ? ` (${tasks.top_task.project}, ${tasks.top_task.impact}%)` : ""}</div>}
-        {weak && <div style={{ color: "var(--text-muted)" }}>! <b style={{ color: "var(--text)" }}>Слабое место:</b> {weak.name} — {weak.week_done}/7</div>}
+      <div className="hcard" style={{ display: "flex", flexDirection: "column", gap: 9, fontSize: 13, lineHeight: 1.4 }}>
+        {tasks.top_task && (
+          <div style={{ display: "flex", gap: 9 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)" style={{ flex: "0 0 auto", marginTop: 1 }}><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg>
+            <span><b>Двинул больше всего:</b> «{tasks.top_task.title}»{tasks.top_task.project ? ` (${tasks.top_task.project}, вклад ${tasks.top_task.impact}%)` : ""}</span>
+          </div>
+        )}
+        {recordHabit && (
+          <div style={{ display: "flex", gap: 9 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" style={{ flex: "0 0 auto", marginTop: 1 }}><path d="M5 3v4M3 5h4M13 3l2.5 6.5L22 12l-6.5 2.5L13 21l-2.5-6.5L4 12l6.5-2.5z" /></svg>
+            <span><b>Рекорд стрика:</b> {recordHabit.name} — {recordHabit.streak} дней</span>
+          </div>
+        )}
+        {(weakProj || weak) && (
+          <div style={{ display: "flex", gap: 9 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" style={{ flex: "0 0 auto", marginTop: 1 }}><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" /></svg>
+            <span><b>Слабое место:</b>{weakProj ? ` ${weakProj.name} ${weakProj.done}/${weakProj.total}` : ""}{weakProj && weak ? " · " : ""}{weak ? `${weak.name} ${weak.week_done}/7` : ""}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ЗАМЕТКА АССИСТЕНТА (ZERO-AFK: пишет Claude в чате, app показывает) */}
+      <div className="hcard" style={{ display: "flex", gap: 10, marginTop: 8, background: "var(--accent-soft)", borderColor: "rgba(238,138,60,.2)", fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.45 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--accent)" style={{ flex: "0 0 auto", marginTop: 1 }}><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg>
+        <span><b style={{ color: "var(--text)" }}>Заметка ассистента:</b> появится после разбора недели в чате — обсуди итоги с Claude, и подсказка ляжет сюда.</span>
       </div>
     </>
   );
@@ -384,7 +430,7 @@ export function Tracking() {
 
       {view === "habits" && <HabitsView habits={habits} onToggle={onToggle} onAdd={onAdd} onDelete={onDeleteHabit} onNew={() => setSheet("habit")} />}
       {view === "metrics" && <MetricsView metrics={metrics} onMeasure={onMeasure} onDelete={onDeleteMetric} onNew={() => setSheet("metric")} />}
-      {view === "retro" && <RetroView retro={retro} onTaskToggle={onOverdueDone} />}
+      {view === "retro" && <RetroView retro={retro} metrics={metrics} onTaskToggle={onOverdueDone} />}
 
       {sheet === "habit" && <NewHabitSheet onClose={() => setSheet(null)} onCreated={(h) => { setHabits((p) => [...p, h]); setSheet(null); }} />}
       {sheet === "metric" && <NewMetricSheet onClose={() => setSheet(null)} onCreated={(m) => { setMetrics((p) => [...p, m]); setSheet(null); }} />}

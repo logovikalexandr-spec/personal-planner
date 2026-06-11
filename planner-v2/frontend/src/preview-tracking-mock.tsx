@@ -70,8 +70,8 @@ window.fetch = ((input: RequestInfo | URL) => {
 }) as typeof window.fetch;
 
 createRoot(document.getElementById("root")!).render(
-  <div style={{ width: 390, height: 844, position: "relative", background: "var(--bg)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-    <div style={{ flex: 1, overflowY: "auto", paddingBottom: 90 }}>
+  <div style={{ width: 390, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+    <div style={{ paddingBottom: 20 }}>
       <Tracking />
     </div>
     <BottomTabs active="tracking" onChange={() => {}} inboxCount={0} />
