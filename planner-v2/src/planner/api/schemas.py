@@ -48,6 +48,7 @@ class TaskOut(BaseModel):
     progress: int = 0
     pinned: bool = False
     stage_id: int | None = None
+    impact: int | None = None
     tags: list[TagOut] = []
 
     model_config = {"from_attributes": True}
@@ -68,6 +69,7 @@ class TaskPatch(BaseModel):
     progress: int | None = None
     pinned: bool | None = None
     parent_task_id: int | None = None
+    impact: int | None = None
     tag_ids: list[int] | None = None
 
 

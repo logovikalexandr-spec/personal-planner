@@ -90,6 +90,7 @@ class Task(Base):
     stage_id: Mapped[int | None] = mapped_column(
         ForeignKey("stage.id", ondelete="SET NULL"), default=None
     )
+    impact: Mapped[int | None] = mapped_column(Integer, default=None)  # вклад в успех 0-100, пишет Claude (ZERO-AFK)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     tags: Mapped[list[Tag]] = relationship(secondary="task_tag", lazy="selectin")
