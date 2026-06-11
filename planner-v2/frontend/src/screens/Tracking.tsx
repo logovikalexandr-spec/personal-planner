@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Empty } from "../components/Empty";
+import { TaskItem } from "../components/TaskItem";
 import { tg } from "../telegram";
 import {
-  addHabit, backfillHabit, createHabit, createMetric, deleteHabit, deleteMetric,
+  addHabit, backfillHabit, completeTask, createHabit, createMetric, deleteHabit, deleteMetric,
   getHabits, getMetrics, getRetro, measureMetric, toggleHabit, type RetroOut,
 } from "../api";
-import type { HabitOut, MetricOut } from "../types";
+import type { HabitOut, MetricOut, Task } from "../types";
 
 // ── Форк E (T5): таб «Привычки» на реальном API. ZERO-AFK — бэк LLM не зовёт.
 // Сегменты: Привычки | Метрики | Ретро. Зачёт привычки-счётчика = градиент (heat7 0-4 с бэка).
@@ -225,7 +226,7 @@ function RingPct({ pct }: { pct: number }) {
   );
 }
 
-function RetroView({ retro }: { retro: RetroOut | null }) {
+function RetroView({ retro, onTaskToggle }: { retro: RetroOut | null; onTaskToggle: (t: Task) => void }) {
   const [odOpen, setOdOpen] = useState(true);
   if (!retro) return <Empty text="Нет данных за неделю. Отмечай задачи и привычки." />;
 
@@ -267,16 +268,13 @@ function RetroView({ retro }: { retro: RetroOut | null }) {
             <span>Просрочено · {tasks.overdue.length}</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ transform: odOpen ? "none" : "rotate(-90deg)", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
           </button>
-          {odOpen && tasks.overdue.map((o, i) => (
-            <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 0", borderTop: i === 0 ? "1px solid var(--hairline)" : "none", borderBottom: i < tasks.overdue.length - 1 ? "1px solid var(--hairline)" : "none", fontSize: 13.5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: o.color, flex: "0 0 auto" }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.title}</div>
-                {o.project && <div className="mono" style={{ fontSize: 11, color: "var(--text-muted)" }}>{o.project}</div>}
-              </div>
-              <span className="mono" style={{ color: "var(--red)", fontWeight: 600, fontSize: 12, whiteSpace: "nowrap" }}>−{o.days_late} дн</span>
+          {odOpen && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0 10px" }}>
+              {tasks.overdue.map((o) => (
+                <TaskItem key={o.id} task={o} color={o.color} onToggle={onTaskToggle} />
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -363,6 +361,10 @@ export function Tracking() {
       try { await deleteMetric(m.id); setMetrics((p) => p.filter((x) => x.id !== m.id)); } catch { load(); }
     });
   }
+  function onOverdueDone(t: Task) {
+    tg()?.HapticFeedback?.impactOccurred?.("light");
+    completeTask(t.id).then(load).catch(load);  // закрыл просроченную → пересчёт ретро
+  }
 
   if (loading) return <div className="screen"><div className="screen-hero"><h1>Привычки</h1></div><div className="trk-seclbl">Загрузка…</div></div>;
   if (error) return (
@@ -382,7 +384,7 @@ export function Tracking() {
 
       {view === "habits" && <HabitsView habits={habits} onToggle={onToggle} onAdd={onAdd} onDelete={onDeleteHabit} onNew={() => setSheet("habit")} />}
       {view === "metrics" && <MetricsView metrics={metrics} onMeasure={onMeasure} onDelete={onDeleteMetric} onNew={() => setSheet("metric")} />}
-      {view === "retro" && <RetroView retro={retro} />}
+      {view === "retro" && <RetroView retro={retro} onTaskToggle={onOverdueDone} />}
 
       {sheet === "habit" && <NewHabitSheet onClose={() => setSheet(null)} onCreated={(h) => { setHabits((p) => [...p, h]); setSheet(null); }} />}
       {sheet === "metric" && <NewMetricSheet onClose={() => setSheet(null)} onCreated={(m) => { setMetrics((p) => [...p, m]); setSheet(null); }} />}

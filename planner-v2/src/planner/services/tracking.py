@@ -313,20 +313,19 @@ async def week_review(session, week_start: date, today: date) -> dict:
         )
     by_project_list.sort(key=lambda x: (-x["done"], -x["total"]))
 
-    overdue = [
-        {
-            "id": t.id,
-            "title": t.title,
-            "project": (projects[t.project_id].name if t.project_id in projects else None),
-            "color": (
-                projects[t.project_id].color
-                if t.project_id in projects and getattr(projects[t.project_id], "color", None)
-                else "#8A8B91"
-            ),
-            "days_late": (today - t.due_date).days,
-        }
-        for t in overdue_rows
-    ]
+    from planner.api.schemas import TaskOut  # локальный импорт — без цикла на загрузке модуля
+
+    overdue = []
+    for t in overdue_rows:
+        d = TaskOut.model_validate(t).model_dump(mode="json")
+        d["color"] = (
+            projects[t.project_id].color
+            if t.project_id in projects and getattr(projects[t.project_id], "color", None)
+            else None
+        )
+        d["project"] = projects[t.project_id].name if t.project_id in projects else None
+        d["days_late"] = (today - t.due_date).days
+        overdue.append(d)
 
     impact_sum = sum(t.impact or 0 for t in done_tasks)
     top = max(done_tasks, key=lambda t: t.impact or 0, default=None)

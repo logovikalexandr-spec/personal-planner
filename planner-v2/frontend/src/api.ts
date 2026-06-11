@@ -132,7 +132,7 @@ export const measureMetric = (id: number, date: string, value: number) =>
   req<MetricOut>(`/api/metrics/${id}/measure`, { method: "POST", body: JSON.stringify({ date, value }) });
 
 export interface RetroProjectRow { project_id: number | null; name: string; color: string; done: number; total: number; }
-export interface RetroOverdue { id: number; title: string; project: string | null; color: string; days_late: number; }
+export type RetroOverdue = Task & { project: string | null; color: string | null; days_late: number; };
 export interface RetroHabitRow { id: number; name: string; color: string; week: boolean[]; week_done: number; streak: number; tag: string | null; }
 export interface RetroOut {
   week_start: string; week_end: string;

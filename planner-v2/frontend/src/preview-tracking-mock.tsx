@@ -41,8 +41,11 @@ const RETRO = {
       { project_id: 4, name: "Планировщик", color: "#9B6BE0", done: 0, total: 2 },
     ],
     overdue: [
-      { id: 11, title: "Оплатить аренду", project: "Финансы", color: "#E0B15B", days_late: 3 },
-      { id: 12, title: "Позвонить юристу", project: "ZIMA", color: "#3FB68B", days_late: 1 },
+      { id: 11, title: "Отправить документы бухгалтеру", status: "todo", priority: "high",
+        project_id: 3, due_date: "2026-06-02", due_time: "14:00:00", impact: 55,
+        project: "Финансы", color: "#E0B15B", days_late: 9 },
+      { id: 12, title: "Записаться к стоматологу", status: "todo", priority: "medium",
+        project_id: 2, due_date: "2026-06-03", project: "Здоровье", color: "#5B8DEF", days_late: 8 },
     ],
     top_task: { title: "Согласовать цену", impact: 80, project: "ZIMA" },
   },
