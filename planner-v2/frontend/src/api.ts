@@ -45,6 +45,9 @@ export const getTasks = (scope = "all", projectId?: number, includeChildren = fa
       (includeChildren ? `&include_children=true` : ""),
   );
 export const getDayTasks = (date: string) => req<Task[]>(`/api/tasks?on_date=${date}`);
+// T1·B датапикер: тепло-нагрузка дней окна {iso: 'g'|'y'|'r'} (heat B2).
+export const getDensity = (from: string, to: string) =>
+  req<Record<string, "g" | "y" | "r">>(`/api/tasks/density?from=${from}&to=${to}`);
 // Форк B (календарь): задачи в окне дат [from,to] включительно (с done, без archived).
 export const getTasksRange = (from: string, to: string) =>
   req<Task[]>(`/api/tasks?from=${from}&to=${to}`);

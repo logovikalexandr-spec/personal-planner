@@ -59,6 +59,17 @@ async def list_tasks(
     )
 
 
+@router.get("/density", response_model=dict[str, str])
+async def task_density(
+    _: Annotated[TelegramUser, Depends(require_owner)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    from_: date = Query(..., alias="from"),
+    to: date = Query(...),
+):
+    """Тепло-нагрузка дней окна для датапикера T1·B: {iso: 'g'|'y'|'r'}."""
+    return await svc.day_density(db, from_, to)
+
+
 @router.get("/{task_id}", response_model=TaskDetailOut)
 async def get_task(
     task_id: int,

@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sheet } from "./Sheet";
+import { getDensity } from "../api";
 
 const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
@@ -24,6 +25,16 @@ export function DateJumpSheet({
   const [sel, setSel] = useState(initial);
   const base = new Date(initial + "T00:00:00");
   const [view, setView] = useState(() => ({ y: base.getFullYear(), m: base.getMonth() }));
+
+  // Heat-нагрузка дней видимого месяца (T1·B): заливка ячейки g/y/r по числу открытых задач.
+  const [heat, setHeat] = useState<Record<string, "g" | "y" | "r">>({});
+  useEffect(() => {
+    const from = localISO(new Date(view.y, view.m, 1));
+    const to = localISO(new Date(view.y, view.m + 1, 0));
+    let alive = true;
+    getDensity(from, to).then((d) => { if (alive) setHeat(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [view.y, view.m]);
 
   const weeks = useMemo(() => {
     const first = new Date(view.y, view.m, 1);
@@ -51,10 +62,11 @@ export function DateJumpSheet({
           const iso = localISO(new Date(view.y, view.m, d));
           const isSel = iso === sel;
           const isToday = iso === todayISO;
+          const h = heat[iso];
           return (
             <button
               key={i}
-              className={`cal-mini-day ${isSel ? "sel" : ""} ${isToday && !isSel ? "today" : ""}`}
+              className={`cal-mini-day ${h ? `heat-${h}` : ""} ${isSel ? "sel" : ""} ${isToday && !isSel ? "today" : ""}`}
               onClick={() => setSel(iso)}
             >{d}</button>
           );

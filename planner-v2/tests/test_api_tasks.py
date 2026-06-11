@@ -137,3 +137,22 @@ def test_subtasks_via_parent(client):
     assert r.status_code == 200, r.text
     titles = {t["title"] for t in r.json()}
     assert titles == {"шаг 1", "шаг 2"}
+
+
+def test_density_endpoint(client):
+    from datetime import date, timedelta
+    today = date.today()
+    heavy = (today + timedelta(days=1)).isoformat()
+    for i in range(5):
+        client.post("/api/tasks", json={"title": f"h{i}", "due_date": heavy}, headers=HDR)
+    frm = today.isoformat()
+    to = (today + timedelta(days=10)).isoformat()
+    r = client.get(f"/api/tasks/density?from={frm}&to={to}", headers=HDR)
+    assert r.status_code == 200, r.text
+    assert r.json().get(heavy) == "r"
+
+
+def test_density_requires_auth(client):
+    from datetime import date
+    t = date.today().isoformat()
+    assert client.get(f"/api/tasks/density?from={t}&to={t}").status_code == 401

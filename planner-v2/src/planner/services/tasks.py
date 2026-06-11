@@ -181,6 +181,47 @@ async def smart_list_counts(session) -> dict[str, int]:
     }
 
 
+async def day_density(session, from_date: date, to_date: date) -> dict[str, str]:
+    """Тепло-нагрузка дней для датапикера T1·B (heat B2).
+
+    По числу ОТКРЫТЫХ задач дня (todo/in_progress) с due_date в окне:
+      g = лёгкий (1–2) · y = средний (3–4) · r = плотный (≥5)
+    Красным также помечается прошлый день с открытой важной (priority=high)
+    задачей — «висит важное». Дни без открытых задач отсутствуют в ответе.
+    Чистый расчёт по БД (ZERO-AFK, без LLM).
+    """
+    today = date.today()
+    open_statuses = ("todo", "in_progress")
+    rows = await session.execute(
+        select(
+            Task.due_date,
+            func.count().label("cnt"),
+            func.max(func.cast(Task.priority == "high", Integer)).label("has_high"),
+        )
+        .where(
+            Task.status.in_(open_statuses),
+            Task.due_date.is_not(None),
+            Task.due_date >= from_date,
+            Task.due_date <= to_date,
+        )
+        .group_by(Task.due_date)
+    )
+    out: dict[str, str] = {}
+    for due, cnt, has_high in rows:
+        cnt = int(cnt)
+        if cnt == 0:
+            continue
+        overdue_important = due < today and bool(has_high)
+        if cnt >= 5 or overdue_important:
+            level = "r"
+        elif cnt >= 3:
+            level = "y"
+        else:
+            level = "g"
+        out[due.isoformat()] = level
+    return out
+
+
 async def set_status(session, task_id: int, status: str) -> Task:
     task = await session.get(Task, task_id)
     if task is None:

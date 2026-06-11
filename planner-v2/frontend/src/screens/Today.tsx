@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DayTimeline, priorityColor } from "../components/DayTimeline";
-import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { QuickAddBar } from "../components/QuickAddBar";
 import { IcoBack, IcoChevron, IcoInbox, IcoMenu, IcoCalendar2, IcoChevronDown } from "../components/icons";
@@ -56,6 +55,7 @@ export function Today({
   const [byId, setById] = useState<Map<number, Project>>(new Map());
   const [state, setState] = useState<LoadState>("loading");
   const [showDone, setShowDone] = useState(false);
+  const [alldayExpanded, setAlldayExpanded] = useState(false); // A1: 2 чипа + «+N ещё»
   const firstRef = useRef(true); // скелетон/ошибку показываем только на первой загрузке, рефетчи — без мигания
 
   const load = useCallback(async () => {
@@ -233,9 +233,13 @@ export function Today({
   );
   const errorBlock = (
     <div className="today-pad" style={{ marginTop: "var(--s4)" }}>
-      <div className="card" style={{ textAlign: "center" }}>
-        <div className="muted">Не удалось загрузить</div>
-        <button className="btn btn-ghost" style={{ marginTop: "var(--s3)" }} onClick={() => load()}>Повторить</button>
+      <div className="state-stub">
+        <svg className="state-ico" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 3 2 20h20L12 3Z" /><path d="M12 10v4" /><circle cx="12" cy="17.5" r="0.5" fill="currentColor" />
+        </svg>
+        <div className="state-title">Не удалось загрузить</div>
+        <div className="state-sub">Проверь соединение и попробуй ещё раз.</div>
+        <button className="btn btn-block" style={{ marginTop: "var(--s3)", width: "auto" }} onClick={() => load()}>Повторить</button>
       </div>
     </div>
   );
@@ -267,7 +271,7 @@ export function Today({
             <div className="cal-allday today-pad">
               <span className="cal-allday-label">весь<br />день</span>
               <div className="cal-allday-chips">
-                {allday.map((t) => {
+                {(alldayExpanded ? allday : allday.slice(0, 2)).map((t) => {
                   const c = resolveColor(t.project_id, byId);
                   return (
                     <button
@@ -284,6 +288,11 @@ export function Today({
                     </button>
                   );
                 })}
+                {!alldayExpanded && allday.length > 2 && (
+                  <button className="cal-chip cal-chip-more" onClick={() => setAlldayExpanded(true)}>
+                    +{allday.length - 2} ещё
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -384,8 +393,17 @@ export function Today({
             )}
 
             {nothing && (
-              <div style={{ marginTop: "var(--s4)" }}>
-                <Empty text="На сегодня задач нет. Добавь через + или быстрый ввод выше." />
+              <div className="state-stub" style={{ marginTop: "var(--s4)" }}>
+                <svg className="state-ico" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" /><path d="M8.5 14.5a4 4 0 0 0 7 0" /><circle cx="9" cy="10" r="0.6" fill="currentColor" /><circle cx="15" cy="10" r="0.6" fill="currentColor" />
+                </svg>
+                <div className="state-title">День свободен</div>
+                <div className="state-sub">Ни одной задачи на сегодня. Запиши первую — или отдохни.</div>
+                <button
+                  className="btn btn-block"
+                  style={{ marginTop: "var(--s3)", width: "auto" }}
+                  onClick={() => (document.querySelector(".today-qa input") as HTMLInputElement | null)?.focus()}
+                >Добавить задачу</button>
               </div>
             )}
           </div>
