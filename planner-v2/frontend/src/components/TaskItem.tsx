@@ -2,7 +2,8 @@ import { memo, useRef, useState } from "react";
 import type { Task } from "../types";
 import { tg } from "../telegram";
 import { shouldShowImpact } from "../lib/impact";
-import { IcoCalendar2, IcoMove, IcoTrash, IcoCheck, IcoSelectCircle, IcoXCircle } from "./icons";
+import { stageColor } from "../lib/stage";
+import { IcoCalendar2, IcoMove, IcoTrash, IcoCheck, IcoSelectCircle, IcoXCircle, IcoStage } from "./icons";
 
 // Волна 2 F2 — строка задачи со свайпом + long-press → multi-select. Мокапы B (swipe) + D (select/won't-do).
 // ОДНО поведение везде (PATTERNS): этот компонент — единственная строка задачи в списках.
@@ -238,12 +239,17 @@ function TaskItemBase({
           <div className={done || wontDo ? "title-done" : ""}>{task.title}</div>
           {wontDo ? (
             <div className="muted mono" style={{ fontSize: 13, marginTop: 2 }}>Won't Do</div>
-          ) : (task.due_date || task.due_time || shouldShowImpact(task)) ? (
+          ) : (task.due_date || task.due_time || task.stage_label || shouldShowImpact(task)) ? (
             <div
               className="mono"
               style={{ fontSize: 13, marginTop: 2, color: isOverdue ? "var(--red)" : "var(--steel)", display: "flex", alignItems: "center", gap: 6 }}
             >
               {(task.due_date || task.due_time) && <span>{fmtMeta(task.due_date, task.due_time)}</span>}
+              {task.stage_label && (
+                <span className="stagelbl" style={{ color: stageColor(task.stage_status) }}>
+                  <IcoStage />{task.stage_label}{task.stage_status === "late" ? " !" : ""}
+                </span>
+              )}
               {shouldShowImpact(task) && <span className="imp">{task.impact}%</span>}
             </div>
           ) : null}

@@ -1,7 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { IcoBellMicro, IcoRepeatMicro, IcoCheck } from "./icons";
+import { IcoBellMicro, IcoRepeatMicro, IcoCheck, IcoStage } from "./icons";
 import { tg } from "../telegram";
 import { shouldShowImpact } from "../lib/impact";
+import { stageColor } from "../lib/stage";
 import type { Priority, Project, Task } from "../types";
 import {
   HOUR_H, STEP_MIN, PX_PER_MIN, DAY_END,
@@ -435,6 +436,11 @@ export const DayTimeline = memo(function DayTimeline({
                 <div className="bt">{proj?.icon ? `${proj.icon} ` : ""}{t.title}</div>
                 <div className="bm">
                   <span>{hhmm(labelStart)}–{hhmm(labelEnd)}</span>
+                  {t.stage_label ? (
+                    <span className="stagelbl" style={{ color: stageColor(t.stage_status) }}>
+                      <IcoStage />{t.stage_label}{t.stage_status === "late" ? " !" : ""}
+                    </span>
+                  ) : null}
                   {t.recurrence ? <IcoRepeatMicro /> : null}
                   {t.reminder_at ? <IcoBellMicro /> : null}
                   {shouldShowImpact(t) ? <span className="imp">{t.impact}%</span> : null}

@@ -57,6 +57,8 @@ export interface Task {
   progress?: number;          // 0-100, двигается чеклистом
   pinned?: boolean;
   stage_id?: number | null;   // Форк 0: привязка к этапу проекта (метка на таймлайне T1)
+  stage_label?: string | null;   // «этап N» (с бэка)
+  stage_status?: string | null;  // done|current|future|late — цвет метки
   impact?: number | null;     // вклад в успех 0-100, пишет Claude (ZERO-AFK); токен в мете
   description?: string | null; parent_task_id?: number | null; tags?: Tag[];
 }

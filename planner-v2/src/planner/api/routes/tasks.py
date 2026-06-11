@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/tasks")
 _TASK_FIELDS = (
     "title", "priority", "project_id", "due_date", "due_time", "end_time",
     "description", "reminder_at", "recurrence", "recurrence_json", "progress",
-    "pinned", "parent_task_id", "impact",
+    "pinned", "parent_task_id", "stage_id", "impact",
 )
 
 

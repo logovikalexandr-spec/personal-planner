@@ -109,6 +109,16 @@ class Task(Base):
         order_by="Reminder.id",
         lazy="selectin",
     )
+    stage: Mapped["Stage | None"] = relationship("Stage", lazy="selectin")
+
+    @property
+    def stage_label(self) -> str | None:
+        # «этап N», N = order_index + 1 (человеко-номер)
+        return f"этап {self.stage.order_index + 1}" if self.stage is not None else None
+
+    @property
+    def stage_status(self) -> str | None:
+        return self.stage.status if self.stage is not None else None
 
 
 class CheckItem(Base):

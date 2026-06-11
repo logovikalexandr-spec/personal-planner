@@ -56,6 +56,9 @@ input, textarea, [contenteditable="true"] {
 .muted { color: var(--text-muted); }
 /* токен «вклад в успех» — моно-пилюля, не цвет-сигнал (канал строки занят кант/фон/этап) */
 .imp { color: var(--text); background: var(--surface-2); border-radius: 6px; padding: 1px 6px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); display: inline-flex; align-items: center; }
+/* метка этапа задачи (A6): мишень-глиф + «этап N», цвет по статусу */
+.stagelbl { display: inline-flex; align-items: center; gap: 3px; font-weight: 600; }
+.stagelbl svg { width: 12px; height: 12px; }
 .mono { font-family: var(--font-mono); font-feature-settings: "tnum"; }
 
 .card { background: var(--surface); border-radius: var(--radius); padding: var(--s4); }
