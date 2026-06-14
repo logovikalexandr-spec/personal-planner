@@ -363,7 +363,9 @@ select.input { appearance: none; -webkit-appearance: none; }
 .state-ico { color: var(--text-muted); margin-bottom: 14px; }
 .state-title { font-size: 16px; font-weight: 600; color: var(--text); }
 .state-sub { font-size: 13px; line-height: 1.5; color: var(--text-muted); margin-top: 6px; max-width: 260px; }
-.cal-grid { position: relative; }
+/* margin (не padding!) — первый лейбл 05:00 (top:-8px) не режется липкой шапкой;
+   margin двигает rect.top целиком → жест-математика (getBoundingClientRect) не ломается. */
+.cal-grid { position: relative; margin-top: var(--s3); }
 .cal-hour {
   position: relative; box-sizing: border-box;
   border-top: 1px solid var(--border); padding-left: 52px;
