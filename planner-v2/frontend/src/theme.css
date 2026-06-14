@@ -448,16 +448,16 @@ body.inline-draft .fab { display: none; }
   display: flex; align-items: center; justify-content: center;
   cursor: ns-resize; touch-action: none;
 }
-/* ручки-кружки по центру верхней/нижней кромки (цвет accent, как прежние полосы) */
-.cal-resize.top { top: 0; }
-.cal-resize.bottom { bottom: 0; }
+/* ручки-кружки по диагонали: верх-право + низ-лево, на кромках (цвет accent) */
+.cal-resize.top { top: 0; justify-content: flex-end; padding-right: 8px; }
+.cal-resize.bottom { bottom: 0; justify-content: flex-start; padding-left: 8px; }
 .cal-resize-grip {
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--accent); border: none;
   opacity: 0; transition: opacity 120ms ease;
 }
-.cal-resize.top .cal-resize-grip { align-self: flex-start; }     /* на верхней кромке */
-.cal-resize.bottom .cal-resize-grip { align-self: flex-end; }    /* на нижней кромке */
+.cal-resize.top .cal-resize-grip { align-self: flex-start; }     /* верхняя кромка справа */
+.cal-resize.bottom .cal-resize-grip { align-self: flex-end; }    /* нижняя кромка слева */
 /* грипы видны только у активного (зажатого) блока и у черновика */
 .cal-block.active .cal-resize-grip,
 .cal-draft .cal-resize-grip { opacity: 0.7; }
