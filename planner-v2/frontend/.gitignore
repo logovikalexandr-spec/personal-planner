@@ -1,0 +1,3 @@
+# Playwright артефакты прогона (не коммитим; baseline-снимки в __snapshots__ — коммитим)
+/playwright-report/
+/test-results/
