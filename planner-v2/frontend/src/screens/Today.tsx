@@ -197,10 +197,12 @@ export function Today({
     else if (draftRef.current) setDraft(null);
   }, [hidden, commitDraft]);
 
-  const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
-  // all-day = с датой на сегодня, но без времени; открытые (не done/wont_do)
+  // многодневный спан (end_date > due_date) показываем чипом в all-day, не блоком в одном дне
+  const isMultiDay = (t: Task) => !!t.end_date && !!t.due_date && t.end_date !== t.due_date;
+  const timed = useMemo(() => tasks.filter((t) => t.due_time && !isMultiDay(t)), [tasks]);
+  // all-day = без времени ИЛИ многодневный; открытые (не done/wont_do)
   const allday = useMemo(
-    () => tasks.filter((t) => !t.due_time && t.status !== "done" && t.status !== "wont_do"),
+    () => tasks.filter((t) => (!t.due_time || isMultiDay(t)) && t.status !== "done" && t.status !== "wont_do"),
     [tasks],
   );
   const closed = useMemo(
@@ -218,34 +220,8 @@ export function Today({
     else jumpNow();
   }, [selectedISO, jumpNow]);
 
-  // Свайп ◀▶ по таймлайну = сосед-день. Левый край (≤24px) отдан шторке-drawer,
-  // блоки/черновик — свои жесты (skip по target), горизонталь должна доминировать.
-  const shiftDay = useCallback((delta: number) => {
-    const d = new Date(selectedISO + "T00:00:00");
-    d.setDate(d.getDate() + delta);
-    setSelectedISO(`${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`);
-  }, [selectedISO]);
-
-  const swStart = useRef<{ x: number; y: number } | null>(null);
-  const onSwipeStart = useCallback((e: React.TouchEvent) => {
-    const t = e.touches[0];
-    // у левого края — это edge-swipe шторки (App), не листание дней; на блоке/черновике — свои жесты
-    if (t.clientX <= 24 || (e.target as HTMLElement).closest(".cal-block,.cal-draft,.cal-accessory")) {
-      swStart.current = null; return;
-    }
-    swStart.current = { x: t.clientX, y: t.clientY };
-  }, []);
-  const onSwipeEnd = useCallback((e: React.TouchEvent) => {
-    const s = swStart.current;
-    swStart.current = null;
-    if (!s || draftRef.current || pickerOpen) return; // не листать при открытом черновике/пикере
-    const dx = e.changedTouches[0].clientX - s.x;
-    const dy = Math.abs(e.changedTouches[0].clientY - s.y);
-    if (Math.abs(dx) > 60 && Math.abs(dx) > dy * 1.5) {
-      tg()?.HapticFeedback?.impactOccurred?.("light");
-      shiftDay(dx < 0 ? 1 : -1); // влево=след.день, вправо=пред.день
-    }
-  }, [pickerOpen, shiftDay]);
+  // Смена дня — через датапикер (кнопка даты) и «Сегодня»/«Сейчас». Свайп ◀▶ убран
+  // (был ненадёжен, конфликтовал с жестами блоков/скролла).
 
   const renderList = (items: Task[]) => (
     <div className="list">
@@ -276,7 +252,7 @@ export function Today({
   // ── вид «Таймлайн» (главный) ────────────────────────────────────────────
   if (view === "timeline") {
     return (
-      <div className="screen today" onTouchStart={onSwipeStart} onTouchEnd={onSwipeEnd}>
+      <div className="screen today">
         <div className="today-head">
           <div className="screen-hero today-pad">
             <div className="t1-hero-top">
@@ -356,12 +332,6 @@ export function Today({
               nowAnchorId="today-now"
             />
           )}
-        {state === "ready" && timed.length > 0 && (
-          <div className="today-swipe-hint" data-testid="swipe-hint">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l-6 6 6 6M15 6l6 6-6 6" /></svg>
-            свайп — другой день
-          </div>
-        )}
         {draft?.state === "editing" && (
           <div className="cal-accessory" ref={accessoryRef}>
             {/* onMouseDown preventDefault: не дать инпуту потерять фокус ДО клика (blur уже коммитит — но порядок важен для consistency) */}

@@ -41,7 +41,7 @@ const DAY_TASKS: Task[] = [
   { id: 4, title: "Позвонить маме", status: "todo", priority: "none", project_id: 2, due_date: TODAY, due_time: null, end_time: null } as Task,
 ];
 const OVERDUE: Task[] = [
-  { id: 90, title: "Просроченный отчёт", status: "todo", priority: "high", project_id: 3, due_date: "2026-06-01", due_time: null, end_time: null, days_late: 9 } as Task,
+  { id: 90, title: "Просроченный отчёт", status: "todo", priority: "high", project_id: 3, due_date: "2026-06-01", due_time: null, end_date: null, end_time: null, days_late: 9 } as Task,
 ];
 const HEAT: Record<string, "g" | "y" | "r"> = {
   [TODAY]: "g", "2026-06-04": "r", "2026-06-09": "y", "2026-06-11": "g", "2026-06-12": "r", "2026-06-18": "r",

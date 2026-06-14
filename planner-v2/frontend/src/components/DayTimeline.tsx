@@ -315,9 +315,11 @@ export const DayTimeline = memo(function DayTimeline({
     setDrag(null);
     stopBlocking();
     if (!onCreateDraft) return;
-    // всегда блок 1ч. Осознанный драг → точное место (snap15). Тап/удержание-без-драга →
-    // блок встаёт НА НАЧАЛО часа тапнутой ячейки (тап в середину 07:00-ячейки = 07:00, не 07:30).
-    const isDrag = wasArmed && c.moved && liveStart != null;
+    // создание ТОЛЬКО по удержанию (long-press взвёл armed). Короткий тап = ничего не создаёт.
+    if (!wasArmed) return;
+    // блок 1ч. Осознанный драг → точное место (snap15). Удержание-без-драга →
+    // блок встаёт НА НАЧАЛО часа зажатой ячейки.
+    const isDrag = c.moved && liveStart != null;
     const baseStart = isDrag ? liveStart : c.startMin;
     const snap = isDrag ? snap15 : (m: number) => Math.floor(m / 60) * 60;
     const { startMin, endMin } = defaultRange(baseStart, snap);

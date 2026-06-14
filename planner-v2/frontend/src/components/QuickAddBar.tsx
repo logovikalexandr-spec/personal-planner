@@ -11,7 +11,7 @@ import type { Priority, Project } from "../types";
 // значение копится на эту задачу. Отправка создаёт задачу с текстом + выбранным в чипах.
 
 const PROJECT_GREEN = "var(--project-tag)";
-const EMPTY_DATE: DateValue = { due_date: null, due_time: null, end_time: null, reminder_at: null, recurrence: null };
+const EMPTY_DATE: DateValue = { due_date: null, due_time: null, end_date: null, end_time: null, reminder_at: null, recurrence: null };
 const MONTHS_ABBR = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
 function dateLabel(iso: string | null): string | null {

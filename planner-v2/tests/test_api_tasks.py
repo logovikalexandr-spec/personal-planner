@@ -70,6 +70,30 @@ def test_create_timed_task_with_end_time(client):
     assert body["end_time"] == "09:30:00"
 
 
+def test_create_multiday_task_with_end_date(client):
+    r = client.post(
+        "/api/tasks",
+        json={"title": "Поездка", "due_date": "2026-06-14", "end_date": "2026-06-17"},
+        headers=HDR,
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["due_date"] == "2026-06-14"
+    assert body["end_date"] == "2026-06-17"
+
+
+def test_end_date_defaults_null(client):
+    body = client.post("/api/tasks", json={"title": "обычная", "due_date": "2026-06-14"}, headers=HDR).json()
+    assert body["end_date"] is None
+
+
+def test_patch_task_end_date(client):
+    tid = client.post("/api/tasks", json={"title": "x", "due_date": "2026-06-14"}, headers=HDR).json()["id"]
+    r = client.patch(f"/api/tasks/{tid}", json={"end_date": "2026-06-20"}, headers=HDR)
+    assert r.status_code == 200, r.text
+    assert r.json()["task"]["end_date"] == "2026-06-20"
+
+
 def test_list_on_date_filters_by_day(client):
     client.post("/api/tasks", json={"title": "today", "due_date": "2026-05-29"}, headers=HDR)
     client.post("/api/tasks", json={"title": "other", "due_date": "2026-06-01"}, headers=HDR)

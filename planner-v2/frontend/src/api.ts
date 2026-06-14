@@ -72,6 +72,7 @@ export interface TaskInput {
   priority?: Priority;
   due_date?: string | null;
   due_time?: string | null;
+  end_date?: string | null;
   end_time?: string | null;
   description?: string | null;
   reminder_at?: string | null;

@@ -75,6 +75,7 @@ function AppMain() {
     await createTask(title, {
       due_date: d?.due_date ?? p.due_date ?? null,
       due_time: d?.due_time ?? p.due_time ?? null,
+      end_date: d?.end_date ?? null,
       end_time: d?.end_time ?? null,
       reminder_at: d?.reminder_at ?? null,
       recurrence: d?.recurrence ?? null,

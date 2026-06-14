@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Sheet } from "./Sheet";
 import { getDensity } from "../api";
+import { durationLabel, pickCalendarDay } from "../lib/datetime";
 
 export interface DateValue {
   due_date: string | null;
   due_time: string | null;
+  end_date: string | null;
   end_time: string | null;
   reminder_at: string | null;
   recurrence: string | null;
@@ -12,6 +14,7 @@ export interface DateValue {
 
 const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+const MONTHS_SHORT = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
 const REMINDERS: { key: string; label: string; min: number | null }[] = [
   { key: "none", label: "Нет", min: null },
@@ -29,25 +32,24 @@ const RECUR: { key: string; label: string }[] = [
   { key: "monthly", label: "Ежемесячно" },
   { key: "yearly", label: "Ежегодно" },
 ];
-const DURATIONS = [
-  { label: "15 мин", min: 15 }, { label: "30 мин", min: 30 },
-  { label: "1 ч", min: 60 }, { label: "1.5 ч", min: 90 }, { label: "2 ч", min: 120 },
-];
 
 function localISO(d: Date): string {
   return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
 }
-function addMin(time: string, min: number): string {
-  const [h, m] = time.split(":").map(Number);
-  const total = Math.min(h * 60 + m + min, 23 * 60 + 59); // clamp to same day, no overnight wrap
-  return `${`${Math.floor(total / 60)}`.padStart(2, "0")}:${`${total % 60}`.padStart(2, "0")}:00`;
+function fmtPillDate(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${d} ${MONTHS_SHORT[m - 1]}`;
 }
 
 export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; onApply: (v: DateValue) => void; onClose: () => void }) {
-  const [tab, setTab] = useState<"date" | "dur">("date");
   const [dueDate, setDueDate] = useState<string | null>(initial.due_date);
+  const [endDate, setEndDate] = useState<string | null>(initial.end_date);
   const [dueTime, setDueTime] = useState<string | null>(initial.due_time);
   const [endTime, setEndTime] = useState<string | null>(initial.end_time);
+  // «весь день» по умолчанию = только когда задача уже многодневная без времени
+  const [allDay, setAllDay] = useState<boolean>(
+    !!initial.end_date && initial.end_date !== initial.due_date && !initial.due_time && !initial.end_time,
+  );
   const [reminderMin, setReminderMin] = useState<number | null>(() => {
     if (!initial.reminder_at || !initial.due_date) return null;
     const t = initial.due_time ?? "09:00:00";
@@ -61,7 +63,7 @@ export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; o
   const base = dueDate ? new Date(dueDate + "T00:00:00") : today;
   const [view, setView] = useState(() => ({ y: base.getFullYear(), m: base.getMonth() }));
 
-  // Heat-нагрузка дней видимого месяца (как в мини-календаре DateJumpSheet): g/y/r по числу задач.
+  // Heat-нагрузка дней видимого месяца (g/y/r по числу задач) — как в мини-календаре.
   const [heat, setHeat] = useState<Record<string, "g" | "y" | "r">>({});
   useEffect(() => {
     let alive = true;
@@ -84,88 +86,113 @@ export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; o
   }, [view]);
 
   function pickDay(day: number) {
-    setDueDate(localISO(new Date(view.y, view.m, day)));
+    const iso = localISO(new Date(view.y, view.m, day));
+    const next = pickCalendarDay({ due_date: dueDate, end_date: endDate }, iso);
+    setDueDate(next.due_date);
+    setEndDate(next.end_date);
   }
-  function setDuration(min: number) {
-    if (!dueTime) return;
-    setEndTime(addMin(dueTime, min));
+
+  function toggleAllDay() {
+    setAllDay((on) => {
+      if (!on) { setDueTime(null); setEndTime(null); } // включаем → время убираем
+      return !on;
+    });
   }
 
   function apply() {
     let reminder_at: string | null = null;
     if (reminderMin != null && dueDate) {
-      const t = dueTime ?? "09:00:00";
+      const t = allDay ? "09:00:00" : (dueTime ?? "09:00:00");
       const dt = new Date(`${dueDate}T${t.length === 5 ? t + ":00" : t}`);
       dt.setMinutes(dt.getMinutes() - reminderMin);
       reminder_at = localISO(dt) + `T${`${dt.getHours()}`.padStart(2, "0")}:${`${dt.getMinutes()}`.padStart(2, "0")}:00`;
     }
-    onApply({ due_date: dueDate, due_time: dueTime, end_time: endTime, reminder_at, recurrence: recurrence || null });
+    onApply({
+      due_date: dueDate,
+      due_time: allDay ? null : dueTime,
+      end_date: endDate,
+      end_time: allDay ? null : endTime,
+      reminder_at,
+      recurrence: recurrence || null,
+    });
     onClose();
   }
 
   const todayISO = localISO(today);
+  const deadlineISO = endDate ?? dueDate;
+  const dur = durationLabel({ due_date: dueDate, due_time: dueTime, end_date: endDate, end_time: endTime });
 
   return (
     <Sheet onClose={onClose}>
-      <div className="seg">
-        <button className={tab === "date" ? "seg-on" : ""} onClick={() => setTab("date")}>Дата</button>
-        <button className={tab === "dur" ? "seg-on" : ""} onClick={() => setTab("dur")}>Длительность</button>
+      <div className="allday">
+        <span className="allday-lbl">Весь день</span>
+        <button className={`sw ${allDay ? "on" : ""}`} data-testid="allday-toggle" onClick={toggleAllDay} aria-pressed={allDay} />
       </div>
 
-      {tab === "date" ? (
-        <>
-          <div className="cal-mini-head">
-            <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 0 ? v.y - 1 : v.y, m: (v.m + 11) % 12 }))}>‹</button>
-            <span style={{ flex: 1, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}>{MONTHS[view.m]} {view.y}</span>
-            <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 11 ? v.y + 1 : v.y, m: (v.m + 1) % 12 }))}>›</button>
-          </div>
-          <div className="cal-mini">
-            {WD.map((w) => <div key={w} className="cal-mini-wd">{w}</div>)}
-            {weeks.flat().map((d, i) => {
-              if (d == null) return <div key={i} />;
-              const iso = localISO(new Date(view.y, view.m, d));
-              const sel = iso === dueDate;
-              const isToday = iso === todayISO;
-              const h = heat[iso];
-              return (
-                <button key={i} className={`cal-mini-day ${h ? `heat-${h}` : ""} ${sel ? "sel" : ""} ${isToday && !sel ? "today" : ""}`} onClick={() => pickDay(d)}>{d}</button>
-              );
-            })}
-          </div>
+      <div className="cal-mini-head">
+        <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 0 ? v.y - 1 : v.y, m: (v.m + 11) % 12 }))}>‹</button>
+        <span style={{ flex: 1, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}>{MONTHS[view.m]} {view.y}</span>
+        <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 11 ? v.y + 1 : v.y, m: (v.m + 1) % 12 }))}>›</button>
+      </div>
+      <div className="cal-mini">
+        {WD.map((w) => <div key={w} className="cal-mini-wd">{w}</div>)}
+        {weeks.flat().map((d, i) => {
+          if (d == null) return <div key={i} />;
+          const iso = localISO(new Date(view.y, view.m, d));
+          const isStart = iso === dueDate;
+          const isEnd = !!endDate && iso === endDate;
+          const isSpan = !!dueDate && !!endDate && iso > dueDate && iso < endDate;
+          const isToday = iso === todayISO;
+          const h = heat[iso];
+          const cls = [
+            "cal-mini-day",
+            h ? `heat-${h}` : "",
+            isStart ? "start" : "",
+            isEnd ? "end" : "",
+            isSpan ? "span" : "",
+            isToday && !isStart && !isEnd ? "today" : "",
+          ].filter(Boolean).join(" ");
+          return <button key={i} className={cls} onClick={() => pickDay(d)}>{d}</button>;
+        })}
+      </div>
 
-          <div className="dr-row">
-            <span>Срок исполнения</span>
-            <input type="time" className="dr-input" value={dueTime ? dueTime.slice(0, 5) : ""}
+      <div className="dt-row" data-testid="dt-start">
+        <span className="dt-ic">▶</span>
+        <span className="dt-k">Начало</span>
+        <span className="dt-v">
+          <span className={`pill ${dueDate ? "accent" : "empty"}`}>{dueDate ? fmtPillDate(dueDate) : "дата"}</span>
+          {!allDay && (
+            <input type="time" className="pill pill-time" value={dueTime ? dueTime.slice(0, 5) : ""}
               onChange={(e) => setDueTime(e.target.value ? e.target.value + ":00" : null)} />
-          </div>
-          <div className="dr-row">
-            <span>Уведомление</span>
-            <select className="dr-input" value={`${reminderMin ?? "none"}`}
-              onChange={(e) => setReminderMin(e.target.value === "none" ? null : Number(e.target.value))}>
-              {REMINDERS.map((r) => <option key={r.key} value={r.min == null ? "none" : `${r.min}`}>{r.label}</option>)}
-            </select>
-          </div>
-          <div className="dr-row">
-            <span>Повтор</span>
-            <select className="dr-input" value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
-              {RECUR.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
-            </select>
-          </div>
-        </>
-      ) : (
-        <div>
-          <div className="muted" style={{ marginBottom: 12 }}>
-            {dueTime ? `Начало ${dueTime.slice(0, 5)}. Выбери длительность:` : "Сначала задай время начала на вкладке «Дата»."}
-          </div>
-          <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-            {DURATIONS.map((d) => (
-              <button key={d.min} className={endTime && dueTime && addMin(dueTime, d.min) === endTime ? "btn-chip active" : "btn-chip"}
-                disabled={!dueTime} onClick={() => setDuration(d.min)}>{d.label}</button>
-            ))}
-          </div>
-          {endTime && <div className="muted" style={{ marginTop: 12 }}>Конец: {endTime.slice(0, 5)}</div>}
-        </div>
-      )}
+          )}
+        </span>
+      </div>
+      <div className="dt-row" data-testid="dt-end">
+        <span className="dt-ic">■</span>
+        <span className="dt-k">Дедлайн</span>
+        <span className="dt-v">
+          <span className={`pill ${deadlineISO ? "" : "empty"}`}>{deadlineISO ? fmtPillDate(deadlineISO) : "дата"}</span>
+          {!allDay && (
+            <input type="time" className="pill pill-time" value={endTime ? endTime.slice(0, 5) : ""}
+              onChange={(e) => setEndTime(e.target.value ? e.target.value + ":00" : null)} />
+          )}
+        </span>
+      </div>
+      {dur && <div className="dur" data-testid="dur-label">длительность: {dur}</div>}
+
+      <div className="dr-row">
+        <span>Напоминание</span>
+        <select className="dr-input" value={`${reminderMin ?? "none"}`}
+          onChange={(e) => setReminderMin(e.target.value === "none" ? null : Number(e.target.value))}>
+          {REMINDERS.map((r) => <option key={r.key} value={r.min == null ? "none" : `${r.min}`}>{r.label}</option>)}
+        </select>
+      </div>
+      <div className="dr-row">
+        <span>Повтор</span>
+        <select className="dr-input" value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
+          {RECUR.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+        </select>
+      </div>
 
       <button className="btn btn-block" style={{ marginTop: 16 }} onClick={apply}>Готово</button>
     </Sheet>

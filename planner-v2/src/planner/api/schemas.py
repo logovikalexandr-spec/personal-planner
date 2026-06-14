@@ -24,6 +24,7 @@ class TaskCreate(BaseModel):
     priority: str = "none"
     due_date: date | None = None
     due_time: time | None = None
+    end_date: date | None = None
     end_time: time | None = None
     description: str | None = None
     reminder_at: datetime | None = None
@@ -40,6 +41,7 @@ class TaskOut(BaseModel):
     status: str
     due_date: date | None
     due_time: time | None
+    end_date: date | None = None
     end_time: time | None = None
     recurrence: str | None = None
     reminder_at: datetime | None = None
@@ -63,6 +65,7 @@ class TaskPatch(BaseModel):
     project_id: int | None = None
     due_date: date | None = None
     due_time: time | None = None
+    end_date: date | None = None
     end_time: time | None = None
     description: str | None = None
     reminder_at: datetime | None = None

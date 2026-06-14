@@ -43,7 +43,7 @@ export function TaskComposer({
   const [projectId, setProjectId] = useState<number | null>(defaultProjectId);
   const [priority, setPriority] = useState<Priority>("none");
   const [date, setDate] = useState<DateValue>({
-    due_date: initialDate ?? null, due_time: initialTime ?? null, end_time: initialEnd ?? null,
+    due_date: initialDate ?? null, due_time: initialTime ?? null, end_date: null, end_time: initialEnd ?? null,
     reminder_at: null, recurrence: null,
   });
   const [tagIds, setTagIds] = useState<number[]>([]);
@@ -110,6 +110,7 @@ export function TaskComposer({
         priority: priority !== "none" ? priority : (parsed.priority ?? "none"),
         due_date: date.due_date ?? parsed.due_date ?? null,
         due_time: date.due_time ?? parsed.due_time ?? null,
+        end_date: date.end_date,
         end_time: date.end_time,
         reminder_at: date.reminder_at, recurrence: date.recurrence,
         description: description.trim() || null,

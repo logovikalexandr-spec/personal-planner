@@ -8,6 +8,19 @@ import { test, expect } from "./_telegram";
 
 const FULL = "preview-t1-full-mock.html";
 
+// Создание черновика = ТОЛЬКО удержание (long-press) пустой сетки; тап не создаёт.
+// Жмём на пустую область ниже task-1 (видна, без блока) и держим >220ms без сдвига.
+async function longPressEmpty(page: import("@playwright/test").Page) {
+  const anchor = await page.getByTestId("task-1").boundingBox();
+  if (!anchor) throw new Error("нет геометрии task-1");
+  const x = anchor.x + 40;
+  const y = anchor.y + 96; // ~+1.7ч ниже блока 09:00 → пустой час
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.waitForTimeout(300); // > LONGPRESS_MS (220ms)
+  await page.mouse.up();
+}
+
 // ── ХРОМ + ПОВЕДЕНИЕ (детерминированно, оба браузера) ──
 
 test("A1 — бургер открывает шторку (вызывает onOpenDrawer)", async ({ page }) => {
@@ -68,10 +81,16 @@ test("A5 — all-day: 2 чипа + «+N ещё», разворот показы�
   await expect(page.getByTestId("btn-allday-expand")).toHaveCount(0);
 });
 
-test("draft — тап пустого часа открывает инлайн-черновик", async ({ page }) => {
+test("draft — удержание пустого часа открывает инлайн-черновик", async ({ page }) => {
   await page.goto(FULL);
-  await page.getByTestId("cal-grid").click({ position: { x: 200, y: 520 } }); // ~пустой час
+  await longPressEmpty(page);
   await expect(page.locator(".cal-draft-input")).toBeVisible();
+});
+
+test("тап пустого часа НЕ создаёт черновик (создание только удержанием)", async ({ page }) => {
+  await page.goto(FULL);
+  await page.getByTestId("cal-grid").click({ position: { x: 200, y: 520 } }); // короткий тап
+  await expect(page.locator(".cal-draft-input")).toHaveCount(0);
 });
 
 // ── A7 FAB-пилюля «Список» (иконка + ярлык + позиция впритык к [+]) ──
@@ -93,10 +112,9 @@ test("A7 — пилюля стоит впритык СЛЕВА от кругло
   expect(plus.x - (pill.x + pill.width)).toBeLessThan(20);     // впритык, не в др. углу
 });
 
-test("подсказка «свайп — другой день» видна при задачах", async ({ page }) => {
+test("подсказки «свайп — другой день» нет (фича убрана)", async ({ page }) => {
   await page.goto(FULL);
-  await expect(page.getByTestId("swipe-hint")).toBeVisible();
-  await expect(page.getByTestId("swipe-hint")).toContainText("свайп — другой день");
+  await expect(page.getByTestId("swipe-hint")).toHaveCount(0);
 });
 
 // ── PERSIST после refresh (stateful-мок: создание выживает reload) ──
@@ -106,7 +124,7 @@ test("persist — созданная задача переживает обно�
   await page.evaluate(() => localStorage.removeItem("preview-t1-store"));
   await page.reload();
 
-  await page.getByTestId("cal-grid").click({ position: { x: 200, y: 520 } });
+  await longPressEmpty(page);
   await page.locator(".cal-draft-input").fill("Тест persist");
   await page.locator(".cal-accessory button").click(); // «Готово» → POST
   await expect(page.getByText("Тест persist")).toBeVisible();

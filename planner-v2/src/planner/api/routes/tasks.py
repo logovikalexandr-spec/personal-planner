@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/tasks")
 
 # Plain scalar fields a PATCH may set directly on the Task model.
 _TASK_FIELDS = (
-    "title", "priority", "project_id", "due_date", "due_time", "end_time",
+    "title", "priority", "project_id", "due_date", "due_time", "end_date", "end_time",
     "description", "reminder_at", "recurrence", "recurrence_json", "progress",
     "pinned", "parent_task_id", "stage_id", "impact",
 )

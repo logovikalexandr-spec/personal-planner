@@ -40,7 +40,7 @@ export function Tasks({ reloadKey, onOpenTask }: { reloadKey: number; onOpenTask
   }
   async function applyDate(v: DateValue) {
     await Promise.all(pickTargets.map((t) =>
-      patchTask(t.id, { due_date: v.due_date, due_time: v.due_time, end_time: v.end_time })));
+      patchTask(t.id, { due_date: v.due_date, due_time: v.due_time, end_date: v.end_date, end_time: v.end_time })));
     setPicker(null);
     await load();
   }
@@ -75,7 +75,7 @@ export function Tasks({ reloadKey, onOpenTask }: { reloadKey: number; onOpenTask
 
       {picker === "date" && (
         <DateSheet
-          initial={{ due_date: null, due_time: null, end_time: null, reminder_at: null, recurrence: null }}
+          initial={{ due_date: null, due_time: null, end_date: null, end_time: null, reminder_at: null, recurrence: null }}
           onApply={applyDate}
           onClose={() => setPicker(null)}
         />

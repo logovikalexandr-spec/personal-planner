@@ -51,7 +51,7 @@ export interface RecurrenceJson {
 export interface Task {
   id: number; title: string; project_id: number | null;
   priority: Priority; status: TaskStatus;
-  due_date: string | null; due_time: string | null; end_time: string | null;
+  due_date: string | null; due_time: string | null; end_date: string | null; end_time: string | null;
   recurrence?: string | null; reminder_at?: string | null;
   recurrence_json?: RecurrenceJson | null;
   progress?: number;          // 0-100, двигается чеклистом

@@ -78,6 +78,7 @@ class Task(Base):
     priority: Mapped[str] = mapped_column(String(10), default="none")
     due_date: Mapped[date | None] = mapped_column(Date, default=None)
     due_time: Mapped[time | None] = mapped_column(Time, default=None)
+    end_date: Mapped[date | None] = mapped_column(Date, default=None)
     end_time: Mapped[time | None] = mapped_column(Time, default=None)
     reminder_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     recurrence: Mapped[str | None] = mapped_column(String(100), default=None)
