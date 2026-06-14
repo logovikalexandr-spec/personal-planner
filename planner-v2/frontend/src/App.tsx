@@ -128,12 +128,13 @@ function AppMain() {
 
   // тап чипа дата/приоритет/тег (или «Развернуть») → полный composer с текстом + нужным пикером
   const expandQuick = useCallback((field?: QuickField) => {
-    // закрыть клаву quick-add, иначе пикер-шит composer'а выезжает поверх клавы вверх (iOS)
+    // закрыть клаву quick-add ДО открытия composer: иначе шит выезжает из центра вниз
+    // (kb-inset транзишн) — ждём закрытия клавы, потом открываем (шит сразу внизу).
     (document.activeElement as HTMLElement | null)?.blur();
     const map = { date: "date", prio: "priority", tag: "tag", rem: null } as const;
-    setComposerInit({ title: qaText, picker: field ? map[field] : null });
+    const init = { title: qaText, picker: field ? map[field] : null };
     setQuickOpen(false);
-    setAddOpen(true);
+    window.setTimeout(() => { setComposerInit(init); setAddOpen(true); }, 300);
   }, [qaText]);
   const anyOverlay = addOpen || quickOpen || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "gantt" && !viewing);

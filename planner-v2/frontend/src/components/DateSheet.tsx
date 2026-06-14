@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Sheet } from "./Sheet";
+import { getDensity } from "../api";
 
 export interface DateValue {
   due_date: string | null;
@@ -66,6 +67,16 @@ export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; o
   const base = dueDate ? new Date(dueDate + "T00:00:00") : today;
   const [view, setView] = useState(() => ({ y: base.getFullYear(), m: base.getMonth() }));
 
+  // Heat-нагрузка дней видимого месяца (как в мини-календаре DateJumpSheet): g/y/r по числу задач.
+  const [heat, setHeat] = useState<Record<string, "g" | "y" | "r">>({});
+  useEffect(() => {
+    let alive = true;
+    const from = localISO(new Date(view.y, view.m, 1));
+    const to = localISO(new Date(view.y, view.m + 1, 0));
+    getDensity(from, to).then((d) => { if (alive) setHeat(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [view.y, view.m]);
+
   const weeks = useMemo(() => {
     const first = new Date(view.y, view.m, 1);
     const startDow = (first.getDay() || 7) - 1; // Mon=0
@@ -131,8 +142,9 @@ export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; o
               const iso = localISO(new Date(view.y, view.m, d));
               const sel = iso === dueDate;
               const isToday = iso === todayISO;
+              const h = heat[iso];
               return (
-                <button key={i} className={`cal-mini-day ${sel ? "sel" : ""} ${isToday && !sel ? "today" : ""}`} onClick={() => pickDay(d)}>{d}</button>
+                <button key={i} className={`cal-mini-day ${h ? `heat-${h}` : ""} ${sel ? "sel" : ""} ${isToday && !sel ? "today" : ""}`} onClick={() => pickDay(d)}>{d}</button>
               );
             })}
           </div>
