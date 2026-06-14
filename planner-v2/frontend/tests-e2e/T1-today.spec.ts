@@ -63,6 +63,10 @@ test("now-line = Ember (#EE8A3C)", async ({ page }) => {
 
 test.describe("визуал-baseline", () => {
   test.skip(({ browserName }) => browserName !== "chromium", "baseline только на chromium");
+  // Замораживаем часы → now-line и дата детерминированы (иначе baseline флакает каждую минуту/день).
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-06-14T15:30:00") });
+  });
 
   test("Сегодня · happy совпадает с эталоном", async ({ page }) => {
     await page.goto(HAPPY);

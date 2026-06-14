@@ -1,20 +1,26 @@
 #!/usr/bin/env bash
 # Гейт полноты (конвейер v2): каждый интерактивный элемент мокапа (ecode) учтён в контракте —
 # либо ПОКРЫТ тестом, либо ЯВНО отложен (COVERAGE-DEFER). Молчаливых дыр нет.
-# Usage: bash coverage.sh <mockup.html> <contract.spec.ts>
+# Usage: bash coverage.sh <mockup.html> <spec.ts> [<spec2.ts> ...]
+# Контракт экрана может быть разбит на неск. spec-файлов (напр. T1 = T1-today + T1-full) — передай все.
 # Разметка V3: <span class="ecode">A6</span> (код = текст; суффикс ·DETAIL/·T1 = кросс-реф, отрезаем).
 set -euo pipefail
-mockup="${1:?нужен путь к мокапу}"; spec="${2:?нужен путь к spec}"
+mockup="${1:?нужен путь к мокапу}"; shift
+[ "$#" -ge 1 ] || { echo "нужен хотя бы один spec-файл"; exit 2; }
 [ -f "$mockup" ] || { echo "MOCKUP NOT FOUND: $mockup"; exit 2; }
-[ -f "$spec" ]   || { echo "CONTRACT NOT FOUND: $spec"; exit 2; }
+for s in "$@"; do [ -f "$s" ] || { echo "CONTRACT NOT FOUND: $s"; exit 2; }; done
 
 codes=$(grep -oE '<span class="ecode[^"]*">[^<]*</span>' "$mockup" \
   | sed -E 's/<[^>]+>//g; s/·.*//' | sort -u)
 [ -n "$codes" ] || { echo "WARN: в мокапе нет <span class=\"ecode\">; проверь разметку"; exit 3; }
 
-# Граница: всё до маркера COVERAGE-DEFER = зона покрытия; после = явный отложенный список.
-covered_zone=$(awk '/COVERAGE-DEFER/{exit} {print}' "$spec")
-defer_zone=$(awk 'f{print} /COVERAGE-DEFER/{f=1}' "$spec")
+# Граница в каждом spec: до маркера COVERAGE-DEFER = зона покрытия; после = отложенное.
+# Зоны склеиваем по всем переданным spec-файлам.
+covered_zone=""; defer_zone=""
+for s in "$@"; do
+  covered_zone+=$'\n'$(awk '/COVERAGE-DEFER/{exit} {print}' "$s")
+  defer_zone+=$'\n'$(awk 'f{print} /COVERAGE-DEFER/{f=1}' "$s")
+done
 
 miss=0; cov=0; def=0
 for c in $codes; do

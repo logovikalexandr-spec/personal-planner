@@ -49,7 +49,7 @@
 **Честность (Claude судит свой код — слепая зона):** эталон визуала утверждает ЧЕЛОВЕК один раз; **агент/CI НЕ запускает `--update-snapshots`** (config: `updateSnapshots:"none"`). Резерв — модель другого семейства как судья.
 
 **Block-полномочие:** reviewer НЕ MERGE, CEO НЕ deploy пока `lint:tokens` + `e2e` + `coverage.sh` не зелёные.
-**Golden example:** `tests-e2e/T1-today.spec.ts` (экран «Сегодня», 7 тестов ×2 браузера). Шаблон для остальных экранов.
+**Golden example:** экран «Сегодня» = `tests-e2e/T1-today.spec.ts` (timeline A6 + токены + визуал) + `tests-e2e/T1-full.spec.ts` (хром A1-A5 + draft + persist + drag + полный визуал). Контракт экрана может быть разбит на неск. spec — `coverage.sh` принимает все: `coverage.sh <mockup> <spec1> <spec2>`. Покрытие T1: 6/7 ecode (A7 FAB=App-уровень, отложен). Визуал-baseline — `page.clock` замораживает время (детерминизм). Шаблон для остальных экранов.
 
 ## Кто кого тормозит (block-полномочия)
 - **product-depth** — не пускает фичу в Фазу 2, если есть только happy-path без матрицы состояний и reuse-карты.

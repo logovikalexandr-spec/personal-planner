@@ -251,24 +251,24 @@ export function Today({
         <div className="today-head">
           <div className="screen-hero today-pad">
             <div className="t1-hero-top">
-              <button className="t1-burger" onClick={onOpenDrawer} aria-label="Проекты"><IcoMenu /></button>
+              <button className="t1-burger" data-testid="btn-burger" onClick={onOpenDrawer} aria-label="Проекты"><IcoMenu /></button>
               <h1>Задачи</h1>
             </div>
             <div className="t1-daterow">
-              <button className="t1-datebtn" onClick={() => setPickerOpen(true)}>
+              <button className="t1-datebtn" data-testid="btn-date" onClick={() => setPickerOpen(true)}>
                 <IcoCalendar2 />
                 <span style={{ textTransform: "capitalize" }}>{FMT.format(new Date(selectedISO + "T00:00:00"))}</span>
                 <span className="chev"><IcoChevronDown /></span>
               </button>
-              {!isToday && <button className="t1-jump" onClick={goToday}>Сегодня</button>}
-              {isToday && <button className="t1-jump" onClick={jumpNow}>Сейчас</button>}
+              {!isToday && <button className="t1-jump" data-testid="btn-today-jump" onClick={goToday}>Сегодня</button>}
+              {isToday && <button className="t1-jump" data-testid="btn-today-jump" onClick={jumpNow}>Сейчас</button>}
             </div>
             {tasks.length > 0 && (
-              <div className="today-summary">{tasks.length} задач · {closed.length} закрыто</div>
+              <div className="today-summary" data-testid="text-summary">{tasks.length} задач · {closed.length} закрыто</div>
             )}
           </div>
           {allday.length > 0 && (
-            <div className="cal-allday today-pad">
+            <div className="cal-allday today-pad" data-testid="allday">
               <span className="cal-allday-label">весь<br />день</span>
               <div className="cal-allday-chips">
                 {(alldayExpanded ? allday : allday.slice(0, 2)).map((t) => {
@@ -289,7 +289,7 @@ export function Today({
                   );
                 })}
                 {!alldayExpanded && allday.length > 2 && (
-                  <button className="cal-chip cal-chip-more" onClick={() => setAlldayExpanded(true)}>
+                  <button className="cal-chip cal-chip-more" data-testid="btn-allday-expand" onClick={() => setAlldayExpanded(true)}>
                     +{allday.length - 2} ещё
                   </button>
                 )}
