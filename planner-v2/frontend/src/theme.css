@@ -1121,3 +1121,133 @@ body.inline-draft .fab { display: none; }
 .btn-primary { background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 600; cursor: pointer; }
 .lnk { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
 .hcard .hchk { font-size: 18px; line-height: 1; }
+
+/* ════════ T3 «Гант» (мокап T3a/T3b · flows · состояния) ════════ */
+.screen.t3 { padding: var(--s5) var(--s4) var(--s6); }
+.t3 .g-sub { color: var(--text-muted); font-size: 13px; margin: -2px 0 var(--s4); }
+.t3 .g-back { color: var(--accent); font-size: 13px; font-weight: 600; margin-bottom: 4px; background: none; border: none; padding: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+
+/* сегмент Все / По проекту */
+.t3 .g-seg { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 3px; margin-bottom: 14px; }
+.t3 .g-seg button { flex: 1; background: none; border: none; color: var(--text-muted); font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 0; border-radius: 8px; cursor: pointer; }
+.t3 .g-seg button.on { background: var(--surface-2); color: var(--text); }
+
+/* период + зум */
+.t3 .g-periodrow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.t3 .g-period { font-size: 13px; font-weight: 600; }
+.t3 .g-period span { color: var(--text-muted); font-weight: 400; font-family: var(--font-mono); font-size: 11px; display: block; margin-top: 1px; }
+.t3 .g-zoom { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 2px; }
+.t3 .g-zoom button { background: none; border: none; color: var(--text-muted); font-family: inherit; font-size: 11px; font-weight: 600; padding: 5px 9px; border-radius: 7px; cursor: pointer; }
+.t3 .g-zoom button.on { background: var(--surface-2); color: var(--text); }
+
+/* чип проекта (T3b) + критпуть-нота */
+.t3 .g-projchip { display: inline-flex; align-items: center; gap: 8px; background: var(--accent-soft); border: 1px solid var(--border); color: var(--text); border-radius: 11px; padding: 9px 14px; font-size: 14px; font-weight: 600; margin-bottom: 14px; cursor: pointer; }
+.t3 .g-projchip .car { font-size: 11px; color: var(--text-muted); }
+.t3 .g-critnote { display: flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px; }
+.t3 .g-critnote .sw { width: 18px; height: 4px; border-radius: 2px; background: var(--accent); }
+.t3 .g-critnote b { color: var(--accent); font-weight: 600; }
+
+/* гант-обёртка + горизонт-скролл */
+.t3 .gantt { position: relative; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+.t3 .gantt::-webkit-scrollbar { display: none; }
+.t3 .g-inner { position: relative; }
+
+.t3 .ghead { display: flex; border-bottom: 1px solid var(--border); font-family: var(--font-mono); font-size: 10px; letter-spacing: .5px; color: var(--text-muted); }
+.t3 .ghead .corner { padding: 8px 10px; border-right: 1px solid var(--border); position: sticky; left: 0; z-index: 4; background: var(--surface); flex: 0 0 auto; }
+.t3 .g-scale { position: relative; height: 31px; flex: 0 0 auto; }
+.t3 .g-scale .mon { position: absolute; top: 0; height: 100%; display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--border); white-space: nowrap; }
+
+.t3 .gbody { position: relative; }
+.t3 .ggrid { position: absolute; top: 0; bottom: 0; pointer-events: none; z-index: 0; }
+.t3 .ggrid i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border); }
+.t3 .gtoday { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed var(--accent); z-index: 2; }
+.t3 .gtoday::before { content: "СЕГОДНЯ"; position: absolute; top: -1px; left: 3px; font-family: var(--font-mono); font-size: 8px; letter-spacing: .5px; color: var(--accent); white-space: nowrap; }
+
+.t3 .grow { display: flex; align-items: center; border-bottom: 1px solid var(--border); position: relative; }
+.t3 .grow:last-child { border-bottom: none; }
+.t3 .glabel { padding: 0 9px; border-right: 1px solid var(--border); height: 100%; display: flex; flex-direction: column; justify-content: center; position: sticky; left: 0; z-index: 3; background: var(--surface); flex: 0 0 auto; }
+.t3 .glabel.task { padding-left: 22px; }
+.t3 .glabel .nm { font-size: 11.5px; font-weight: 600; line-height: 1.15; }
+.t3 .glabel .nm.tnm { font-size: 11px; font-weight: 500; color: var(--text); }
+.t3 .glabel .tg { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+.t3 .glabel .tg .d { width: 6px; height: 6px; border-radius: 2px; background: var(--c); }
+.t3 .glabel .tdot { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); width: 5px; height: 5px; border-radius: 50%; }
+.t3 .gtrack { position: relative; height: 100%; flex: 0 0 auto; }
+
+/* бары этапов */
+.t3 .gbar { position: absolute; top: 50%; transform: translateY(-50%); height: 15px; border-radius: 5px; overflow: hidden; cursor: pointer; z-index: 1; }
+.t3 .gbar.done { background: var(--c); }
+.t3 .gbar.cur { background: color-mix(in srgb, var(--c) 30%, transparent); border: 1px dashed var(--c); }
+.t3 .gbar.cur .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); border-radius: 5px 0 0 5px; }
+.t3 .gbar.fut { background: color-mix(in srgb, var(--c) 16%, transparent); border: 1px solid color-mix(in srgb, var(--c) 40%, transparent); }
+.t3 .gbar.late { background: color-mix(in srgb, var(--danger) 18%, transparent); border: 1px solid var(--danger); }
+.t3 .gbar.crit { box-shadow: 0 0 0 1.4px var(--accent); }
+.t3 .gbar.sel { outline: 2px solid var(--accent); outline-offset: 2px; }
+.t3 .gbar .pct { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 8.5px; font-weight: 600; color: var(--text); z-index: 2; }
+/* мини-бар задачи (T3b) */
+.t3 .gtbar { position: absolute; top: 50%; transform: translateY(-50%); height: 9px; border-radius: 3px; z-index: 1; }
+.t3 .gtbar.tdone { background: color-mix(in srgb, var(--success) 85%, transparent); }
+.t3 .gtbar.topen { background: var(--surface-2); border: 1px solid var(--border); }
+
+/* вехи-ромбы */
+.t3 .gmile { position: absolute; top: 50%; width: 10px; height: 10px; background: var(--c); transform: translate(-50%, -50%) rotate(45deg); border-radius: 2px; z-index: 3; cursor: pointer; }
+.t3 .gmile.flag { background: var(--text); }
+.t3 .gmile.sel { outline: 2px solid var(--accent); outline-offset: 3px; }
+.t3 .gmlabel { position: absolute; top: 50%; transform: translateY(6px); font-family: var(--font-mono); font-size: 8px; color: var(--text-muted); white-space: nowrap; }
+.t3 .glate { position: absolute; top: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 700; color: var(--danger); z-index: 4; line-height: 1; }
+
+/* SVG-стрелка зависимости */
+.t3 .gdep { position: absolute; inset: 0; pointer-events: none; z-index: 2; overflow: visible; }
+
+/* итог-легенда */
+.t3 .gfoot { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); margin-top: 12px; padding: 0 2px; }
+.t3 .gfoot .it { display: flex; align-items: center; gap: 5px; }
+.t3 .gfoot .sw { width: 14px; height: 8px; border-radius: 3px; }
+.t3 .gfoot .dia { width: 8px; height: 8px; transform: rotate(45deg); border-radius: 1px; background: var(--text-muted); }
+.t3 .gkeys { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--text-muted); margin-top: 10px; padding: 0 2px; }
+.t3 .gkeys span { display: inline-flex; align-items: center; gap: 5px; }
+.t3 .gkeys i { width: 11px; height: 8px; border-radius: 2px; display: inline-block; }
+
+/* плавающая кнопка «Сегодня» (линия ушла из вида) */
+.t3 .g-todaybtn { position: absolute; bottom: 10px; background: var(--accent); color: var(--accent-contrast); border: none; font-family: var(--font-mono); font-size: 11px; font-weight: 700; border-radius: 8px; padding: 6px 10px; cursor: pointer; z-index: 5; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); }
+.t3 .g-todaybtn.l { left: 14px; }
+.t3 .g-todaybtn.r { right: 14px; }
+
+/* состояния (пусто / нет этапов / ошибка / скелетон) */
+.t3 .g-state { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 12px; padding: 48px 22px; }
+.t3 .g-state .ic { width: 42px; height: 42px; color: var(--text-muted); }
+.t3 .g-state .t { font-size: 16px; font-weight: 600; }
+.t3 .g-state .s { font-size: 13px; color: var(--text-muted); line-height: 1.5; max-width: 280px; }
+.t3 .g-state .btn { margin-top: 4px; background: var(--accent); color: var(--accent-contrast); border: none; font-size: 14px; font-weight: 600; border-radius: 11px; padding: 11px 20px; cursor: pointer; }
+.t3 .g-emptyrow { padding: 38px 0; text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+.t3 .g-skrow { display: flex; align-items: center; height: 46px; border-bottom: 1px solid var(--border); padding: 0 12px; gap: 12px; }
+.t3 .g-skrow:last-child { border-bottom: none; }
+.t3 .g-skbar { height: 14px; border-radius: 5px; }
+
+/* шит «деталь этапа» (контент внутри общего Sheet) */
+.t3 .gsh-top { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 12px; }
+.t3 .gsh-dot { flex: 0 0 auto; width: 10px; height: 10px; border-radius: 3px; background: var(--c); margin-top: 5px; }
+.t3 .gsh-title { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.t3 .gsh-sub { font-size: 11.5px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 3px; }
+.t3 .gbadge { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
+.t3 .gbadge.cur { background: var(--accent-soft); color: var(--accent); }
+.t3 .gbadge.late { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+.t3 .gbadge.done { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+.t3 .gbadge.fut { background: var(--surface-2); color: var(--text-muted); }
+.t3 .gpwrap { margin: 14px 0 4px; }
+.t3 .gptrack { height: 8px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.t3 .gpfill { height: 100%; border-radius: 5px; background: var(--c); }
+.t3 .gpmeta { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 6px; }
+.t3 .gdates { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0; }
+.t3 .gdcell { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 9px 11px; }
+.t3 .gdcell .dl { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+.t3 .gdcell .dv { font-size: 14px; font-weight: 600; }
+.t3 .gdepline { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 10px 11px; margin-bottom: 8px; }
+.t3 .gdepline svg { width: 15px; height: 15px; color: var(--accent); flex: 0 0 auto; }
+.t3 .gdepline b { color: var(--text); font-weight: 600; }
+.t3 .gpop { position: absolute; z-index: 6; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 11px 13px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); min-width: 150px; }
+.t3 .gstask { display: flex; align-items: center; gap: 9px; padding: 8px 2px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.t3 .gstask:last-child { border-bottom: none; }
+.t3 .gstask .sd { width: 6px; height: 6px; border-radius: 50%; flex: 0 0 auto; }
+.t3 .gstask .sm { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.t3 .gstask.is-done .t { color: var(--text-muted); text-decoration: line-through; }
