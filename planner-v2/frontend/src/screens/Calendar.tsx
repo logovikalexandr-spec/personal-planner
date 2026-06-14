@@ -1,109 +1,220 @@
-import { useEffect, useMemo, useState } from "react";
-import { getDayTasks, getProjects, patchTask } from "../api";
-import { DayTimeline } from "../components/DayTimeline";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getMilestones, getProjects, getTasks, getTasksRange, patchTask } from "../api";
+import { CalendarWeek } from "../components/CalendarWeek";
+import { CalendarMonth } from "../components/CalendarMonth";
+import { CalendarAgenda } from "../components/CalendarAgenda";
 import { TaskComposer } from "../components/TaskComposer";
+import { TaskDetail } from "../components/TaskDetail";
+import {
+  addDays, fmtMonthYear, fmtWeekRange, localISO, monthMatrix, sameDay, weekDays,
+} from "../lib/calDates";
+import { resolveColor } from "../lib/projectColor";
 import { tg } from "../telegram";
-import type { Project, Task } from "../types";
+import type { CalendarView, Milestone, Project, Task } from "../types";
 
-function localISO(d: Date): string {
-  const m = `${d.getMonth() + 1}`.padStart(2, "0");
-  const day = `${d.getDate()}`.padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-function resolveColor(projectId: number | null, byId: Map<number, Project>): string | null {
-  let cur = projectId != null ? byId.get(projectId) : undefined;
-  let g = 0;
-  while (cur && g++ < 8) {
-    if (cur.color) return cur.color;
-    cur = cur.parent_id != null ? byId.get(cur.parent_id) : undefined;
+type Status = "loading" | "ready" | "error";
+
+/** Окно дат текущего вида: [from, to] ISO (включительно) для range-запроса. */
+function viewWindow(view: CalendarView, anchor: Date, today: Date): { from: string; to: string } {
+  if (view === "week") {
+    const d = weekDays(anchor);
+    return { from: localISO(d[0]), to: localISO(d[6]) };
   }
-  return null;
+  if (view === "month") {
+    const cells = monthMatrix(anchor.getFullYear(), anchor.getMonth());
+    return { from: localISO(cells[0]), to: localISO(cells[41]) };
+  }
+  return { from: localISO(today), to: localISO(addDays(today, 14)) };
 }
 
 export function Calendar() {
-  const [day, setDay] = useState<Date>(() => new Date());
+  const [view, setView] = useState<CalendarView>("week");
+  const [anchor, setAnchor] = useState<Date>(() => new Date());
+  const [selected, setSelected] = useState<Date>(() => new Date());
+  const [status, setStatus] = useState<Status>("loading");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [undated, setUndated] = useState<Task[]>([]);
+  const [overdue, setOverdue] = useState<Task[]>([]);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [byId, setById] = useState<Map<number, Project>>(new Map());
-  const [addHour, setAddHour] = useState<number | null>(null);
+  const [composer, setComposer] = useState<{ date: string; time: string | null } | null>(null);
+  const [openedId, setOpenedId] = useState<number | null>(null);
+  const [trayOpen, setTrayOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const iso = localISO(day);
-  const isToday = iso === localISO(new Date());
+  const today = useMemo(() => new Date(), []);
+  const win = useMemo(() => viewWindow(view, anchor, today), [view, anchor, today]);
 
-  async function load() {
-    const [ts, ps] = await Promise.all([getDayTasks(iso), getProjects()]);
-    setTasks(ts);
-    setById(new Map(ps.map((p) => [p.id, p])));
-  }
+  const load = useCallback(async () => {
+    setStatus("loading");
+    try {
+      const reqs: [Promise<Task[]>, Promise<Milestone[]>, Promise<Project[]>] = [
+        getTasksRange(win.from, win.to),
+        getMilestones(win.from, win.to),
+        getProjects(),
+      ];
+      const [ts, ms, ps] = await Promise.all(reqs);
+      setTasks(ts);
+      setMilestones(ms);
+      setById(new Map(ps.map((p) => [p.id, p])));
+      if (view === "week") {
+        const all = await getTasks("all");
+        setUndated(all.filter((t) => !t.due_date && t.status !== "done" && t.status !== "wont_do"));
+      }
+      if (view === "agenda") {
+        setOverdue(await getTasks("overdue"));
+      }
+      setStatus("ready");
+    } catch {
+      setStatus("error");
+    }
+  }, [win.from, win.to, view]);
 
-  useEffect(() => {
-    load().catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iso]);
+  useEffect(() => { load(); }, [load, reloadKey]);
 
-  const untimed = useMemo(() => tasks.filter((t) => !t.due_time), [tasks]);
-
-  function shiftDay(delta: number) {
-    const d = new Date(day);
-    d.setDate(d.getDate() + delta);
-    setDay(d);
-  }
+  const bump = () => setReloadKey((k) => k + 1);
 
   async function toggle(t: Task) {
     tg()?.HapticFeedback?.impactOccurred?.("light");
-    await patchTask(t.id, { status: t.status === "done" ? "todo" : "done" });
-    load();
+    // оптимистично
+    const next = t.status === "done" ? "todo" : "done";
+    setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
+    setOverdue((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
+    await patchTask(t.id, { status: next });
+    bump();
   }
 
-  const d1 = new Intl.DateTimeFormat("ru-RU", { weekday: "long" }).format(day);
-  const d2 = new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" }).format(day);
+  function shift(delta: number) {
+    const d = new Date(anchor);
+    if (view === "week") d.setDate(d.getDate() + delta * 7);
+    else if (view === "month") d.setMonth(d.getMonth() + delta);
+    setAnchor(d);
+  }
+
+  function goToday() {
+    setAnchor(new Date());
+    setSelected(new Date());
+  }
+
+  const isCurrentPeriod =
+    view === "week" ? weekDays(anchor).some((d) => sameDay(d, today))
+    : view === "month" ? anchor.getFullYear() === today.getFullYear() && anchor.getMonth() === today.getMonth()
+    : true;
+
+  const rangeLabel =
+    view === "week" ? fmtWeekRange(weekDays(anchor))
+    : view === "month" ? fmtMonthYear(anchor)
+    : "Ближайшие 14 дней";
+
+  const showNav = view !== "agenda";
 
   return (
-    <div className="screen" style={{ paddingLeft: 0, paddingRight: 0, display: "flex", flexDirection: "column", height: "100%" }}>
-      <div className="cal-head">
-        <button className="cal-nav" onClick={() => shiftDay(-1)} aria-label="Назад">‹</button>
-        <div className="cal-title">
-          <div className="d1">{d1}</div>
-          <div className="d2">{d2}</div>
+    <div className="cal2" data-testid="screen-calendar" data-view={view}>
+      <div style={{ padding: "var(--s5) var(--s4) 0" }}>
+        <h1>Календарь</h1>
+        <div className="seg" role="tablist">
+          <button className={view === "week" ? "seg-on" : ""} data-testid="seg-week" onClick={() => setView("week")}>Неделя</button>
+          <button className={view === "month" ? "seg-on" : ""} data-testid="seg-month" onClick={() => setView("month")}>Месяц</button>
+          <button className={view === "agenda" ? "seg-on" : ""} data-testid="seg-agenda" onClick={() => setView("agenda")}>Лента</button>
         </div>
-        {!isToday && <button className="cal-today" onClick={() => setDay(new Date())}>Сегодня</button>}
-        <button className="cal-nav" onClick={() => shiftDay(1)} aria-label="Вперёд">›</button>
+        <div className="cal2-range">
+          {showNav && <button className="nav" data-testid="cal-prev" aria-label="Назад" onClick={() => shift(-1)}>‹</button>}
+          <span className="rlbl" data-testid="cal-range">{rangeLabel}</span>
+          {showNav && <button className="nav" data-testid="cal-next" aria-label="Вперёд" onClick={() => shift(1)}>›</button>}
+          {!isCurrentPeriod && <button className="cal2-today" data-testid="cal-today" onClick={goToday}>Сегодня</button>}
+        </div>
       </div>
 
-      {untimed.length > 0 && (
-        <div className="cal-allday">
-          {untimed.map((t) => {
-            const c = resolveColor(t.project_id, byId);
-            return (
-              <span
-                key={t.id}
-                className={`cal-chip ${t.status === "done" ? "done" : ""}`}
-                style={c ? { borderLeftColor: c } : undefined}
-                onClick={() => toggle(t)}
-              >
-                {t.title}
-              </span>
-            );
-          })}
+      <div className="cal2-scroll">
+        {status === "error" ? (
+          <div className="cal-state" data-testid="cal-error">
+            <div className="ttl">Не удалось загрузить</div>
+            <div className="sub">Проверь соединение и попробуй ещё раз.</div>
+            <button className="retry" onClick={load}>Повторить</button>
+          </div>
+        ) : status === "loading" ? (
+          <div className="cal-skel" data-testid="cal-loading">
+            {Array.from({ length: 7 }, (_, i) => <div className="col skeleton" key={i} />)}
+          </div>
+        ) : view === "week" ? (
+          <CalendarWeek
+            weekStart={weekDays(anchor)[0]}
+            tasks={tasks}
+            milestones={milestones}
+            byId={byId}
+            today={today}
+            onTapBlock={(t) => setOpenedId(t.id)}
+            onTapSlot={(d, h) => setComposer({ date: localISO(d), time: `${`${Math.max(0, Math.min(23, h))}`.padStart(2, "0")}:00:00` })}
+          />
+        ) : view === "month" ? (
+          <CalendarMonth
+            month={anchor}
+            tasks={tasks}
+            milestones={milestones}
+            byId={byId}
+            today={today}
+            selected={selected}
+            onTapDay={(d) => setSelected(d)}
+            onOpenTask={(t) => setOpenedId(t.id)}
+          />
+        ) : (
+          <CalendarAgenda
+            start={today}
+            tasks={tasks}
+            overdue={overdue}
+            milestones={milestones}
+            byId={byId}
+            today={today}
+            onToggle={toggle}
+            onOpen={(t) => setOpenedId(t.id)}
+          />
+        )}
+      </div>
+
+      {/* ЛОТОК «Без даты» (A8) — шелф над таб-баром, СИБЛИНГ скролла (не клипается overflow). */}
+      {view === "week" && status === "ready" && (
+        <div className="cw-tray" data-testid="cw-tray" data-open={trayOpen ? "1" : "0"}>
+          <button className="cw-th" onClick={() => setTrayOpen((v) => !v)} aria-expanded={trayOpen}>
+            <span className="cw-grab" />
+            <span className="t">Без даты · <b>{undated.length}</b></span>
+            <span className="cl">{trayOpen ? "⌄ свернуть" : "⌃ потяни"}</span>
+          </button>
+          {trayOpen && (
+            undated.length > 0 ? (
+              <div className="cw-ucards">
+                {undated.map((t) => {
+                  const c = resolveColor(t.project_id, byId);
+                  const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
+                  return (
+                    <button
+                      key={t.id}
+                      className="cw-ucard"
+                      style={{ ["--c" as string]: c ?? "var(--accent)" }}
+                      onClick={() => setOpenedId(t.id)}
+                    >
+                      <div className="nm">{t.title}</div>
+                      {proj && !proj.is_inbox && <div className="pr">{proj.name}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="cw-tray-empty">Все задачи на датах</div>
+            )
+          )}
         </div>
       )}
 
-      <DayTimeline
-        tasks={tasks}
-        byId={byId}
-        isToday={isToday}
-        autoScroll
-        onTapHour={(h) => setAddHour(h)}
-        onToggle={toggle}
-      />
-
-      {addHour != null && (
+      {composer && (
         <TaskComposer
-          initialDate={iso}
-          initialTime={`${`${addHour}`.padStart(2, "0")}:00:00`}
-          initialEnd={`${`${Math.min(addHour + 1, 23)}`.padStart(2, "0")}:00:00`}
-          onClose={() => setAddHour(null)}
-          onSaved={() => { setAddHour(null); load(); }}
+          initialDate={composer.date}
+          initialTime={composer.time ?? undefined}
+          onClose={() => setComposer(null)}
+          onSaved={() => { setComposer(null); bump(); }}
         />
+      )}
+      {openedId != null && (
+        <TaskDetail taskId={openedId} onClose={() => setOpenedId(null)} onChanged={bump} onOpenTask={(id) => setOpenedId(id)} />
       )}
     </div>
   );

@@ -11,6 +11,14 @@ export function resolveColor(projectId: number | null | undefined, byId: Map<num
   return null;
 }
 
+/** Цвет приоритета (канта блока недели/строки). null = без полосы (приоритет none). */
+export function priorityColor(p: string): string | null {
+  if (p === "high") return "var(--danger)";
+  if (p === "medium") return "var(--warning)";
+  if (p === "low") return "var(--accent)";
+  return null;
+}
+
 /** rgba-тинт из hex-цвета проекта (для подложки блока/бейджа). */
 export function tint(hex: string | null, alpha = 0.14): string {
   if (!hex) return "rgba(255,255,255,0.04)";
