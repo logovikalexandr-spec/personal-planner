@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomTabs, type TabKey } from "./components/BottomTabs";
 import { Fab } from "./components/Fab";
 import { TaskDetail } from "./components/TaskDetail";
-import { QuickAddBar } from "./components/QuickAddBar";
+import { QuickAddBar, type QuickManual } from "./components/QuickAddBar";
 import { ListView } from "./components/ListView";
 import { Drawer } from "./components/Drawer";
 import { Today } from "./screens/Today";
@@ -49,7 +49,7 @@ function AppMain() {
   function bump() { setReloadKey((k) => k + 1); }
 
   // Волна 2: быстрый ввод из QuickAddBar — резолвим имя проекта/тегов в id, создаём задачу.
-  async function quickAdd(p: ParseResult) {
+  async function quickAdd(p: ParseResult, manual?: QuickManual) {
     const title = (p.title || p.source).trim();
     if (!title) return;
     let project_id: number | null = null;
@@ -58,21 +58,26 @@ function AppMain() {
       const m = ps.find((x) => x.name.toLowerCase() === p.projectName!.toLowerCase());
       project_id = m ? m.id : null;
     }
-    let tag_ids: number[] | undefined;
+    // теги: выбранные чипом (id) + распознанные из текста (по имени, find-or-create)
+    const idSet = new Set<number>(manual?.tagIds ?? []);
     if (p.tagNames.length) {
       const existing = await getTags().catch(() => []);
-      const ids: number[] = [];
       for (const name of p.tagNames) {
         const hit = existing.find((t) => t.name.toLowerCase() === name.toLowerCase());
-        if (hit) ids.push(hit.id);
-        else { const created = await createTag(name).catch(() => null); if (created) ids.push(created.id); }
+        if (hit) idSet.add(hit.id);
+        else { const created = await createTag(name).catch(() => null); if (created) idSet.add(created.id); }
       }
-      tag_ids = ids.length ? ids : undefined;
     }
+    const tag_ids = idSet.size ? [...idSet] : undefined;
+    // дата/приоритет: выбранное чипом перекрывает распознанное из текста
+    const d = manual?.date;
     await createTask(title, {
-      due_date: p.due_date ?? null,
-      due_time: p.due_time ?? null,
-      priority: p.priority ?? "none",
+      due_date: d?.due_date ?? p.due_date ?? null,
+      due_time: d?.due_time ?? p.due_time ?? null,
+      end_time: d?.end_time ?? null,
+      reminder_at: d?.reminder_at ?? null,
+      recurrence: d?.recurrence ?? null,
+      priority: manual?.priority ?? p.priority ?? "none",
       project_id,
       tag_ids,
     });

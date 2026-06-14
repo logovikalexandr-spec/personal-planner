@@ -1,34 +1,39 @@
 import { useMemo, useRef, useState } from "react";
 import { quickParse, removeToken, type ParsedToken, type ParseResult } from "../lib/quickParse";
 import { IcoCalendar2, IcoFlag, IcoBell, IcoTag, IcoSend } from "./icons";
+import { DateSheet, type DateValue } from "./DateSheet";
+import { PriorityPicker, TagPickerSheet } from "./pickers";
+import type { Priority } from "../types";
 
-// Волна 2 F2 — quick-add с NL-подсветкой. Мокап wave2.html #2.
-// Инпут наложен на подсвеченный слой (highlight overlay): распознанные токены красятся
-// (ember; проект=зелёный). Тап по токену вырезает его из текста (removeToken) → возврат в plain.
-// Под полем — чипы распознанного (дата/прио/тег/проект). Enter/кнопка → onAdd(parsed).
-//
-// Прозрачный <input> поверх цветного <div> с тем же текстом: caret/ввод нативные,
-// окраска — на нижнем слое. Шрифт/паддинги синхронизированы классом .qa-text.
+// Quick-add — ЕДИНСТВЕННОЕ поле создания задачи (на «+»). NL-подсветка + рабочие чипы:
+// тап чипа дата/приоритет/тег/напоминание открывает пикер-шит ИНЛАЙН (не второе поле),
+// значение копится на эту задачу. Отправка создаёт задачу с текстом + выбранным в чипах.
 
 const PROJECT_GREEN = "var(--project-tag)";
+const EMPTY_DATE: DateValue = { due_date: null, due_time: null, end_time: null, reminder_at: null, recurrence: null };
+const MONTHS_ABBR = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 
-export type QuickField = "date" | "prio" | "tag" | "rem";
+function dateLabel(iso: string | null): string | null {
+  if (!iso) return null;
+  const [, m, d] = iso.split("-").map(Number);
+  if (!m || !d) return null;
+  return `${d} ${MONTHS_ABBR[m - 1]}`;
+}
+
+// что владелец выбрал чипами вручную (перекрывает распознанное из текста)
+export interface QuickManual { date?: DateValue; priority?: Priority; tagIds?: number[] }
 
 export interface QuickAddBarProps {
-  onAdd: (p: ParseResult) => void;
+  onAdd: (p: ParseResult, manual?: QuickManual) => void;
   placeholder?: string;
   autoFocus?: boolean;
-  // контролируемый текст (чтобы родитель мог перенести его в полный composer при «Развернуть»)
   value?: string;
   onChange?: (s: string) => void;
-  // тап по чипу → раскрыть полный composer с нужным пикером (date/prio/tag); rem — просто раскрыть
-  onExpand?: (field: QuickField) => void;
 }
 
 function HighlightLayer({
   source, tokens, onTokenTap,
 }: { source: string; tokens: ParsedToken[]; onTokenTap: (t: ParsedToken) => void }) {
-  // собрать чередующиеся отрезки: обычный текст / токен-чип
   const parts: React.ReactNode[] = [];
   let cursor = 0;
   tokens.forEach((tok, i) => {
@@ -50,7 +55,9 @@ function HighlightLayer({
   return <div className="qa-text qa-highlight" aria-hidden="true">{parts}{source === "" ? "​" : ""}</div>;
 }
 
-export function QuickAddBar({ onAdd, placeholder = "Новая задача…", autoFocus, value, onChange, onExpand }: QuickAddBarProps) {
+const PRIO_NUM = { high: 1, medium: 2, low: 3 } as const;
+
+export function QuickAddBar({ onAdd, placeholder = "Новая задача…", autoFocus, value, onChange }: QuickAddBarProps) {
   const [internal, setInternal] = useState("");
   const text = value !== undefined ? value : internal;
   const setText = (s: string | ((c: string) => string)) => {
@@ -60,11 +67,28 @@ export function QuickAddBar({ onAdd, placeholder = "Новая задача…",
   const inputRef = useRef<HTMLInputElement>(null);
   const parsed = useMemo(() => quickParse(text), [text]);
 
-  function submit() {
-    if (!parsed.title.trim() && parsed.tokens.length === 0) return;
-    if (!text.trim()) return;
-    onAdd(parsed);
+  // выбранное чипами вручную
+  const [sheet, setSheet] = useState<"date" | "prio" | "tag" | null>(null);
+  const [mDate, setMDate] = useState<DateValue>(EMPTY_DATE);
+  const [mPrio, setMPrio] = useState<Priority>("none");
+  const [mTags, setMTags] = useState<number[]>([]);
+
+  function reset() {
     setText("");
+    setMDate(EMPTY_DATE);
+    setMPrio("none");
+    setMTags([]);
+  }
+
+  function submit() {
+    if (!text.trim()) return;
+    const manual: QuickManual = {
+      date: mDate.due_date || mDate.reminder_at ? mDate : undefined,
+      priority: mPrio !== "none" ? mPrio : undefined,
+      tagIds: mTags.length ? mTags : undefined,
+    };
+    onAdd(parsed, manual);
+    reset();
   }
 
   function tapToken(tok: ParsedToken) {
@@ -72,12 +96,16 @@ export function QuickAddBar({ onAdd, placeholder = "Новая задача…",
     inputRef.current?.focus();
   }
 
-  // чипы: показываем что распознано (мокап #2 «распознано: дата · проект · приоритет · тег»)
-  const chips: { key: string; label: string; ico: React.ReactNode; on: boolean }[] = [
-    { key: "date", label: parsed.due_date ? (parsed.tokens.find((t) => t.kind === "date")?.label ?? "дата") : "дата", ico: <IcoCalendar2 />, on: !!parsed.due_date },
-    { key: "prio", label: parsed.priority && parsed.priority !== "none" ? `P${({ high: 1, medium: 2, low: 3 } as const)[parsed.priority as "high" | "medium" | "low"]}` : "приоритет", ico: <IcoFlag />, on: !!parsed.priority && parsed.priority !== "none" },
-    { key: "tag", label: parsed.tagNames.length ? `#${parsed.tagNames.length}` : "тег", ico: <IcoTag />, on: parsed.tagNames.length > 0 },
-    { key: "rem", label: "напоминание", ico: <IcoBell />, on: false },
+  // приоритет/дата/теги для чипов: вручную выбранное в приоритете, иначе распознанное из текста
+  const prio = mPrio !== "none" ? mPrio : (parsed.priority ?? "none");
+  const dateIso = mDate.due_date ?? parsed.due_date ?? null;
+  const tagCount = mTags.length || parsed.tagNames.length;
+
+  const chips: { key: "date" | "prio" | "tag" | "rem"; label: string; ico: React.ReactNode; on: boolean; open: "date" | "prio" | "tag" }[] = [
+    { key: "date", label: dateLabel(dateIso) ?? "дата", ico: <IcoCalendar2 />, on: !!dateIso, open: "date" },
+    { key: "prio", label: prio !== "none" ? `P${PRIO_NUM[prio as "high" | "medium" | "low"]}` : "приоритет", ico: <IcoFlag />, on: prio !== "none", open: "prio" },
+    { key: "tag", label: tagCount ? `#${tagCount}` : "тег", ico: <IcoTag />, on: tagCount > 0, open: "tag" },
+    { key: "rem", label: "напоминание", ico: <IcoBell />, on: !!mDate.reminder_at, open: "date" },
   ];
 
   return (
@@ -95,27 +123,30 @@ export function QuickAddBar({ onAdd, placeholder = "Новая задача…",
         />
       </div>
       <div className="qa-chips">
-        {chips.map((c) =>
-          onExpand ? (
-            <button
-              key={c.key}
-              type="button"
-              className={`qa-chip ${c.on ? "on" : ""}`}
-              onClick={() => onExpand(c.key as QuickField)}
-            >
-              <span className="qa-chip-ico">{c.ico}</span>
-              <span>{c.label}</span>
-            </button>
-          ) : (
-            <div key={c.key} className={`qa-chip ${c.on ? "on" : ""}`}>
-              <span className="qa-chip-ico">{c.ico}</span>
-              <span>{c.label}</span>
-            </div>
-          ),
-        )}
+        {chips.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            className={`qa-chip ${c.on ? "on" : ""}`}
+            onClick={() => { inputRef.current?.blur(); setSheet(c.open); }}
+          >
+            <span className="qa-chip-ico">{c.ico}</span>
+            <span>{c.label}</span>
+          </button>
+        ))}
         <button className="qa-send" onClick={submit} aria-label="Добавить"><IcoSend /></button>
       </div>
       <div className="qa-hint mono">распознано: дата · проект · приоритет · тег — тап по токену вернёт в текст</div>
+
+      {sheet === "date" && (
+        <DateSheet initial={mDate} onApply={(v) => { setMDate(v); setSheet(null); }} onClose={() => setSheet(null)} />
+      )}
+      {sheet === "prio" && (
+        <PriorityPicker value={mPrio} onPick={(p) => { setMPrio(p); setSheet(null); }} onClose={() => setSheet(null)} />
+      )}
+      {sheet === "tag" && (
+        <TagPickerSheet value={mTags} onChange={setMTags} onClose={() => setSheet(null)} />
+      )}
     </div>
   );
 }

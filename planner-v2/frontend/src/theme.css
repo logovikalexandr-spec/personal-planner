@@ -145,7 +145,8 @@ input, textarea, [contenteditable="true"] {
 
 /* bottom sheet (add task) */
 .sheet-backdrop {
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 50;
+  /* z-index выше quick-add-оверлея (61): пикеры дата/приоритет/тег открываются ИЗ него */
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 70;
   display: flex; align-items: flex-end;
   /* padding-bottom выставляет Sheet из JS (visualViewport) — var = fallback. Без transition:
      иначе шит плавно «съезжает» из центра при стейл-инсете на монтаже. */
