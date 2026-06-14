@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockGeom, WEEK_GRID_H, WEEK_PX_PER_HOUR, yToTime } from "./weekLayout";
+import { blockGeom, nowLineTop, WEEK_GRID_H, WEEK_PX_PER_HOUR, WEEK_START_HOUR, yToTime } from "./weekLayout";
 
 describe("weekLayout", () => {
   it("нет времени → null", () => {
@@ -31,6 +31,13 @@ describe("weekLayout", () => {
   it("минимальная высота для очень короткого блока", () => {
     const g = blockGeom("10:00:00", "10:05:00")!;
     expect(g.height).toBeGreaterThanOrEqual(16);
+  });
+
+  it("nowLineTop: время в окне → позиция, вне окна → null", () => {
+    expect(nowLineTop(new Date(2026, 5, 14, WEEK_START_HOUR, 0))).toBe(0); // ровно верх окна
+    expect(nowLineTop(new Date(2026, 5, 14, WEEK_START_HOUR + 1, 0))).toBeCloseTo(WEEK_PX_PER_HOUR);
+    expect(nowLineTop(new Date(2026, 5, 14, 5, 0))).toBeNull();  // до окна
+    expect(nowLineTop(new Date(2026, 5, 14, 23, 0))).toBeNull(); // после окна
   });
 
   it("yToTime снапит к 15 мин и клампит в окно", () => {

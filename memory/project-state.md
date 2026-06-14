@@ -2,6 +2,18 @@
 
 > Где остановились. Апдейтить на `/wrapup`.
 
+## Последнее обновление: 2026-06-14 ночь (T2 КАЛЕНДАРЬ собран — worktree planner-wt-t2, НЕ задеплоен)
+**Блок A (ветка `feat/t2-calendar`, worktree `planner-wt-t2`).** Календарь был копией Today (только день). Собраны **3 вида под мокап** T2a/b/c:
+- **Неделя** (`CalendarWeek.tsx`, новый): 7 колонок, окно 8–21 (`weekLayout`), таймблоки (фон=проект-тинт, кант=приоритет), now-line на сегодня, веха-флажки на числах, каскад наложений (G2 через `layoutColumns`), полоска «весь день» (C1), лоток «Без даты» (A8, свёрнут→раскрытие).
+- **Месяц** (`CalendarMonth.tsx`, дособран): точки-задачи (макс3 +N), флажки-вехи, сегодня-кольцо, выбор дня→**панель дня под сеткой** (flow 10), сводка вех месяца (mstrip), легенда проектов.
+- **Лента** (`CalendarAgenda.tsx`, дособран): просрочка закреплена сверху, группы Сегодня/Завтра/дни, **веха-строки** (без чекбокса), метка этапа, high→красный бейдж «важно», дни «свободно».
+- **Контейнер** `Calendar.tsx` переписан: сегмент Неделя/Месяц/Лента + диапазон-нав ‹›+Сегодня + состояния loading/error(Повторить)/empty + per-view fetch (`getTasksRange`+`getMilestones`; undated через getTasks all; overdue через getTasks overdue). Деталь/композер — self-contained (App не трогал).
+- **Общие файлы — только дописал:** `theme.css` (+секция cal2/cw-/cm-/ca-, токен-чистая, только `var(--c)` рантайм), `projectColor.ts` (+`priorityColor`), `weekLayout.ts` (+`nowLineTop`). `types.ts`/`api.ts` (CalendarView/getTasksRange/getMilestones) уже были (Форк B).
+- **ГЕЙТ ЗЕЛЁНЫЙ:** lint:tokens PASS · 49 vitest (tsc 0) · **34 e2e** (`T2-calendar.spec.ts`, chromium+webkit, функц.+токен-смоук) · coverage **T2a 8/8 · T2b 5/5 · T2c 8/8 = 0 дыр**. Preview `preview-t2-mock.tsx`/`.html` (stateful, ?view=month/agenda · ?state=empty/error).
+- **⏳ Ждёт владельца:** визуал-baseline (3 скрина: `npx playwright test T2-calendar --update-snapshots --project=chromium`, агент НЕ обновляет) + **деплой через координатор** (serial, прод один; НЕ деплоил сам).
+- **COVERAGE-DEFER (явно):** драг таймблока (flow 5) + драг из лотка на сетку (flow 8) — нужен pointer-харнес+бэк-PATCH; различие дедлайн/блокер бейджа — нужен флаг типа в модели (сейчас оба = high «важно»).
+- **Инфра-нюанс:** в worktree нет `node_modules` → симлинк на `personal-planner/.../node_modules`. Стоял чужой vite на :5173 (reuseExistingServer отдавал код main → e2e тестил не тот код) — убил, поднял свой.
+
 ## Последнее обновление: 2026-06-14 вечер (creation-flow добит · datetime-дизайн готов · 2 задачи на новую сессию)
 
 **T1 «создание задачи» — ДОВЕДЕНО (серия фиксов, все на проде):** «+» = ЕДИНСТВЕННОЕ быстрое поле «Быстрая задача» (TaskComposer-из-FAB удалён полностью). Чипы дата/проект/приоритет/тег/напоминание — рабочие, пикеры ИНЛАЙН (DateSheet/PriorityPicker/ProjectPickerSheet/TagPickerSheet) поверх оверлея (z-index шитов 70). «+» открывает БЕЗ клавиатуры (фокус на FAB). Шиты позиционируются из `visualViewport` (Sheet.tsx useLayoutEffect, без CSS-транзишна — не прыгают). Бар «Готово» + quick-overlay прижаты к низу через `lib/viewportAnchor.useBottomAnchor`. Тап ячейки часа → блок на НАЧАЛО часа (floor, не :30). Хинт пустого дня убран. 05:00 не режется (cal-grid margin). Быстрые-чипы даты (Сегодня/Завтра) убраны из DateSheet. Мокап-синк: `база-проекта-v3/pages/T1-quickadd.html`.

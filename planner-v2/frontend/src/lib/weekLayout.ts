@@ -44,6 +44,15 @@ export function yToTime(yInGrid: number): string {
   return `${`${h}`.padStart(2, "0")}:${`${m}`.padStart(2, "0")}:00`;
 }
 
+/** Y линии «сейчас» в сетке, или null если время вне окна недели. */
+export function nowLineTop(now: Date): number | null {
+  const min = now.getHours() * 60 + now.getMinutes();
+  const winStart = WEEK_START_HOUR * 60;
+  const winEnd = WEEK_END_HOUR * 60;
+  if (min < winStart || min > winEnd) return null;
+  return (min - winStart) * (WEEK_PX_PER_HOUR / 60);
+}
+
 /** Метки часов окна (для подписей сетки), шаг 2ч. */
 export function hourLabels(): { hour: number; top: number }[] {
   const out: { hour: number; top: number }[] = [];

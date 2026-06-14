@@ -1121,3 +1121,213 @@ body.inline-draft .fab { display: none; }
 .btn-primary { background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 600; cursor: pointer; }
 .lnk { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
 .hcard .hchk { font-size: 18px; line-height: 1; }
+
+/* ════════════════════════════════════════════════════════════════════
+   T2 КАЛЕНДАРЬ — Неделя / Месяц / Лента (Форк B, конвейер T2)
+   Контракт: база-проекта-v3/pages/T2a|b|c + T2-состояния + T2-flows.
+   Цвет блока/точки = проект (data, inline --c). Кант недели = приоритет.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* — общий хром таба — */
+.cal2 { display: flex; flex-direction: column; height: 100%; }
+.cal2-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--s4) var(--s8); }
+.cal2-scroll::-webkit-scrollbar { display: none; }
+.cal2-range {
+  display: flex; align-items: center; gap: var(--s2);
+  font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+  margin: 0 2px var(--s3);
+}
+.cal2-range .rlbl { flex: 1 1 auto; text-align: center; }
+.cal2-range .nav {
+  background: none; border: 0; color: var(--text); font-size: 17px; line-height: 1;
+  padding: 4px 8px; cursor: pointer; min-width: 32px;
+}
+.cal2-today {
+  font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+  border: 1px solid var(--accent-soft); background: var(--accent-soft);
+  border-radius: 8px; padding: 4px 10px; cursor: pointer;
+}
+
+/* — состояния (empty / error / skeleton) — */
+.cal-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: var(--s2); padding: var(--s8) var(--s4); color: var(--text-muted);
+}
+.cal-state .ttl { font-size: 16px; font-weight: 600; color: var(--text); }
+.cal-state .sub { font-size: 13px; line-height: 1.4; max-width: 260px; }
+.cal-state .retry {
+  margin-top: var(--s2); background: var(--accent); color: var(--accent-contrast);
+  border: 0; border-radius: 10px; padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.cal-skel { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding-top: var(--s3); }
+.cal-skel .col { height: 442px; border-radius: 9px; }
+
+/* ── НЕДЕЛЯ ── */
+.cw-adcap {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase;
+  color: var(--text-muted); margin: 0 2px 3px;
+}
+.cw-adrow { display: flex; gap: 4px; margin-bottom: var(--s2); }
+.cw-slot { flex: 1; min-width: 0; }
+.cw-pill {
+  font-size: 8.5px; font-weight: 600; line-height: 1.2; border-radius: 5px; padding: 3px 4px;
+  border-left: 2px solid var(--c, var(--accent)); background: var(--surface-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.cw-days { display: flex; gap: 4px; }
+.cw-col { flex: 1; position: relative; min-width: 0; }
+.cw-dh { text-align: center; margin-bottom: 6px; }
+.cw-dh .dn { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+.cw-dh .dd {
+  font-size: 15px; font-weight: 600; margin-top: 1px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px; position: relative;
+}
+.cw-dh.today .dd { color: var(--accent); }
+.cw-pen { width: 8px; height: 9px; flex: 0 0 auto; }
+.cw-grid {
+  position: relative; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 9px; height: 442px; overflow: hidden;
+}
+.cw-hr { position: absolute; left: 0; right: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.cw-hrlbl { position: absolute; left: 3px; font-family: var(--font-mono); font-size: 8px; color: var(--text-muted); }
+.cw-now { position: absolute; left: 0; right: 0; height: 1.5px; background: var(--accent); z-index: 5; }
+.cw-now::before {
+  content: ""; position: absolute; left: -2px; top: -2.5px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--accent);
+}
+.cw-blk {
+  position: absolute; left: 2px; right: 2px; border-radius: 7px; padding: 4px 5px; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); cursor: pointer;
+}
+.cw-blk .bn { font-size: 10px; font-weight: 600; line-height: 1.15; }
+.cw-blk .bt { font-size: 8px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+.cw-blk.done { opacity: 0.5; }
+.cw-blk.done .bn { text-decoration: line-through; }
+/* G2 — наложения каскадом (веер): задний выглядывает краем, передний полный */
+.cw-blk.c1 { left: 2px; right: 0; z-index: 1; }
+.cw-blk.c2 { left: 9px; right: -7px; z-index: 2; box-shadow: -6px 0 10px rgba(0, 0, 0, 0.35); }
+.cw-legend { display: flex; gap: var(--s3); margin: var(--s4) 2px 0; flex-wrap: wrap; }
+.cw-lk { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--text-muted); }
+.cw-lk i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.cw-lk i.bar { width: 4px; height: 11px; border-radius: 2px; }
+
+/* лоток «Без даты» — полка снизу, свёрнута по умолчанию */
+.cw-tray {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 8; background: var(--surface);
+  border-top: 1px solid var(--border); border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45); padding: 7px 12px 12px;
+}
+.cw-grab { width: 38px; height: 4px; border-radius: 2px; background: var(--text-muted); opacity: 0.5; margin: 0 auto 9px; }
+.cw-th { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.cw-th .t { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted); }
+.cw-th .t b { color: var(--accent); }
+.cw-th .cl { color: var(--text-muted); font-size: 12px; }
+.cw-ucards { display: flex; gap: var(--s2); overflow-x: auto; padding: 9px 0 2px; }
+.cw-ucards::-webkit-scrollbar { display: none; }
+.cw-ucard {
+  flex: 0 0 132px; border: 1.4px dashed rgba(255, 255, 255, 0.18); border-radius: 11px;
+  padding: 9px 10px; background: rgba(255, 255, 255, 0.02); position: relative; cursor: pointer;
+}
+.cw-ucard::before { content: ""; position: absolute; left: 7px; top: 9px; bottom: 9px; width: 2.5px; border-radius: 2px; background: var(--c, var(--accent)); }
+.cw-ucard .nm { font-size: 12px; font-weight: 500; line-height: 1.3; padding-left: 9px; }
+.cw-ucard .pr { font-size: 9px; color: var(--text-muted); font-family: var(--font-mono); padding-left: 9px; margin-top: 4px; }
+
+/* ── МЕСЯЦ ── */
+.cm-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 7px; }
+.cm-dow div { text-align: center; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.5px; color: var(--text-muted); }
+.cm-dow .we { color: #6c6d73; }
+.cm-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cm-cell {
+  aspect-ratio: 1 / 1.18; background: var(--surface); border: 1px solid var(--border); border-radius: 11px;
+  padding: 6px 5px 5px; display: flex; flex-direction: column; position: relative; overflow: hidden;
+  text-align: left; cursor: pointer;
+}
+.cm-cell.out { background: transparent; border-color: transparent; }
+.cm-cell.out .cm-num { color: #46474c; }
+.cm-num { font-size: 13px; font-weight: 600; line-height: 1; margin-bottom: auto; }
+.cm-cell.we .cm-num { color: var(--text-muted); }
+.cm-cell.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.cm-cell.today .cm-num { color: var(--accent); }
+.cm-cell.sel { background: var(--accent-soft); border-color: var(--accent); }
+.cm-cell.sel.today { box-shadow: 0 0 0 1px var(--accent); }
+.cm-flag { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+.cm-flag svg { width: 9px; height: 9px; flex: 0 0 auto; display: block; }
+.cm-flag .ft { font-size: 8.5px; line-height: 1.05; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cm-dots { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; }
+.cm-pt { width: 6px; height: 6px; border-radius: 50%; }
+.cm-more { font-size: 8.5px; color: var(--text-muted); font-family: var(--font-mono); margin-left: 1px; }
+.cm-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: var(--s3); }
+
+/* сводка вех месяца */
+.cm-mstrip { margin: var(--s4) 0 6px; }
+.cm-mstrip .cap { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 7px; }
+.cm-mchips { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 2px; }
+.cm-mchips::-webkit-scrollbar { display: none; }
+.cm-mchip {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 6px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px; padding: 6px 9px; font-size: 11.5px;
+}
+.cm-mchip .dt { font-family: var(--font-mono); color: var(--text-muted); font-size: 10.5px; }
+.cm-mchip svg { width: 10px; height: 10px; flex: 0 0 auto; }
+.cm-mempty { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); font-style: italic; }
+.cm-mempty svg { width: 11px; height: 11px; flex: 0 0 auto; }
+
+/* панель выбранного дня под сеткой */
+.cm-daypanel { margin-top: var(--s4); }
+.cm-dp-hdr { display: flex; align-items: baseline; gap: 9px; margin: 0 2px 9px; }
+.cm-dp-hdr .d { font-size: 15px; font-weight: 700; color: var(--accent); }
+.cm-dp-hdr .cnt { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+.cm-dp-task {
+  display: flex; align-items: flex-start; gap: 11px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 7px; position: relative; overflow: hidden; cursor: pointer; width: 100%; text-align: left;
+}
+.cm-dp-task::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c, var(--accent)); }
+.cm-dp-cb { flex: 0 0 auto; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--c, var(--accent)); margin-top: 1px; }
+.cm-dp-nm { font-size: 14px; font-weight: 500; line-height: 1.3; }
+.cm-dp-sub { display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+.cm-dp-time { font-size: 11.5px; color: var(--text-muted); font-family: var(--font-mono); }
+.cm-dp-cant { font-size: 10.5px; font-weight: 600; font-family: var(--font-mono); padding: 2px 7px; border-radius: 6px; }
+.cm-dp-empty { display: flex; align-items: center; gap: 9px; padding: 10px 12px; font-size: 13px; color: var(--text-muted); font-style: italic; }
+
+.cm-keys { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 11px 12px; margin-top: var(--s4); }
+.cm-key { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.cm-key .cm-pt { width: 8px; height: 8px; }
+
+/* ── ЛЕНТА (Agenda) ── */
+.ca-day { margin-bottom: var(--s2); }
+.ca-hdr { display: flex; align-items: baseline; gap: 8px; margin: 18px 2px 11px; }
+.ca-hdr .d { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: -0.01em; }
+.ca-hdr .meta { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+.ca-hdr.first { margin-top: 2px; }
+.ca-rule { height: 1px; background: var(--border); margin: 0 2px; }
+.ca-task {
+  display: flex; align-items: flex-start; gap: 11px; padding: 11px 12px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 13px; margin-bottom: 8px; position: relative; overflow: hidden; cursor: pointer;
+}
+.ca-task::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c, var(--accent)); }
+.ca-chk { flex: 0 0 auto; width: 19px; height: 19px; border-radius: 50%; border: 2px solid var(--accent); margin-top: 1px; position: relative; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.ca-chk.done { background: var(--accent); border-color: var(--accent); }
+.ca-chk svg { width: 11px; height: 11px; color: var(--bg); }
+.ca-body { flex: 1; min-width: 0; }
+.ca-name { font-size: 14.5px; font-weight: 500; line-height: 1.3; }
+.ca-name.done { color: var(--text-muted); text-decoration: line-through; }
+.ca-sub { display: flex; align-items: center; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+.ca-cant { font-size: 11px; font-weight: 600; font-family: var(--font-mono); padding: 2px 7px; border-radius: 6px; letter-spacing: 0.2px; }
+.ca-time { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+.ca-danger { color: var(--danger); background: rgba(255, 92, 92, 0.13); }
+.ca-stage { color: var(--text-muted); background: var(--surface-2); }
+.ca-free { display: flex; align-items: center; gap: 9px; padding: 9px 12px; font-size: 12.5px; color: var(--text-muted); font-style: italic; margin-bottom: 8px; }
+.ca-free::before { content: ""; flex: 0 0 auto; width: 19px; height: 1px; background: var(--border); }
+/* просрочено — закреплено сверху */
+.ca-od-hdr { display: flex; align-items: baseline; gap: 8px; margin: 2px 2px 11px; }
+.ca-od-hdr .d { font-size: 15px; font-weight: 700; color: var(--danger); }
+.ca-od-rule { height: 1px; background: rgba(255, 92, 92, 0.25); margin: 0 2px 7px; }
+.ca-task.od { border-color: rgba(255, 92, 92, 0.28); }
+.ca-od-date { font-size: 11px; color: var(--danger); font-family: var(--font-mono); }
+/* веха-строка — рубеж проекта (без чекбокса) */
+.ca-veha { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border); border-radius: 13px; margin-bottom: 8px; }
+.ca-veha svg { width: 13px; height: 13px; flex: 0 0 auto; }
+.ca-veha .vn { font-size: 14px; font-weight: 600; }
+.ca-veha .vtag { font-size: 10.5px; font-weight: 600; font-family: var(--font-mono); color: var(--text-muted); background: var(--surface-2); padding: 2px 7px; border-radius: 6px; }
+.ca-veha .vt { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-left: auto; }
