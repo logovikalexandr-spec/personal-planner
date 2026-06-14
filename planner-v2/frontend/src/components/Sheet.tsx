@@ -1,11 +1,32 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export function Sheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   const sx = useRef<number | null>(null);
   const sy = useRef<number | null>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  // Высоту клавиатуры считаем из visualViewport вживую (inline, без CSS-транзишна):
+  // CSS var(--kb-inset) при монтаже бывает «стейл» → шит появлялся в центре и плавно
+  // съезжал вниз. Тут padding-bottom = реальная высота клавы сразу + следит за ней.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const el = backdropRef.current;
+    if (!vv || !el) return;
+    const place = () => {
+      const kb = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
+      el.style.paddingBottom = `${Math.round(kb)}px`;
+    };
+    place();
+    vv.addEventListener("resize", place);
+    vv.addEventListener("scroll", place);
+    return () => {
+      vv.removeEventListener("resize", place);
+      vv.removeEventListener("scroll", place);
+    };
+  }, []);
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
+    <div className="sheet-backdrop" ref={backdropRef} onClick={onClose}>
       <div
         className="sheet"
         onClick={(e) => e.stopPropagation()}

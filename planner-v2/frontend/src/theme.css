@@ -147,8 +147,9 @@ input, textarea, [contenteditable="true"] {
 .sheet-backdrop {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 50;
   display: flex; align-items: flex-end;
+  /* padding-bottom выставляет Sheet из JS (visualViewport) — var = fallback. Без transition:
+     иначе шит плавно «съезжает» из центра при стейл-инсете на монтаже. */
   padding-bottom: var(--kb-inset, 0px); box-sizing: border-box;
-  transition: padding-bottom 120ms ease;
 }
 .sheet {
   width: 100%; background: var(--surface); border-radius: 20px 20px 0 0;
