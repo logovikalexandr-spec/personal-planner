@@ -13,6 +13,7 @@ import {
 const START_HOUR = 5; // таймлайн начинается с 05:00 (ночь 00–04 скрыта, если на неё нет задач)
 const LONGPRESS_MS = 220;       // удержание тела блока → «поднять» для переноса
 const CANCEL_PX = 12;           // сдвиг до long-press = это скролл, отменяем подъём (tolerance как у dnd-kit)
+const MOVE_THRESH = 16;         // мёртвая зона после взвода: дрейф пальца < порога не двигает черновик
 
 function haptic(style: "light" | "medium" = "light") {
   tg()?.HapticFeedback?.impactOccurred?.(style);
@@ -293,6 +294,9 @@ export const DayTimeline = memo(function DayTimeline({
       if (Math.abs(e.clientY - c.originY) > CANCEL_PX) { clearCreateLp(); createRef.current = null; }
       return;
     }
+    // мёртвая зона: мелкий дрейф пальца при удержании НЕ двигает блок (баг «зажал 7:00 → встал 7:30»).
+    // блок едет только при осознанном драге за порогом MOVE_THRESH; иначе стоит на точке нажатия.
+    if (!c.moved && Math.abs(e.clientY - c.originY) <= MOVE_THRESH) return;
     c.moved = true;
     // ДВИГАЕМ блок: верх следует за пальцем, длительность держим 1ч (растянешь краями потом)
     const cur = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
