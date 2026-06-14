@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   WEEK_GRID_H, WEEK_START_HOUR, blockGeom, hourLabels, nowLineTop,
 } from "../lib/weekLayout";
@@ -6,8 +6,6 @@ import { layoutColumns } from "../lib/timelineLayout";
 import { dowShort, localISO, sameDay, weekDays } from "../lib/calDates";
 import { priorityColor, resolveColor, tint } from "../lib/projectColor";
 import type { Milestone, Project, Task } from "../types";
-
-const DOW = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 function parseMin(t: string | null | undefined): number {
   if (!t) return 0;
@@ -23,19 +21,16 @@ function parseMin(t: string | null | undefined): number {
  * Драг таймблока / драг из лотка (flow 5/8) отложены (COVERAGE-DEFER).
  */
 export function CalendarWeek({
-  weekStart, tasks, undated, milestones, byId, today, onTapBlock, onTapSlot, onOpenUndated,
+  weekStart, tasks, milestones, byId, today, onTapBlock, onTapSlot,
 }: {
   weekStart: Date;
   tasks: Task[];
-  undated: Task[];
   milestones: Milestone[];
   byId: Map<number, Project>;
   today: Date;
   onTapBlock: (t: Task) => void;
   onTapSlot: (day: Date, hour: number) => void;
-  onOpenUndated: (t: Task) => void;
 }) {
-  const [trayOpen, setTrayOpen] = useState(false);
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
   const labels = hourLabels();
 
@@ -177,34 +172,6 @@ export function CalendarWeek({
         <span className="cw-lk"><i className="bar" style={{ background: "var(--danger)" }} />high</span>
         <span className="cw-lk"><i className="bar" style={{ background: "var(--warning)" }} />med</span>
         <span className="cw-lk"><i className="bar" style={{ background: "var(--accent)" }} />low</span>
-      </div>
-
-      {/* ЛОТОК «Без даты» — flow 8 драг отложен, тут раскрытие + тап карточки */}
-      <div className="cw-tray" data-testid="cw-tray" data-open={trayOpen ? "1" : "0"}>
-        <div className="cw-grab" />
-        <div className="cw-th" onClick={() => setTrayOpen((v) => !v)}>
-          <span className="t">Без даты · <b>{undated.length}</b></span>
-          <span className="cl">{trayOpen ? "⌄ свернуть" : "⌃ потяни"}</span>
-        </div>
-        {trayOpen && undated.length > 0 && (
-          <div className="cw-ucards">
-            {undated.map((t) => {
-              const c = resolveColor(t.project_id, byId);
-              const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
-              return (
-                <div
-                  key={t.id}
-                  className="cw-ucard"
-                  style={{ ["--c" as string]: c ?? "var(--accent)" }}
-                  onClick={() => onOpenUndated(t)}
-                >
-                  <div className="nm">{t.title}</div>
-                  {proj && !proj.is_inbox && <div className="pr">{proj.name}</div>}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </div>
   );

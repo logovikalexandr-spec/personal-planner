@@ -1129,8 +1129,9 @@ body.inline-draft .fab { display: none; }
    ════════════════════════════════════════════════════════════════════ */
 
 /* — общий хром таба — */
-.cal2 { display: flex; flex-direction: column; height: 100%; }
-.cal2-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--s4) var(--s8); }
+.cal2 { display: flex; flex-direction: column; height: 100%; position: relative; }
+/* нижний отступ прокрутки = свёрнутый лоток (~52px) + воздух, чтобы легенда не пряталась за ним */
+.cal2-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--s4) 76px; }
 .cal2-scroll::-webkit-scrollbar { display: none; }
 .cal2-range {
   display: flex; align-items: center; gap: var(--s2);
@@ -1212,22 +1213,29 @@ body.inline-draft .fab { display: none; }
 .cw-lk i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
 .cw-lk i.bar { width: 4px; height: 11px; border-radius: 2px; }
 
-/* лоток «Без даты» — полка снизу, свёрнута по умолчанию */
+/* лоток «Без даты» — полка снизу (сиблинг скролла, абсолют относительно .cal2), над таб-баром */
 .cw-tray {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 8; background: var(--surface);
   border-top: 1px solid var(--border); border-radius: 18px 18px 0 0;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45); padding: 7px 12px 12px;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45); padding: 0 12px 12px;
 }
-.cw-grab { width: 38px; height: 4px; border-radius: 2px; background: var(--text-muted); opacity: 0.5; margin: 0 auto 9px; }
-.cw-th { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.cw-grab { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 38px; height: 4px; border-radius: 2px; background: var(--text-muted); opacity: 0.5; }
+/* вся плашка = тап-зона; правый отступ освобождает место под FAB */
+.cw-th {
+  position: relative; width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; cursor: pointer; background: none; border: 0; font-family: inherit;
+  padding: 18px 64px 8px 4px; min-height: 48px;
+}
 .cw-th .t { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted); }
 .cw-th .t b { color: var(--accent); }
-.cw-th .cl { color: var(--text-muted); font-size: 12px; }
-.cw-ucards { display: flex; gap: var(--s2); overflow-x: auto; padding: 9px 0 2px; }
+.cw-th .cl { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.cw-tray-empty { font-size: 12px; color: var(--text-muted); font-style: italic; padding: 4px 4px 6px; }
+.cw-ucards { display: flex; gap: var(--s2); overflow-x: auto; padding: 4px 0 2px; }
 .cw-ucards::-webkit-scrollbar { display: none; }
 .cw-ucard {
   flex: 0 0 132px; border: 1.4px dashed rgba(255, 255, 255, 0.18); border-radius: 11px;
   padding: 9px 10px; background: rgba(255, 255, 255, 0.02); position: relative; cursor: pointer;
+  text-align: left; color: inherit; font-family: inherit; display: block;
 }
 .cw-ucard::before { content: ""; position: absolute; left: 7px; top: 9px; bottom: 9px; width: 2.5px; border-radius: 2px; background: var(--c, var(--accent)); }
 .cw-ucard .nm { font-size: 12px; font-weight: 500; line-height: 1.3; padding-left: 9px; }

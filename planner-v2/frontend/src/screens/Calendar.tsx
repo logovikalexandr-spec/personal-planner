@@ -8,6 +8,7 @@ import { TaskDetail } from "../components/TaskDetail";
 import {
   addDays, fmtMonthYear, fmtWeekRange, localISO, monthMatrix, sameDay, weekDays,
 } from "../lib/calDates";
+import { resolveColor } from "../lib/projectColor";
 import { tg } from "../telegram";
 import type { CalendarView, Milestone, Project, Task } from "../types";
 
@@ -38,6 +39,7 @@ export function Calendar() {
   const [byId, setById] = useState<Map<number, Project>>(new Map());
   const [composer, setComposer] = useState<{ date: string; time: string | null } | null>(null);
   const [openedId, setOpenedId] = useState<number | null>(null);
+  const [trayOpen, setTrayOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   const today = useMemo(() => new Date(), []);
@@ -138,13 +140,11 @@ export function Calendar() {
           <CalendarWeek
             weekStart={weekDays(anchor)[0]}
             tasks={tasks}
-            undated={undated}
             milestones={milestones}
             byId={byId}
             today={today}
             onTapBlock={(t) => setOpenedId(t.id)}
             onTapSlot={(d, h) => setComposer({ date: localISO(d), time: `${`${Math.max(0, Math.min(23, h))}`.padStart(2, "0")}:00:00` })}
-            onOpenUndated={(t) => setOpenedId(t.id)}
           />
         ) : view === "month" ? (
           <CalendarMonth
@@ -170,6 +170,40 @@ export function Calendar() {
           />
         )}
       </div>
+
+      {/* ЛОТОК «Без даты» (A8) — шелф над таб-баром, СИБЛИНГ скролла (не клипается overflow). */}
+      {view === "week" && status === "ready" && (
+        <div className="cw-tray" data-testid="cw-tray" data-open={trayOpen ? "1" : "0"}>
+          <button className="cw-th" onClick={() => setTrayOpen((v) => !v)} aria-expanded={trayOpen}>
+            <span className="cw-grab" />
+            <span className="t">Без даты · <b>{undated.length}</b></span>
+            <span className="cl">{trayOpen ? "⌄ свернуть" : "⌃ потяни"}</span>
+          </button>
+          {trayOpen && (
+            undated.length > 0 ? (
+              <div className="cw-ucards">
+                {undated.map((t) => {
+                  const c = resolveColor(t.project_id, byId);
+                  const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
+                  return (
+                    <button
+                      key={t.id}
+                      className="cw-ucard"
+                      style={{ ["--c" as string]: c ?? "var(--accent)" }}
+                      onClick={() => setOpenedId(t.id)}
+                    >
+                      <div className="nm">{t.title}</div>
+                      {proj && !proj.is_inbox && <div className="pr">{proj.name}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="cw-tray-empty">Все задачи на датах</div>
+            )
+          )}
+        </div>
+      )}
 
       {composer && (
         <TaskComposer
