@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomTabs, type TabKey } from "./components/BottomTabs";
 import { Fab } from "./components/Fab";
-import { TaskComposer } from "./components/TaskComposer";
 import { TaskDetail } from "./components/TaskDetail";
-import { QuickAddBar, type QuickField } from "./components/QuickAddBar";
+import { QuickAddBar } from "./components/QuickAddBar";
 import { ListView } from "./components/ListView";
 import { Drawer } from "./components/Drawer";
 import { Today } from "./screens/Today";
@@ -37,11 +36,8 @@ function AppMain() {
   // переключение = без remount/refetch dnd-дерева. mount платится один раз, не каждый switch.
   const [mountedTabs, setMountedTabs] = useState<Set<TabKey>>(() => new Set<TabKey>(["today"]));
   const [viewing, setViewing] = useState<ActiveList | null>(null); // открытый список из Lists / Inbox из Today
-  const [addOpen, setAddOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
-  const [qaText, setQaText] = useState(""); // текст quick-add (контролируемо — для переноса в composer)
-  // перенос в полный composer при «Развернуть»/тапе чипа: текст + какой пикер открыть
-  const [composerInit, setComposerInit] = useState<{ title: string; picker: "date" | "priority" | "tag" | null } | null>(null);
+  const [qaText, setQaText] = useState(""); // текст quick-add (контролируемо)
   const [todayView, setTodayView] = useState<"timeline" | "tasks">("timeline"); // вид внутри таба «Сегодня»
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
@@ -126,17 +122,7 @@ function AppMain() {
   const qaRef = useRef<HTMLDivElement>(null);
   useBottomAnchor(qaRef, quickOpen);
 
-  // тап чипа дата/приоритет/тег (или «Развернуть») → полный composer с текстом + нужным пикером
-  const expandQuick = useCallback((field?: QuickField) => {
-    // закрыть клаву quick-add ДО открытия composer: иначе шит выезжает из центра вниз
-    // (kb-inset транзишн) — ждём закрытия клавы, потом открываем (шит сразу внизу).
-    (document.activeElement as HTMLElement | null)?.blur();
-    const map = { date: "date", prio: "priority", tag: "tag", rem: null } as const;
-    const init = { title: qaText, picker: field ? map[field] : null };
-    setQuickOpen(false);
-    window.setTimeout(() => { setComposerInit(init); setAddOpen(true); }, 300);
-  }, [qaText]);
-  const anyOverlay = addOpen || quickOpen || drawerOpen || openTaskId != null;
+  const anyOverlay = quickOpen || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "gantt" && !viewing);
 
   // Блокируем скролл фона при открытом оверлее: фиксируем body на текущей позиции —
@@ -236,20 +222,10 @@ function AppMain() {
           <div className="qa-overlay" ref={qaRef}>
             <div className="qa-overlay-head">
               <span className="t">Быстрая задача</span>
-              <button className="qa-expand" onClick={() => expandQuick()}>Развернуть</button>
             </div>
-            <QuickAddBar autoFocus value={qaText} onChange={setQaText} onExpand={expandQuick} onAdd={(p) => { quickAdd(p); }} />
+            <QuickAddBar autoFocus value={qaText} onChange={setQaText} onAdd={(p) => { quickAdd(p); setQuickOpen(false); }} />
           </div>
         </>
-      )}
-      {addOpen && (
-        <TaskComposer
-          initialDate={tab === "today" ? localToday() : null}
-          initialTitle={composerInit?.title ?? ""}
-          initialPicker={composerInit?.picker ?? null}
-          onClose={() => { setAddOpen(false); setComposerInit(null); }}
-          onSaved={bump}
-        />
       )}
       <BottomTabs active={tab} onChange={onTabChange} inboxCount={inboxCount} />
       {openTaskId != null && (
