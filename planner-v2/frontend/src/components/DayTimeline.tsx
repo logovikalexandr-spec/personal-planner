@@ -400,14 +400,16 @@ export const DayTimeline = memo(function DayTimeline({
           const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
           const enabled = !!onResize && !done;
           const lay = cols.get(t.id) ?? { colIndex: 0, colCount: 1 };
+          const heightPx = Math.max((dur / 60) * HOUR_H - 2, 22);
+          const short = heightPx < 40; // короткий блок (≤~30мин): обе строки не влезают → центрируем заголовок
           return (
             <div
               key={t.id}
               data-testid={`task-${t.id}`}
-              className={`cal-block ${done ? "done" : ""} ${live ? "resizing" : ""} ${activeId === t.id ? "active" : ""}`}
+              className={`cal-block ${done ? "done" : ""} ${live ? "resizing" : ""} ${activeId === t.id ? "active" : ""} ${short ? "short" : ""}`}
               style={{
                 top: ((start - offsetMin) / 60) * HOUR_H + 1,
-                height: Math.max((dur / 60) * HOUR_H - 2, 22),
+                height: heightPx,
                 borderLeftColor: prio ?? "transparent",
                 background: c ? `${c}22` : "var(--surface-2)",
                 ...laneStyle(lay.colIndex, lay.colCount),

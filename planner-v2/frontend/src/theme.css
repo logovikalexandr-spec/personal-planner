@@ -411,6 +411,10 @@ body.inline-draft .fab { display: none; }
 /* ручка переноса на ВСЮ высоту карточки (align-self:stretch перебивает align-items:flex-start
    родителя), иначе тело = только верхняя строка контента → большой блок неинтерактивен ниже */
 .cal-block-main { flex: 1 1 auto; min-width: 0; align-self: stretch; }
+/* короткий блок (≤~30мин): обе строки не влезают → центрируем заголовок по вертикали, время прячем */
+.cal-block.short { align-items: center; padding-top: 2px; padding-bottom: 2px; }
+.cal-block.short .bt { white-space: nowrap; }
+.cal-block.short .bm { display: none; }
 .cal-cb {
   width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-muted);
   flex: 0 0 auto; margin-top: 1px; display: inline-flex; align-items: center;
