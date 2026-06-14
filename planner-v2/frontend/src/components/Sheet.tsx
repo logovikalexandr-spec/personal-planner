@@ -1,21 +1,22 @@
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+
+// текущая высота клавиатуры из visualViewport (0 если клавы нет / нет API)
+function kbHeight(): number {
+  const vv = window.visualViewport;
+  return vv ? Math.max(0, Math.round(window.innerHeight - (vv.offsetTop + vv.height))) : 0;
+}
 
 export function Sheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   const sx = useRef<number | null>(null);
   const sy = useRef<number | null>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
 
-  // Высоту клавиатуры считаем из visualViewport вживую (inline, без CSS-транзишна):
-  // CSS var(--kb-inset) при монтаже бывает «стейл» → шит появлялся в центре и плавно
-  // съезжал вниз. Тут padding-bottom = реальная высота клавы сразу + следит за ней.
-  useEffect(() => {
+  // padding-bottom считаем из visualViewport ДО первой отрисовки (инициализатор useState),
+  // чтобы шит сразу был на месте — CSS var(--kb-inset) на монтаже бывает «стейл» (шит мигал).
+  const [pad, setPad] = useState<number>(kbHeight);
+  useLayoutEffect(() => {
     const vv = window.visualViewport;
-    const el = backdropRef.current;
-    if (!vv || !el) return;
-    const place = () => {
-      const kb = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
-      el.style.paddingBottom = `${Math.round(kb)}px`;
-    };
+    if (!vv) return;
+    const place = () => setPad(kbHeight());
     place();
     vv.addEventListener("resize", place);
     vv.addEventListener("scroll", place);
@@ -26,7 +27,7 @@ export function Sheet({ onClose, children }: { onClose: () => void; children: Re
   }, []);
 
   return (
-    <div className="sheet-backdrop" ref={backdropRef} onClick={onClose}>
+    <div className="sheet-backdrop" style={{ paddingBottom: pad }} onClick={onClose}>
       <div
         className="sheet"
         onClick={(e) => e.stopPropagation()}
