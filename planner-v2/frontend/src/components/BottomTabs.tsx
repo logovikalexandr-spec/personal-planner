@@ -1,11 +1,11 @@
-import { IcoCalendar, IcoGoals, IcoLists, IcoToday, IcoTracking } from "./icons";
+import { IcoCalendar, IcoGantt, IcoGoals, IcoToday, IcoTracking } from "./icons";
 
-export type TabKey = "today" | "calendar" | "lists" | "goals" | "tracking";
+export type TabKey = "today" | "calendar" | "gantt" | "goals" | "tracking";
 
 const TABS: { key: TabKey; label: string; Ico: (p: { active?: boolean }) => React.ReactElement }[] = [
-  { key: "today", label: "Сегодня", Ico: IcoToday },
+  { key: "today", label: "Задачи", Ico: IcoToday },
   { key: "calendar", label: "Календарь", Ico: IcoCalendar },
-  { key: "lists", label: "Списки", Ico: IcoLists },
+  { key: "gantt", label: "Гант", Ico: IcoGantt },
   { key: "goals", label: "Цели", Ico: IcoGoals },
   { key: "tracking", label: "Привычки", Ico: IcoTracking },
 ];

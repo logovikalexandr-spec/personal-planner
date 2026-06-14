@@ -7,7 +7,7 @@ import { QuickAddBar } from "./components/QuickAddBar";
 import { ListView } from "./components/ListView";
 import { Drawer } from "./components/Drawer";
 import { Today } from "./screens/Today";
-import { Lists } from "./screens/Lists";
+import { Gantt } from "./screens/Gantt";
 import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
 import { Tracking } from "./screens/Tracking";
@@ -119,7 +119,7 @@ function AppMain() {
   const esx = useRef<number | null>(null);
   const esy = useRef<number | null>(null);
   const anyOverlay = addOpen || quickOpen || drawerOpen || openTaskId != null;
-  const edgeSwipeOff = anyOverlay || (tab === "lists" && !viewing);
+  const edgeSwipeOff = anyOverlay || (tab === "gantt" && !viewing);
 
   // Блокируем скролл фона при открытом оверлее: фиксируем body на текущей позиции —
   // иначе autoFocus инпута в bottom-sheet утаскивает фон вверх («экран улетает»).
@@ -171,8 +171,8 @@ function AppMain() {
       <div className="screen-host" hidden={tabHidden("calendar")}>
         {mountedTabs.has("calendar") && <Calendar />}
       </div>
-      <div className="screen-host" hidden={tabHidden("lists")}>
-        {mountedTabs.has("lists") && <Lists active={{ kind: "smart", key: "all", title: "Все" }} onSelect={setViewing} />}
+      <div className="screen-host" hidden={tabHidden("gantt")}>
+        {mountedTabs.has("gantt") && <Gantt />}
       </div>
       <div className="screen-host" hidden={tabHidden("goals")}>
         {mountedTabs.has("goals") && <Goals />}
@@ -183,7 +183,7 @@ function AppMain() {
     </>
   );
 
-  const showFab = (tab === "today" || tab === "lists" || tab === "calendar") && !viewing;
+  const showFab = (tab === "today" || tab === "calendar") && !viewing;
 
   const drawerActive: ActiveList = viewing ?? { kind: "smart", key: "all", title: "Все" };
 

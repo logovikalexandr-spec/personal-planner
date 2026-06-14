@@ -82,6 +82,14 @@ export function IcoTracking({ active }: P) {
   );
 }
 
+export function IcoGantt({ active }: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke={stroke(active)} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 6.5h8M9 12h9M5 17.5h6" />
+    </svg>
+  );
+}
+
 /* ── Wave 1 chrome-глифы (через sv(), stroke 1.9, размер задаёт контекст) ── */
 export const IcoChevron = () => sv(<path d="M9 6l6 6-6 6" />);                       /* шеврон строк/entry-card (замена «›»/«▸») */
 export const IcoChevronDown = () => sv(<path d="M6 9l6 6 6-6" />);                    /* шеврон-вниз дата-кнопки (T1) */
