@@ -389,6 +389,8 @@ select.input { appearance: none; -webkit-appearance: none; }
   position: absolute; border-radius: 10px; padding: 5px 9px; z-index: 5;
   border: 1.5px dashed var(--accent); background: var(--accent-soft);
   display: flex; flex-direction: column; gap: 2px; overflow: hidden;
+  /* при автофокус-скролле оставить место под бар «Готово» (чтобы не подъезжал под него) */
+  scroll-margin-bottom: 84px;
 }
 .cal-draft.saving { opacity: 0.6; }
 .cal-draft.error { border-style: solid; border-color: var(--danger); background: rgba(255,92,92,0.10); }
