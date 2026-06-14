@@ -80,11 +80,20 @@ export interface TaskDetail extends Task {
   subtasks: Task[];
 }
 
+// Форк 0: AI-заметка проекта-цели. Пишет human-in-loop Claude через PUT /ai (ZERO-AFK).
+export type AiNoteType = "accelerate" | "risk" | "info";
+export interface AiNote { date: string; type: AiNoteType; text: string; }
+
 export interface Project {
   id: number; name: string; slug: string; is_inbox: boolean;
   parent_id: number | null; open_count: number;
   color?: string | null; icon?: string | null;
   pinned: boolean; order_index: number;
+  // Форк 0 AI-слой (зеркало ProjectOut): success_probability/target_date/ai_notes пишет Claude.
+  success_probability?: number | null;
+  target_date?: string | null;       // ISO date
+  ai_notes?: AiNote[] | null;
+  weeks_left?: number | null;         // computed бэком из target_date
 }
 export interface Counts { all: number; today: number; tomorrow: number; next7: number; inbox: number; }
 

@@ -1,8 +1,8 @@
 import { tg } from "./telegram";
 import type {
-  CheckItem, Counts, HabitInput, HabitOut, InboxItem, MetricInput, MetricOut,
+  AiNote, CheckItem, Counts, HabitInput, HabitOut, InboxItem, MetricInput, MetricOut,
   Milestone, Priority, Project, RecurrenceJson,
-  Reminder, ReminderInput, Tag, Task, TaskDetail,
+  Reminder, ReminderInput, Stage, Tag, Task, TaskDetail,
 } from "./types";
 
 function initData(): string { return tg()?.initData ?? ""; }
@@ -37,6 +37,17 @@ export const patchProject = (
 export const deleteProject = (id: number) => reqVoid(`/api/projects/${id}`, { method: "DELETE" });
 export const reorderProjects = (items: { id: number; parent_id: number | null; order_index: number }[]) =>
   reqVoid("/api/projects/order", { method: "PUT", body: JSON.stringify(items) });
+// Форк 0: AI-слой проекта-цели — пишет human-in-loop Claude (ZERO-AFK, бэк LLM не зовёт).
+export type ProjectAiInput = {
+  success_probability?: number | null;
+  target_date?: string | null;
+  ai_notes?: AiNote[] | null;
+};
+export const updateProjectAI = (id: number, ai: ProjectAiInput) =>
+  req<Project>(`/api/projects/${id}/ai`, { method: "PUT", body: JSON.stringify(ai) });
+// Форк 0: этапы проекта (T4 полоски, T4d этапы, Гант). status done|current|future|late.
+export const getStages = (projectId: number) =>
+  req<Stage[]>(`/api/stages?project_id=${projectId}`);
 export const getCounts = () => req<Counts>("/api/counts");
 export const getTasks = (scope = "all", projectId?: number, includeChildren = false) =>
   req<Task[]>(
