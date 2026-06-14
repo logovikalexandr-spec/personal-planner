@@ -10,7 +10,7 @@ import { IcoCalendar2, IcoFlag, IcoBell, IcoTag, IcoSend } from "./icons";
 // Прозрачный <input> поверх цветного <div> с тем же текстом: caret/ввод нативные,
 // окраска — на нижнем слое. Шрифт/паддинги синхронизированы классом .qa-text.
 
-const PROJECT_GREEN = "#6FCF97";
+const PROJECT_GREEN = "var(--project-tag)";
 
 export interface QuickAddBarProps {
   onAdd: (p: ParseResult) => void;

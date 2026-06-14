@@ -48,7 +48,7 @@ function StreakRing({ pct, num, color }: { pct: number; num: number; color: stri
   return (
     <div className="sring">
       <svg width="46" height="46" viewBox="0 0 46 46">
-        <circle cx="23" cy="23" r={RING_R} fill="none" stroke="#2c2d31" strokeWidth="4" />
+        <circle cx="23" cy="23" r={RING_R} fill="none" stroke="var(--ring-track)" strokeWidth="4" />
         <circle cx="23" cy="23" r={RING_R} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round"
           strokeDasharray={RING_CIRC} strokeDashoffset={offset} />
       </svg>
@@ -216,7 +216,7 @@ function RingPct({ pct }: { pct: number }) {
   return (
     <div style={{ position: "relative", width: 50, height: 50, flex: "0 0 auto" }}>
       <svg width="50" height="50" viewBox="0 0 50 50" style={{ transform: "rotate(-90deg)" }}>
-        <circle cx="25" cy="25" r={r} fill="none" stroke="#2c2d31" strokeWidth="5" />
+        <circle cx="25" cy="25" r={r} fill="none" stroke="var(--ring-track)" strokeWidth="5" />
         <circle cx="25" cy="25" r={r} fill="none" stroke="var(--accent)" strokeWidth="5" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={off} />
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent)" }}>
@@ -254,7 +254,7 @@ function RetroView({ retro, metrics, onTaskToggle }: { retro: RetroOut | null; m
       {tasks.by_project.length > 0 && (
         <div className="hcard" style={{ padding: "2px 12px" }}>
           {tasks.by_project.map((p, i) => (
-            <div key={p.project_id ?? "inbox"} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 0", borderBottom: i < tasks.by_project.length - 1 ? "1px solid var(--hairline)" : "none", fontSize: 13.5 }}>
+            <div key={p.project_id ?? "inbox"} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 0", borderBottom: i < tasks.by_project.length - 1 ? "1px solid var(--border)" : "none", fontSize: 13.5 }}>
               <span style={{ width: 9, height: 9, borderRadius: "50%", background: p.color }} />
               <span style={{ flex: 1 }}>{p.name}</span>
               <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12.5 }}><b style={{ color: "var(--text)" }}>{p.done}</b> / {p.total}</span>
@@ -266,7 +266,7 @@ function RetroView({ retro, metrics, onTaskToggle }: { retro: RetroOut | null; m
       {/* ПРОСРОЧЕНО — шторка */}
       {tasks.overdue.length > 0 && (
         <div className="hcard" style={{ padding: "2px 12px", marginTop: 9, border: "1px solid rgba(255,92,92,.5)", background: "rgba(255,92,92,.05)" }}>
-          <button onClick={() => setOdOpen((v) => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0 9px", color: "var(--red)", fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".4px" }}>
+          <button onClick={() => setOdOpen((v) => !v)} style={{ width: "100%", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0 9px", color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: 11, textTransform: "uppercase", letterSpacing: ".4px" }}>
             <span>Просрочено · {tasks.overdue.length}</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ transform: odOpen ? "none" : "rotate(-90deg)", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
           </button>
@@ -299,7 +299,7 @@ function RetroView({ retro, metrics, onTaskToggle }: { retro: RetroOut | null; m
               <span className="wklbl">{h.week_done}/7</span>
             </div>
           </div>
-          {h.tag && <span className="imp" style={{ color: h.tag.startsWith("рекорд") ? "var(--accent)" : h.tag === "слабое" ? "var(--red)" : "#3FB68B" }}>{h.tag}</span>}
+          {h.tag && <span className="imp" style={{ color: h.tag.startsWith("рекорд") ? "var(--accent)" : h.tag === "слабое" ? "var(--danger)" : "var(--success)" }}>{h.tag}</span>}
         </div>
       ))}
 
@@ -311,10 +311,10 @@ function RetroView({ retro, metrics, onTaskToggle }: { retro: RetroOut | null; m
             {metrics.map((m, i) => {
               const good = m.delta == null ? null : (m.good_direction === "down" ? m.delta < 0 : m.delta > 0);
               return (
-                <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < metrics.length - 1 ? "1px solid var(--hairline)" : "none", fontSize: 13.5 }}>
+                <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < metrics.length - 1 ? "1px solid var(--border)" : "none", fontSize: 13.5 }}>
                   <span>{m.name}{m.good_direction === "up" ? <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · цель ↑</span> : null}</span>
                   {m.delta != null && (
-                    <span className="mono" style={{ fontWeight: 600, color: good ? "#3FB68B" : "var(--text-muted)" }}>
+                    <span className="mono" style={{ fontWeight: 600, color: good ? "var(--success)" : "var(--text-muted)" }}>
                       {m.delta < 0 ? "▼" : "▲"} {Math.abs(m.delta).toFixed(1)} {m.unit ?? ""}
                     </span>
                   )}
@@ -342,7 +342,7 @@ function RetroView({ retro, metrics, onTaskToggle }: { retro: RetroOut | null; m
         )}
         {(weakProj || weak) && (
           <div style={{ display: "flex", gap: 9 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" style={{ flex: "0 0 auto", marginTop: 1 }}><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" /></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" style={{ flex: "0 0 auto", marginTop: 1 }}><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01" /></svg>
             <span><b>Слабое место:</b>{weakProj ? ` ${weakProj.name} ${weakProj.done}/${weakProj.total}` : ""}{weakProj && weak ? " · " : ""}{weak ? `${weak.name} ${weak.week_done}/7` : ""}</span>
           </div>
         )}

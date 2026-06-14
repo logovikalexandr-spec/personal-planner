@@ -8,10 +8,10 @@ import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
 
 // DESIGN.md §2 / PATTERNS.md «Приоритет»: high=Signal Red, medium=Amber, low=Ember, none=Steel (без синего, 1 акцент)
 export const PRIORITY_COLOR: Record<Priority, string> = {
-  high: "#ff5c5c",
-  medium: "#ffb02e",
-  low: "#ee8a3c",
-  none: "#8a8b91",
+  high: "var(--danger)",
+  medium: "var(--warning)",
+  low: "var(--accent)",
+  none: "var(--text-muted)",
 };
 const PRIORITY_LABEL: Record<Priority, string> = {
   high: "Высокий приоритет",

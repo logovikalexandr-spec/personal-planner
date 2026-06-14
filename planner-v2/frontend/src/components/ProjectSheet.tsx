@@ -3,6 +3,7 @@ import type { Project } from "../types";
 import { Sheet } from "./Sheet";
 import { canHaveChild } from "../lib/projectTree";
 
+// hex-allowlist: палитра выбора цвета проекта = данные (хранятся per-project в БД), не токены хрома. Не заменять на var().
 const COLORS = ["#EE8A3C", "#E5564B", "#E0B341", "#4FB477", "#3C8EEE", "#9B6BE0", "#7C8794"];
 const EMOJIS = ["🎯", "💚", "💪", "🏋️", "🧘", "💰", "🧊", "🏛️", "🕉️", "🧠", "🎭", "📚", "⭐", "📦", "🔥", "📌", "🚀", "🏠", "💡", "📅"];
 

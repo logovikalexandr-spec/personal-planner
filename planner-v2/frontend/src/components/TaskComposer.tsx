@@ -147,7 +147,7 @@ export function TaskComposer({
             <span
               key={i}
               className="qa-rec-chip"
-              style={tok.kind === "project" ? { color: "#6FCF97", background: "rgba(111,207,151,0.16)", borderColor: "transparent" } : undefined}
+              style={tok.kind === "project" ? { color: "var(--project-tag)", background: "rgba(111,207,151,0.16)", borderColor: "transparent" } : undefined}
             >
               {tok.label}
             </span>

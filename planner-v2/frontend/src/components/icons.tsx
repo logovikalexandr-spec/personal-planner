@@ -109,7 +109,7 @@ export const IcoFlag = () => sv(<><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></>);   
 export const IcoSelectCircle = ({ on }: { on?: boolean }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke={on ? "var(--accent)" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     {on
-      ? <><circle cx="12" cy="12" r="9" fill="var(--accent)" stroke="none" /><path d="M8 12l3 3 5-5" stroke="#fff" strokeWidth="2.4" /></>
+      ? <><circle cx="12" cy="12" r="9" fill="var(--accent)" stroke="none" /><path d="M8 12l3 3 5-5" stroke="var(--accent-contrast)" strokeWidth="2.4" /></>
       : <circle cx="12" cy="12" r="9" />}
   </svg>
 );  /* кружок выбора строки в режиме multi-select (заливка = выбрано) */

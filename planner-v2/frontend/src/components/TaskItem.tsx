@@ -242,7 +242,7 @@ function TaskItemBase({
           ) : (task.due_date || task.due_time || task.stage_label || shouldShowImpact(task)) ? (
             <div
               className="mono"
-              style={{ fontSize: 13, marginTop: 2, color: isOverdue ? "var(--red)" : "var(--steel)", display: "flex", alignItems: "center", gap: 6 }}
+              style={{ fontSize: 13, marginTop: 2, color: isOverdue ? "var(--danger)" : "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}
             >
               {(task.due_date || task.due_time) && <span>{fmtMeta(task.due_date, task.due_time)}</span>}
               {task.stage_label && (
