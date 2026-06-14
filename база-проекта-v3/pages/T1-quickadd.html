@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T1 · Быстрая задача — единственное поле создания (на «+»)</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --card:#1A1B1F; --slate:#242529; --bone:#F4F4F5; --steel:#8A8B91;
+    --accent:#EE8A3C; --accent-soft:rgba(238,138,60,.14); --green:#3FB68B; --hairline:rgba(255,255,255,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;color:var(--bone);display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .phone{width:390px;height:844px;background:var(--onyx);border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;font-weight:600;flex:0 0 auto;color:var(--steel)}
+  .dim{flex:1;background:repeating-linear-gradient(180deg,#141519 0 1px,transparent 1px 56px);opacity:.4}
+  .fab{position:absolute;right:18px;bottom:96px;width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+  .ttl{position:absolute;top:14px;left:0;right:0;text-align:center;font-size:12px;color:var(--steel);font-family:"Geist Mono",monospace}
+
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:18px 18px 0 0;padding:14px 18px 22px;box-shadow:0 -10px 40px rgba(0,0,0,.5);border-top:1px solid var(--hairline)}
+  .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .head .t{font-size:13px;color:var(--steel)}
+  .field{border:1.5px solid var(--accent);border-radius:13px;padding:14px 15px;font-size:16px;color:var(--bone);display:flex;align-items:center;min-height:52px}
+  .field .ph{color:var(--steel)}
+  .field .caret{width:2px;height:20px;background:var(--accent);margin-right:1px}
+  .chips{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:13px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--slate);border:1px solid var(--hairline);border-radius:999px;padding:9px 14px;font-size:13.5px;color:var(--steel)}
+  .chip svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.9}
+  .chip.on{background:var(--accent-soft);border-color:rgba(238,138,60,.35);color:var(--accent)}
+  .send{margin-left:auto;width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .send svg{width:22px;height:22px;stroke:#fff;stroke-width:2.4;fill:none}
+  .hint{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);margin-top:13px;line-height:1.5}
+
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+  .legend{width:340px;font-size:13px;line-height:1.7}
+  .legend h2{font-size:16px;margin-bottom:10px}
+  .legend .r{margin-bottom:12px;padding-left:12px;border-left:2px solid var(--accent)}
+  .legend b{color:var(--accent)}
+  .legend .muted{color:#9a9aa2}
+</style></head>
+<body>
+
+<!-- A: открыто (без клавиатуры), пустое -->
+<div class="phone">
+  <div class="ttl">A · открыто по «+» — БЕЗ клавиатуры</div>
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="head"><span class="t">Быстрая задача<span class="ecode">Q0</span></span></div>
+    <div class="field"><span class="ph">Новая задача…</span></div>
+    <div class="chips">
+      <span class="chip"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>дата<span class="ecode">Q1</span></span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7"/></svg>проект<span class="ecode">Q2</span></span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M5 3v18M5 4h11l-2 4 2 4H5"/></svg>приоритет<span class="ecode">Q3</span></span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M3 11l8-8h7v7l-8 8zM15 7h.01"/></svg>тег<span class="ecode">Q4</span></span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0112 0c0 7 3 7 3 9H3c0-2 3-2 3-9M10 21h4"/></svg>напоминание<span class="ecode">Q5</span></span>
+      <span class="send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+    </div>
+    <div class="hint">распознано: дата · проект · приоритет · тег — тап по токену вернёт в текст</div>
+  </div>
+  <div class="fab" style="opacity:.4">+</div>
+</div>
+
+<!-- B: заполнено — чипы активны + NL-токены -->
+<div class="phone">
+  <div class="ttl">B · набрано + чипы выбраны (on)</div>
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="head"><span class="t">Быстрая задача</span></div>
+    <div class="field">Позвонить юристу<span class="caret"></span></div>
+    <div class="chips">
+      <span class="chip on"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>15 июн</span>
+      <span class="chip on"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7"/></svg>ZIMA</span>
+      <span class="chip on"><svg viewBox="0 0 24 24"><path d="M5 3v18M5 4h11l-2 4 2 4H5"/></svg>P1</span>
+      <span class="chip on"><svg viewBox="0 0 24 24"><path d="M3 11l8-8h7v7l-8 8zM15 7h.01"/></svg>#2</span>
+      <span class="chip"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0112 0c0 7 3 7 3 9H3c0-2 3-2 3-9M10 21h4"/></svg>напоминание</span>
+      <span class="send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+    </div>
+    <div class="hint">тап по чипу → пикер ИНЛАЙН (поверх поля), значение копится на эту задачу</div>
+  </div>
+  <div class="fab" style="opacity:.4">+</div>
+</div>
+
+<div class="legend">
+  <h2>Быстрая задача — ЕДИНСТВЕННОЕ поле создания (на «+»)</h2>
+  <div class="r"><b>+ → это поле</b>. Второго поля/полного composer НЕТ. Открывается <b>без клавиатуры</b> (фокус не на инпуте) — тапаешь поле/чипы сам.</div>
+  <div class="r"><b>Q1 дата</b> → пикер «Дата/время» (см. <b>T1-datetime</b>): старт+дедлайн, календарь с heat, длительность. Инлайн поверх поля.</div>
+  <div class="r"><b>Q2 проект</b> → список проектов (выбор/создание).</div>
+  <div class="r"><b>Q3 приоритет</b> → P1/P2/P3/нет. <b>Q4 тег</b> → выбор/создание тегов.</div>
+  <div class="r"><b>Q5 напоминание</b> → тот же пикер «Дата/время» (напоминание живёт там).</div>
+  <div class="r">Чип <b>«on»</b> (ember) когда значение задано — показывает выбранное (дата/проект/P#/#N).</div>
+  <div class="r">NL: набрал «завтра !1 #тег ~ZIMA» → токены подсвечены, чипы загораются авто; тап токена → назад в текст.</div>
+  <div class="r muted">Стрелка ↑ — создать. Пикеры открываются поверх (z-index выше оверлея). Убрано: «Развернуть», полный composer, autofocus, быстрые-чипы даты.</div>
+</div>
+
+</body></html>

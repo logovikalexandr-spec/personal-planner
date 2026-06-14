@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>T1 · пикер Дата/время (TickTick-стиль) — переделка «Длительность»</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C; --accent-soft:rgba(238,138,60,.14);
+    --danger:#FF5C5C; --warning:#FFB02E; --green:#3FB68B; --hairline:rgba(255,255,255,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;color:var(--bone);display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .phone{width:390px;height:844px;background:var(--onyx);border-radius:30px;overflow:hidden;position:relative;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:14px;font-weight:600;flex:0 0 auto;color:var(--steel)}
+  .dim{flex:1;background:repeating-linear-gradient(180deg,#141519 0 1px,transparent 1px 56px);opacity:.4}
+
+  /* нижний шит */
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:20px 20px 0 0;padding:10px 18px 22px;box-shadow:0 -10px 40px rgba(0,0,0,.5);border-top:1px solid var(--hairline)}
+  .grip{width:40px;height:4px;border-radius:2px;background:var(--hairline);margin:0 auto 14px}
+
+  /* тумблер весь день */
+  .allday{display:flex;align-items:center;justify-content:space-between;padding:10px 2px 14px}
+  .allday .lbl{font-size:14px}
+  .sw{width:42px;height:25px;border-radius:13px;background:var(--slate);position:relative;flex:0 0 auto}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#6b6c72;transition:.15s}
+  .sw.on{background:var(--accent-soft)}.sw.on::after{left:20px;background:var(--accent)}
+
+  /* мини-календарь с heat */
+  .cal-h{display:flex;justify-content:space-between;align-items:center;margin:2px 0 10px}
+  .cal-h .m{font-weight:600;font-size:15px;text-transform:capitalize}
+  .cal-h .nav{width:30px;height:30px;border-radius:50%;background:var(--slate);display:flex;align-items:center;justify-content:center;color:var(--steel)}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+  .grid .dow{font-family:"Geist Mono",monospace;font-size:10px;color:var(--steel);padding-bottom:2px}
+  .grid .d{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:9px;position:relative}
+  .grid .d.g{background:rgba(63,182,139,.20)} .grid .d.y{background:rgba(255,176,46,.20)} .grid .d.r{background:rgba(255,92,92,.22)}
+  .grid .d.start{background:var(--accent);color:#1a1209;font-weight:700}
+  .grid .d.end{box-shadow:inset 0 0 0 2px var(--accent);font-weight:700}
+  .grid .d.span{background:var(--accent-soft);border-radius:0}
+  .grid .d.today{outline:2px solid var(--steel);outline-offset:-2px}
+
+  /* строки старт/дедлайн */
+  .dt{display:flex;align-items:center;gap:10px;padding:13px 2px;border-top:1px solid var(--hairline)}
+  .dt:first-of-type{margin-top:14px}
+  .dt .ic{width:20px;color:var(--steel);flex:0 0 auto;display:flex;justify-content:center}
+  .dt .k{font-size:14px;flex:1}
+  .dt .v{display:flex;gap:7px}
+  .pill{background:var(--slate);border-radius:9px;padding:6px 11px;font-size:13px;font-family:"Geist Mono",monospace}
+  .pill.accent{background:var(--accent-soft);color:var(--accent)}
+  .pill.empty{color:var(--steel)}
+  .dur{font-family:"Geist Mono",monospace;font-size:11.5px;color:var(--steel);text-align:right;padding:2px 2px 0}
+
+  .row{display:flex;align-items:center;justify-content:space-between;padding:13px 2px;border-top:1px solid var(--hairline);font-size:14px}
+  .row .r{color:var(--steel);font-size:13px;font-family:"Geist Mono",monospace}
+  .done{width:100%;margin-top:16px;background:var(--accent);color:#1a1209;border:0;border-radius:13px;padding:14px;font-size:15px;font-weight:600;font-family:inherit}
+
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+  .legend{width:340px;font-size:13px;line-height:1.7}
+  .legend h2{font-size:16px;margin-bottom:10px}
+  .legend .row2{margin-bottom:12px;padding-left:12px;border-left:2px solid var(--accent);display:block}
+  .legend b{color:var(--accent)}
+  .legend .muted{color:#9a9aa2}
+  .ttl{position:absolute;top:14px;left:0;right:0;text-align:center;font-size:13px;color:var(--steel);font-family:"Geist Mono",monospace}
+</style></head>
+<body>
+
+<!-- FRAME A: задача в один день (старт+дедлайн с временем) -->
+<div class="phone">
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="grip"></div>
+
+    <div class="allday">
+      <span class="lbl">Весь день<span class="ecode">D1</span></span>
+      <span class="sw"></span>
+    </div>
+
+    <div class="cal-h">
+      <span class="nav">‹</span><span class="m">июнь 2026</span><span class="nav">›</span>
+    </div>
+    <div class="grid">
+      <div class="dow">Пн</div><div class="dow">Вт</div><div class="dow">Ср</div><div class="dow">Чт</div><div class="dow">Пт</div><div class="dow">Сб</div><div class="dow">Вс</div>
+      <div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d r">4</div><div class="d">5</div><div class="d">6</div><div class="d">7</div>
+      <div class="d">8</div><div class="d r">9</div><div class="d r">10</div><div class="d g">11</div><div class="d r">12</div><div class="d r">13</div><div class="d today start">14<span class="ecode" style="position:absolute;top:-7px;right:-7px;margin:0">D2</span></div>
+      <div class="d g">15</div><div class="d">16</div><div class="d">17</div><div class="d">18</div><div class="d">19</div><div class="d">20</div><div class="d">21</div>
+      <div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div><div class="d">26</div><div class="d">27</div><div class="d">28</div>
+      <div class="d">29</div><div class="d">30</div>
+    </div>
+
+    <div class="dt">
+      <span class="ic">▶</span>
+      <span class="k">Начало<span class="ecode">D3</span></span>
+      <span class="v"><span class="pill accent">14 июн</span><span class="pill">09:00</span></span>
+    </div>
+    <div class="dt">
+      <span class="ic">■</span>
+      <span class="k">Дедлайн<span class="ecode">D4</span></span>
+      <span class="v"><span class="pill">14 июн</span><span class="pill">10:30</span></span>
+    </div>
+    <div class="dur">длительность: 1 ч 30 мин<span class="ecode">D5</span></div>
+
+    <div class="row"><span>Напоминание<span class="ecode">D6</span></span><span class="r">За 30 мин ›</span></div>
+    <div class="row"><span>Повтор<span class="ecode">D7</span></span><span class="r">Нет ›</span></div>
+
+    <button class="done">Готово</button>
+  </div>
+</div>
+
+<!-- FRAME B: всё-день + многодневный спан -->
+<div class="phone">
+  <div class="ttl">B · «весь день» + многодневный спан</div>
+  <div class="status"><span>9:41</span><span>● ● ●&nbsp;&nbsp;5G&nbsp;&nbsp;▮</span></div>
+  <div class="dim"></div>
+  <div class="sheet">
+    <div class="grip"></div>
+
+    <div class="allday">
+      <span class="lbl">Весь день</span>
+      <span class="sw on"></span>
+    </div>
+
+    <div class="cal-h">
+      <span class="nav">‹</span><span class="m">июнь 2026</span><span class="nav">›</span>
+    </div>
+    <div class="grid">
+      <div class="dow">Пн</div><div class="dow">Вт</div><div class="dow">Ср</div><div class="dow">Чт</div><div class="dow">Пт</div><div class="dow">Сб</div><div class="dow">Вс</div>
+      <div class="d">1</div><div class="d">2</div><div class="d">3</div><div class="d">4</div><div class="d">5</div><div class="d">6</div><div class="d">7</div>
+      <div class="d">8</div><div class="d">9</div><div class="d">10</div><div class="d">11</div><div class="d">12</div><div class="d">13</div><div class="d today start">14</div>
+      <div class="d span">15</div><div class="d span">16</div><div class="d end">17</div><div class="d">18</div><div class="d">19</div><div class="d">20</div><div class="d">21</div>
+      <div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25</div><div class="d">26</div><div class="d">27</div><div class="d">28</div>
+      <div class="d">29</div><div class="d">30</div>
+    </div>
+
+    <div class="dt">
+      <span class="ic">▶</span>
+      <span class="k">Начало</span>
+      <span class="v"><span class="pill accent">14 июн</span><span class="pill empty">время</span></span>
+    </div>
+    <div class="dt">
+      <span class="ic">■</span>
+      <span class="k">Дедлайн</span>
+      <span class="v"><span class="pill">17 июн</span><span class="pill empty">время</span></span>
+    </div>
+    <div class="dur">длительность: 4 дня</div>
+
+    <div class="row"><span>Напоминание</span><span class="r">Нет ›</span></div>
+    <div class="row"><span>Повтор</span><span class="r">Нет ›</span></div>
+
+    <button class="done">Готово</button>
+  </div>
+</div>
+
+<div class="legend">
+  <h2>Переделка «Длительность» → пикер «Дата/время» (TickTick)</h2>
+  <div class="row2"><b>D1 Весь день</b> — тумблер. Вкл → строки времени скрыты (только даты), длительность в днях.</div>
+  <div class="row2"><b>D2 Календарь + heat</b> — выбор дня; заливка g/y/r по нагрузке (как в мини-календаре). Тап дня = ставит <b>начало</b>; повторный тап другого дня дальше = <b>дедлайн</b> (спан подсвечивается).</div>
+  <div class="row2"><b>D3 Начало</b> — дата (из календаря) + время (тап по пилюле времени → колесо/инпут).</div>
+  <div class="row2"><b>D4 Дедлайн</b> — дата + время. Может быть <b>другой день</b> (многодневный спан). <span class="muted">Бэкенд: +Task.end_date (миграция).</span></div>
+  <div class="row2"><b>D5 Длительность</b> — производная-метка (часы/минуты или дни). Больше НЕ вкладка и НЕ требует «сначала задай время».</div>
+  <div class="row2"><b>D6 Напоминание · D7 Повтор</b> — как было, в этом же шите.</div>
+  <div class="row2 muted">Вкладок «Дата / Длительность» нет. Один экран. Готово применяет всё.</div>
+</div>
+
+</body></html>
