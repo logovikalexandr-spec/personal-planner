@@ -6,6 +6,7 @@ import { IcoBack, IcoChevron, IcoInbox, IcoMenu, IcoCalendar2, IcoChevronDown } 
 import { DateJumpSheet } from "../components/DateJumpSheet";
 import { createTask, getDayTasks, getProjects, getTasks, patchTask } from "../api";
 import { createPayload } from "../lib/timelineLayout";
+import { useBottomAnchor } from "../lib/viewportAnchor";
 import { tg } from "../telegram";
 import type { ParseResult } from "../lib/quickParse";
 import type { Project, Task } from "../types";
@@ -159,35 +160,10 @@ export function Today({
     return () => document.body.classList.remove("inline-draft");
   }, [!!draft]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Бар «Готово» позиционируем из JS по visualViewport (top-якорь): position:fixed+bottom
-  // глючит в TG iOS WebView — на верхних слотах (scroll≈0) бар улетал вверх. Гоним top =
-  // низ видимого вьюпорта − высота бара; обновляем на resize/scroll клавиатуры.
+  // Бар «Готово» прижимаем к низу видимого вьюпорта из JS (см. useBottomAnchor):
+  // position:fixed+bottom глючит в TG iOS WebView (на верхних слотах бар улетал вверх).
   const editing = draft?.state === "editing";
-  useEffect(() => {
-    if (!editing) return;
-    const vv = window.visualViewport;
-    if (!vv) return; // fallback = CSS bottom:0
-    const place = () => {
-      const el = accessoryRef.current;
-      if (!el) return;
-      const h = el.offsetHeight || 60;
-      el.style.top = `${Math.round(vv.offsetTop + vv.height - h)}px`;
-      el.style.bottom = "auto";
-    };
-    place();
-    const raf = requestAnimationFrame(place);
-    const t = window.setTimeout(place, 280); // дождаться анимации клавиатуры
-    vv.addEventListener("resize", place);
-    vv.addEventListener("scroll", place);
-    window.addEventListener("scroll", place, true);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.clearTimeout(t);
-      vv.removeEventListener("resize", place);
-      vv.removeEventListener("scroll", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, [editing]);
+  useBottomAnchor(accessoryRef, editing);
 
   // E9: смена таба с открытым черновиком (Today не размонтируется — keep-alive в App).
   // Скрыли экран → непустой draft авто-коммитим (как тап-вне), пустой отбрасываем.

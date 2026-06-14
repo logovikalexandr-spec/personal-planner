@@ -640,6 +640,8 @@ body.inline-draft .fab { display: none; }
 .entry-card .chev svg { width: 18px; height: 18px; }
 .entry-card .lead svg { width: 24px; height: 24px; }
 .fab svg { width: 24px; height: 24px; }
+/* «+» главного FAB — явно белый и жирнее (на ember читался тёмным); вторичную пилюлю не трогаем */
+.fab:not(.fab-secondary) svg { stroke: var(--accent-contrast); stroke-width: 2.4; }
 
 /* Lists — полноэкранный таб (scope .lists, не Drawer) */
 .screen.lists {
@@ -985,9 +987,11 @@ body.inline-draft .fab { display: none; }
 /* quick-add overlay (Волна 2: FAB → быстрый ввод над таб-баром) */
 .qa-scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 60; }
 .qa-overlay {
+  /* низ прижимается из JS (useBottomAnchor) к верху клавиатуры — fixed+bottom глючит в iOS;
+     bottom:0 = fallback без visualViewport. kb-inset в паддинге больше не нужен. */
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 61;
   background: var(--surface); border-top: 1px solid var(--border); border-radius: 16px 16px 0 0;
-  padding: var(--s2) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom) + var(--kb-inset, 0px));
+  padding: var(--s2) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom));
 }
 .qa-overlay-head { display: flex; align-items: center; justify-content: space-between; padding: 4px 0 2px; }
 .qa-overlay-head .t { font-size: 13px; color: var(--text-muted); }

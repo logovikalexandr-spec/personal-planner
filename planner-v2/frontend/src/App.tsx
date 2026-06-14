@@ -10,6 +10,7 @@ import { Today } from "./screens/Today";
 import { Gantt } from "./screens/Gantt";
 import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
+import { useBottomAnchor } from "./lib/viewportAnchor";
 import { Tracking } from "./screens/Tracking";
 import { createTag, createTask, getCounts, getMe, getProjects, getTags } from "./api";
 import type { ActiveList, Task } from "./types";
@@ -118,6 +119,9 @@ function AppMain() {
   // выкл при открытых Sheet/composer/picker/viewing-sheet, на табе lists (дубль), во время drag (в Drawer).
   const esx = useRef<number | null>(null);
   const esy = useRef<number | null>(null);
+  // quick-add-оверлей прижимаем к низу видимого вьюпорта (тот же iOS-fixed-баг, что и бар «Готово»)
+  const qaRef = useRef<HTMLDivElement>(null);
+  useBottomAnchor(qaRef, quickOpen);
   const anyOverlay = addOpen || quickOpen || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "gantt" && !viewing);
 
@@ -215,7 +219,7 @@ function AppMain() {
       {quickOpen && (
         <>
           <div className="qa-scrim" onClick={() => setQuickOpen(false)} />
-          <div className="qa-overlay">
+          <div className="qa-overlay" ref={qaRef}>
             <div className="qa-overlay-head">
               <span className="t">Быстрая задача</span>
               <button className="qa-expand" onClick={() => { setQuickOpen(false); setAddOpen(true); }}>Развернуть</button>
