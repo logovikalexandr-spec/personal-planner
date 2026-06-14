@@ -88,6 +88,7 @@ export function TaskDetail({
   const [notesDraft, setNotesDraft] = useState("");
   const [subDraft, setSubDraft] = useState("");
   const [addingSub, setAddingSub] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // ⋯ меню шапки (Подзадача/Не буду делать/Удалить)
 
   async function load() {
     setStatus("loading");
@@ -243,7 +244,26 @@ export function TaskDetail({
       <div className="detail-top">
         <button className="detail-ic" onClick={onClose} aria-label="Назад"><IcoBack /></button>
         <div style={{ flex: 1 }} />
-        <button className="detail-ic" aria-label="Ещё"><IcoMore /></button>
+        <div className="detail-menu-wrap">
+          <button className="detail-ic" aria-label="Ещё" aria-haspopup="menu" aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}><IcoMore /></button>
+          {menuOpen && (
+            <>
+              <div className="detail-menu-backdrop" onClick={() => setMenuOpen(false)} />
+              <div className="detail-menu" role="menu">
+                <button role="menuitem" onClick={() => { setMenuOpen(false); setAddingSub(true); }}>
+                  <IcoPlus />Подзадача
+                </button>
+                <button role="menuitem" onClick={() => { setMenuOpen(false); markWontDo(); }}>
+                  <IcoXCircle />Не буду делать
+                </button>
+                <button role="menuitem" className="danger" onClick={() => { setMenuOpen(false); remove(); }}>
+                  <IcoTrash />Удалить
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="detail-body">
@@ -381,13 +401,6 @@ export function TaskDetail({
             <span>Добавить сабтаск</span>
           </button>
         )}
-      </div>
-
-      {/* overflow-бар */}
-      <div className="detail-overflow">
-        <button className="ofb" onClick={() => setAddingSub(true)}><span className="ofb-ico"><IcoPlus /></span>Сабтаск</button>
-        <button className="ofb" onClick={markWontDo}><span className="ofb-ico"><IcoXCircle /></span>Won't Do</button>
-        <button className="ofb ofb-danger" onClick={remove}><span className="ofb-ico"><IcoTrash /></span>Удалить</button>
       </div>
 
       {picker === "date" && (
