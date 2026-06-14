@@ -2,7 +2,34 @@
 
 > Где остановились. Апдейтить на `/wrapup`.
 
+## Последнее обновление: 2026-06-14 (КОНВЕЙЕР ВЕРНОСТИ v2 — Playwright, prevention-first)
+
+**Зачем:** боль «макет есть, код выходит неточным». Старый план (греп+инертный YAML+chrome-devtools-MCP+пиксель-диф мокап↔рендер) после профи-аудита признан переизобретением visual-regression/BDD/tokens + анти-паттерны → переписан. Дизайн: `контекст/спеки/2026-06-14-конвейер-v2-playwright-design.md`. План: `контекст/планы/2026-06-14-gate1-playwright-v2.md`. v1-доки заархивированы ⛔.
+
+**СДЕЛАНО (4 коммита на planner-v2-phase0, всё зелёное):**
+- `5ca1571` Слой предотвращения: `tools/check-tokens.sh` (гард сырого hex+битых var, zero-dep, `npm run lint:tokens`). +3 токена. **+5 тихих багов цвета пофикшено** (var(--onyx/red/steel/hairline)+дубли).
+- `61acfd5` Playwright-скелет: config 390×844 chromium+webkit, `_telegram.ts` стаб, smoke. **updateSnapshots:"none"** (агент не трогает baseline).
+- `6781013` Гейт на T1 «Сегодня» (golden example): `tests-e2e/T1-today.spec.ts` 14 тестов (визуал-baseline+токен-смоук+структура+empty), `coverage.sh` (ecode→тест/defer, PASS 1 покрыт A6·6 отложено·0 дыр), data-testid в DayTimeline, TEAM.md перевшит на авто-гейт. **baseline утв. владельцем визуально** (happy+empty).
+- `53e0602` Дизайн-доки конвейера.
+
+**«Сегодня» ДОБИТ до 100%** (`951d925`): полноэкранный `preview-t1-full-mock` (Today+хром, stateful fetch-мок) + `T1-full.spec` (A1 бургер·A2 датапикер·A3 jump·A4 саммари·A5 all-day«+N»·draft·**persist после refresh**·**drag snap-15**). Today.tsx размечен data-testid. coverage.sh принимает неск. spec. Покрытие T1 = 6/7 ecode (A7 FAB=App-уровень отложен), 0 дыр. Визуал-baseline детерминирован через `page.clock`. Гейты зелёные: lint·35 vitest·34 e2e(×2 браузера)·tsc·coverage.
+
+**СЛЕД:** тиражировать гейт на остальные экраны (тот же шаблон preview+spec+coverage+эталон). Жив: Трекинг, Цели(?), Списки(?). T2 Календарь-неделя — экрана в коде НЕТ (только weekLayout-хелперы), сперва фича. A7 FAB — нужен preview App с табами. drag — пока chromium (webkit native-pointer проверить).
+
+**ПРОВЕРКА гейта:** `cd planner-v2/frontend && npm run lint:tokens && npm run test && npm run e2e && bash tests-e2e/coverage.sh ../../база-проекта-v3/pages/T1-zadachi.html tests-e2e/T1-today.spec.ts`. Эталон обновляет ТОЛЬКО человек: `npx playwright test T1-today --update-snapshots --project=chromium`.
+
+---
+
 ## Последнее обновление: 2026-06-11 ночь-3 (КОД-ФАЗА: impact + Форк E + Tracking + Ретро + метка этапа)
+
+## ── ПРОГРЕСС 2026-06-12 (код-фаза, поэтапно по страницам V3) ──
+**Деплой ночь-3 ЗАДЕПЛОЕН** (`9ef9fd8`): impact+Форк E+Tracking+Ретро+метка этапа на прод, миграции `→a7b8c9d0e1f2`, bundle `index-DA-4UJD0.js`, density-цепочка проверена.
+**T1 «Задачи» ДОБИТА ДО МОКАПА + ЗАДЕПЛОЕНА** (`4dc313d`, bundle `index-CP5a8L3E.js`):
+- G1 heat-датапикер (T1·B): бэк `day_density` (g/y/r, red=≥5 или прошлый-high; ZERO-AFK) + `GET /api/tasks/density` + DateJumpSheet заливка месяца + кольцо сегодня. 7 тестов.
+- G2 all-day «+N ещё» (A1): 2 чипа + разворот.
+- G4 состояния T1: error (треугольник+подзаголовок+Повторить), list-empty (smiley+«День свободен»+кнопка).
+- Гейт 160 pytest·35 vitest·tsc0·build. Визуал-самопроверка `preview-t1-mock.html` пройдена (heat/+N/состояния скринами). ⚠️ финальный Telegram-гейт владельца ещё нужен.
+**СЛЕД по страницам:** T2 Календарь (бэк Форк B готов: range+/api/milestones, фронт не собран) → T4 Цели (бэк Форк0) → T3 Гант (нужны drag-эндпоинты) → INBOX (suggested_stage_id+эвристика) → DETAIL-фронт (блоки Этап/Вклад в детали) → Tracking деталь-экраны.
 
 ## ── HANDOFF 2026-06-11 ночь-3 (прораб) → НОВЫЙ ЧАТ (продолжить код-фазу) ──
 КОД-ФАЗА идёт на снимке `a0b245a` (ветка planner-v2-phase0, локальный). **12 коммитов, всё зелёное: 153 pytest · 35 vitest · tsc 0 · vite build. НЕ ЗАДЕПЛОЕНО.** Деплой = rsync `/root/planner-v2-src` + миграции — за владельцем (нужен Telegram визуал-гейт).
