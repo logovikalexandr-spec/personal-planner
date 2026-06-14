@@ -136,7 +136,7 @@ export function TaskComposer({
     <Sheet onClose={onClose}>
       <input
         className="input"
-        autoFocus
+        autoFocus={!initialPicker}
         placeholder="Новая задача..."
         value={title}
         onChange={(e) => setTitle(e.target.value)}
