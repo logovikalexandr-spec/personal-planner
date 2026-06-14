@@ -207,7 +207,7 @@ function AppMain() {
           onAdd={() => setQuickOpen(true)}
           secondary={
             tab === "today" && todayView === "timeline"
-              ? { label: "Задачи", onClick: () => setTodayView("tasks") }
+              ? { label: "Список", onClick: () => setTodayView("tasks") }
               : undefined
           }
         />

@@ -323,6 +323,12 @@ export function Today({
               nowAnchorId="today-now"
             />
           )}
+        {state === "ready" && timed.length > 0 && (
+          <div className="today-swipe-hint" data-testid="swipe-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l-6 6 6 6M15 6l6 6-6 6" /></svg>
+            свайп — другой день
+          </div>
+        )}
         {draft?.state === "editing" && (
           <div className="cal-accessory">
             {/* onMouseDown preventDefault: не дать инпуту потерять фокус ДО клика (blur уже коммитит — но порядок важен для consistency) */}

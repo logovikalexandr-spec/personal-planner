@@ -1,4 +1,4 @@
-import { IcoPlus } from "./icons";
+import { IcoPlus, IcoLists } from "./icons";
 
 // FAB закреплён над таб-баром (CSS position:fixed — вне скролл-контейнера).
 // secondary — опциональная вторичная кнопка-пилюля с подписью (Today: «Задачи»).
@@ -14,7 +14,7 @@ export function Fab({
     <>
       {secondary && (
         <button className="fab fab-secondary" onClick={secondary.onClick}>
-          {secondary.label}
+          <IcoLists />{secondary.label}
         </button>
       )}
       <button className="fab" onClick={onAdd} aria-label="Добавить"><IcoPlus /></button>

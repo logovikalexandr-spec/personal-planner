@@ -2,6 +2,7 @@ import "./theme.css";
 import { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Today } from "./screens/Today";
+import { Fab } from "./components/Fab";
 import type { Project, Task } from "./types";
 
 // ── Полноэкранный preview «Сегодня» (Today + хром) для гейта верности v2 ──
@@ -95,6 +96,8 @@ function Harness() {
         onOpenDrawer={() => setDrawer(true)}
         onOpenTask={(t) => setOpened(t.id)}
       />
+      {/* FAB зеркалит App: secondary-пилюля «Список» (контракт A7·D) на таб «Задачи»/timeline */}
+      <Fab onAdd={() => {}} secondary={{ label: "Список", onClick: () => {} }} />
     </div>
   );
 }

@@ -50,6 +50,31 @@ test("draft — тап пустого часа открывает инлайн-�
   await expect(page.locator(".cal-draft-input")).toBeVisible();
 });
 
+// ── A7 FAB-пилюля «Список» (иконка + ярлык + позиция впритык к [+]) ──
+
+test("A7 — FAB-пилюля «Список» с иконкой", async ({ page }) => {
+  await page.goto(FULL);
+  const pill = page.locator(".fab-secondary");
+  await expect(pill).toHaveText("Список");        // ярлык, не «Задачи»
+  await expect(pill.locator("svg")).toBeVisible(); // иконка списка есть
+});
+
+test("A7 — пилюля стоит впритык СЛЕВА от круглого [+]", async ({ page }) => {
+  await page.goto(FULL);
+  const pill = await page.locator(".fab-secondary").boundingBox();
+  const plus = await page.locator(".fab:not(.fab-secondary)").boundingBox();
+  if (!pill || !plus) throw new Error("нет геометрии FAB");
+  expect(pill.x + pill.width).toBeLessThanOrEqual(plus.x + 1); // пилюля левее [+]
+  expect(Math.abs(pill.y - plus.y)).toBeLessThan(8);           // на одной линии (кластер)
+  expect(plus.x - (pill.x + pill.width)).toBeLessThan(20);     // впритык, не в др. углу
+});
+
+test("подсказка «свайп — другой день» видна при задачах", async ({ page }) => {
+  await page.goto(FULL);
+  await expect(page.getByTestId("swipe-hint")).toBeVisible();
+  await expect(page.getByTestId("swipe-hint")).toContainText("свайп — другой день");
+});
+
 // ── PERSIST после refresh (stateful-мок: создание выживает reload) ──
 
 test("persist — созданная задача переживает обновление страницы", async ({ page }) => {
@@ -101,6 +126,8 @@ test.describe("визуал-baseline (полный экран)", () => {
 });
 
 // ── COVERAGE-DEFER ──
-// A7 FAB Список/[+] — живёт в App.tsx (App-уровень, не Today); нужен preview App с табами.
-// drag/resize таймблока (snap-15, native-pointer 220ms long-press) — отдельный тест, риск флака.
+// A7 FAB-пилюля покрыта (иконка/ярлык/позиция) на Fab-компоненте в харнесе. НЕ покрыто:
+//   App-wiring — что App.tsx реально передаёт label="Список", и ярлыки таб-бара
+//   (Сегодня→Задачи, Списки→Гант) — это App-уровень, нужен preview <App/> (след. шаг).
 // Реальный backend-persist (не stateful-мок) — деплой-гейт (тот же сьют против прод-URL).
+// drag webkit — пока только chromium (native-pointer на webkit проверить отдельно).

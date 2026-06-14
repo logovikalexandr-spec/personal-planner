@@ -123,10 +123,25 @@ input, textarea, [contenteditable="true"] {
 }
 .fab:active { transform: scale(0.94); }
 .fab-secondary {
-  left: var(--s4); right: auto; background: var(--surface-2); color: var(--accent);
+  /* впритык СЛЕВА от круглого [+] (правый кластер), не в левом углу — контракт A7·D */
+  right: calc(var(--s4) + var(--fab) + var(--s2)); left: auto;
+  background: var(--surface-2); color: var(--accent);
   border: 1px solid var(--border); width: auto; height: var(--fab);
-  padding: 0 20px; font-size: 14px; font-weight: 600; border-radius: 999px;
+  padding: 0 18px; gap: 8px; font-size: 14px; font-weight: 600; border-radius: 999px;
 }
+.fab-secondary svg { width: 18px; height: 18px; }
+
+/* T1 A-? подсказка навигации по дням (контракт .swipe-hint) — плавающая пилюля над таб-баром */
+.today-swipe-hint {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--tab-h) + var(--fab) + var(--s4));
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(20, 20, 22, 0.85); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 13px;
+  font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
+  z-index: 8; pointer-events: none;
+}
+.today-swipe-hint svg { width: 13px; height: 13px; }
 
 /* bottom sheet (add task) */
 .sheet-backdrop {
