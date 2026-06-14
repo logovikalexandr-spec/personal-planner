@@ -42,12 +42,6 @@ function addMin(time: string, min: number): string {
   const total = Math.min(h * 60 + m + min, 23 * 60 + 59); // clamp to same day, no overnight wrap
   return `${`${Math.floor(total / 60)}`.padStart(2, "0")}:${`${total % 60}`.padStart(2, "0")}:00`;
 }
-function nextMonday(): Date {
-  const d = new Date();
-  const delta = (8 - (d.getDay() || 7)) % 7 || 7;
-  d.setDate(d.getDate() + delta);
-  return d;
-}
 
 export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; onApply: (v: DateValue) => void; onClose: () => void }) {
   const [tab, setTab] = useState<"date" | "dur">("date");
@@ -89,10 +83,6 @@ export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; o
     return out;
   }, [view]);
 
-  function pickQuick(d: Date) {
-    setDueDate(localISO(d));
-    setView({ y: d.getFullYear(), m: d.getMonth() });
-  }
   function pickDay(day: number) {
     setDueDate(localISO(new Date(view.y, view.m, day)));
   }
@@ -124,12 +114,6 @@ export function DateSheet({ initial, onApply, onClose }: { initial: DateValue; o
 
       {tab === "date" ? (
         <>
-          <div className="row" style={{ flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-            <button className="btn-chip" onClick={() => pickQuick(today)}>Сегодня</button>
-            <button className="btn-chip" onClick={() => { const d = new Date(); d.setDate(d.getDate() + 1); pickQuick(d); }}>Завтра</button>
-            <button className="btn-chip" onClick={() => pickQuick(nextMonday())}>Следующий понедельник</button>
-          </div>
-
           <div className="cal-mini-head">
             <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 0 ? v.y - 1 : v.y, m: (v.m + 11) % 12 }))}>‹</button>
             <span style={{ flex: 1, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}>{MONTHS[view.m]} {view.y}</span>
