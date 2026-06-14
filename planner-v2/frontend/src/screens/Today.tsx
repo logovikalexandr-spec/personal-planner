@@ -98,6 +98,7 @@ export function Today({
   const draftRef = useRef<Draft | null>(null);
   draftRef.current = draft;
   const gridRef = useRef<HTMLDivElement>(null);
+  const accessoryRef = useRef<HTMLDivElement>(null);
 
   const openDraft = useCallback((r: { startMin: number; endMin: number }) => {
     setDraft({ ...r, title: "", state: "editing" });
@@ -157,6 +158,36 @@ export function Today({
     document.body.classList.toggle("inline-draft", !!draft);
     return () => document.body.classList.remove("inline-draft");
   }, [!!draft]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Бар «Готово» позиционируем из JS по visualViewport (top-якорь): position:fixed+bottom
+  // глючит в TG iOS WebView — на верхних слотах (scroll≈0) бар улетал вверх. Гоним top =
+  // низ видимого вьюпорта − высота бара; обновляем на resize/scroll клавиатуры.
+  const editing = draft?.state === "editing";
+  useEffect(() => {
+    if (!editing) return;
+    const vv = window.visualViewport;
+    if (!vv) return; // fallback = CSS bottom:0
+    const place = () => {
+      const el = accessoryRef.current;
+      if (!el) return;
+      const h = el.offsetHeight || 60;
+      el.style.top = `${Math.round(vv.offsetTop + vv.height - h)}px`;
+      el.style.bottom = "auto";
+    };
+    place();
+    const raf = requestAnimationFrame(place);
+    const t = window.setTimeout(place, 280); // дождаться анимации клавиатуры
+    vv.addEventListener("resize", place);
+    vv.addEventListener("scroll", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(t);
+      vv.removeEventListener("resize", place);
+      vv.removeEventListener("scroll", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [editing]);
 
   // E9: смена таба с открытым черновиком (Today не размонтируется — keep-alive в App).
   // Скрыли экран → непустой draft авто-коммитим (как тап-вне), пустой отбрасываем.
@@ -334,7 +365,7 @@ export function Today({
           </div>
         )}
         {draft?.state === "editing" && (
-          <div className="cal-accessory">
+          <div className="cal-accessory" ref={accessoryRef}>
             {/* onMouseDown preventDefault: не дать инпуту потерять фокус ДО клика (blur уже коммитит — но порядок важен для consistency) */}
             <button onMouseDown={(e) => e.preventDefault()} onClick={commitDraft}>Готово</button>
           </div>

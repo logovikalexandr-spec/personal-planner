@@ -401,9 +401,11 @@ select.input { appearance: none; -webkit-appearance: none; }
 .cal-draft-time { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
 .cal-draft-err { display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--danger); }
 .cal-draft-err button { background: var(--danger); color: #1a0808; border: 0; border-radius: 6px; padding: 3px 9px; font-weight: 600; font-size: 11px; }
-/* accessory-бар «Готово» над клавиатурой */
+/* accessory-бар «Готово» над клавиатурой.
+   ПОЗИЦИЯ задаётся из JS по visualViewport (top-якорь) — fixed+bottom глючит в TG iOS
+   WebView (на верхних слотах при scroll≈0 бар улетал вверх). bottom:0 — fallback без JS. */
 .cal-accessory {
-  position: fixed; left: 0; right: 0; bottom: var(--kb-inset, 0); z-index: 50;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
   display: flex; justify-content: flex-end; padding: 8px 14px;
   background: linear-gradient(transparent, var(--bg) 45%);
 }
