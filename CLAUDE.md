@@ -82,7 +82,7 @@ personal-planner/
 - **Стек frontend:** React 18 · Vite 5 · TypeScript · @dnd-kit · Telegram Web App SDK.
 - **Дизайн:** тёмный onyx (#0F0F11), 1 акцент ember (#EE8A3C), Geist/Geist Mono. → `planner-v2/DESIGN.md`.
 - **IA (5 табов):** Сегодня (гибрид) · Календарь · Списки · Цели · Трекинг.
-- **Prod:** `planner-188-245-42-4.sslip.io` (Hetzner, Caddy reverse-proxy → planner-api:8000). Деплой = rsync (git remote нет).
+- **Prod:** `https://planner.188.245.42.4.nip.io/app/` (Hetzner; **nip.io**, НЕ sslip.io — у sslip серта нет, TLS-ошибка). Общий `ledger-caddy` (80/443) → `planner-api:8000`; `planner-api`+`planner-bot` на образе `planner-app:latest`, сеть `planner-v2_planner_net`. Прод-исходники: `root@188.245.42.4:/root/planner-v2-src`. **Деплой:** `rsync planner-v2/frontend/ → сервер` → `cd /root/planner-v2-src/planner-v2 && docker compose -f docker-compose.prod.yml build && up -d`. Health (снаружи, хайрпин с сервера не работает): `curl https://planner.188.245.42.4.nip.io/api/health` → 200.
 - **Процесс:** agent-team по волнам (Workflow), ростер в `planner-v2/.claude/`. → `planner-v2/.claude/TEAM.md`.
 
 Полные правила и философия — `инструкции.md`.
