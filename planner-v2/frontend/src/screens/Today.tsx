@@ -6,6 +6,7 @@ import { IcoBack, IcoChevron, IcoInbox, IcoMenu, IcoCalendar2, IcoChevronDown } 
 import { DateJumpSheet } from "../components/DateJumpSheet";
 import { createTask, getDayTasks, getProjects, getTasks, patchTask } from "../api";
 import { createPayload } from "../lib/timelineLayout";
+import { groupByProject } from "../lib/groupByProject";
 import { useBottomAnchor } from "../lib/viewportAnchor";
 import { tg } from "../telegram";
 import type { ParseResult } from "../lib/quickParse";
@@ -56,6 +57,7 @@ export function Today({
   const [byId, setById] = useState<Map<number, Project>>(new Map());
   const [state, setState] = useState<LoadState>("loading");
   const [showDone, setShowDone] = useState(false);
+  const [showOverdue, setShowOverdue] = useState(false); // «Просрочено» под шторкой (свёрнуто по умолчанию)
   const [alldayExpanded, setAlldayExpanded] = useState(false); // A1: 2 чипа + «+N ещё»
   const firstRef = useRef(true); // скелетон/ошибку показываем только на первой загрузке, рефетчи — без мигания
 
@@ -372,14 +374,26 @@ export function Today({
 
             {overdue.length > 0 && (
               <>
-                <div className="section-label section-overdue">Просрочено · {overdue.length}</div>
-                {renderList(overdue)}
+                <button className="section-label section-overdue section-toggle" data-testid="overdue-toggle"
+                  onClick={() => setShowOverdue((v) => !v)}>
+                  <span>Просрочено · {overdue.length}</span>
+                  <span className={`tree-chev ${showOverdue ? "open" : ""}`}><IcoChevron /></span>
+                </button>
+                {showOverdue && groupByProject(overdue, byId).map((g) => (
+                  <div key={g.project?.id ?? "none"} data-testid="overdue-group">
+                    <div className="section-sublabel">
+                      <span>{g.project ? `${g.project.icon ? g.project.icon + " " : ""}${g.project.name}` : "Без проекта"}</span>
+                      <span className="section-subcount mono">{g.tasks.length}</span>
+                    </div>
+                    {renderList(g.tasks)}
+                  </div>
+                ))}
               </>
             )}
 
             {allday.length > 0 && (
               <>
-                <div className="section-label">Без времени</div>
+                <div className="section-label">Без времени · {allday.length}</div>
                 {renderList(allday)}
               </>
             )}

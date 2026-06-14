@@ -666,6 +666,13 @@ body.inline-draft .fab { display: none; }
 .section-toggle .tree-chev { color: var(--text-muted); transition: transform 140ms ease; }
 .section-toggle .tree-chev.open { transform: rotate(90deg); }
 .section-toggle .tree-chev svg { width: 16px; height: 16px; display: block; }
+/* подзаголовок группы по проекту внутри «Просрочено» */
+.section-sublabel {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: var(--s4) 0 var(--s2); padding-left: var(--s2);
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.section-subcount { color: var(--text-muted); font-size: 12px; }
 /* статический таймлайн в Today: без под-скролла, естественная высота */
 .daytimeline--static .cal-scroll,
 .daytimeline--static.cal-scroll { overflow: visible; flex: none; }

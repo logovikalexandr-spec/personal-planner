@@ -238,7 +238,7 @@ function TaskItemBase({
         <div className="grow" onClick={bodyTap} style={{ cursor: "pointer" }}>
           <div className={done || wontDo ? "title-done" : ""}>{task.title}</div>
           {wontDo ? (
-            <div className="muted mono" style={{ fontSize: 13, marginTop: 2 }}>Won't Do</div>
+            <div className="muted mono" style={{ fontSize: 13, marginTop: 2 }}>Не буду делать</div>
           ) : (task.due_date || task.due_time || task.stage_label || shouldShowImpact(task)) ? (
             <div
               className="mono"
