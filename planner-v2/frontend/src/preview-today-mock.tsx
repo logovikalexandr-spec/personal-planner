@@ -10,7 +10,7 @@ const projects: Project[] = [
 ];
 const byId = new Map(projects.map((p) => [p.id, p]));
 
-const tasks: Task[] = [
+const fullTasks: Task[] = [
   {
     id: 1, title: "Созвон с командой ZIMA", status: "todo", priority: "medium",
     project_id: 1, due_time: "09:00:00", end_time: "10:00:00",
@@ -23,8 +23,12 @@ const tasks: Task[] = [
   } as Task,
 ];
 
+// Состояние для гейта: ?state=empty → пустой таймлайн; иначе happy-path.
+const state = new URLSearchParams(location.search).get("state");
+const tasks: Task[] = state === "empty" ? [] : fullTasks;
+
 createRoot(document.getElementById("root")!).render(
-  <div style={{ width: 390, height: 844, background: "var(--bg)", overflow: "auto" }}>
+  <div data-testid="screen-today" data-state={state ?? "happy"} style={{ width: 390, height: 844, background: "var(--bg)", overflow: "auto" }}>
     <DayTimeline tasks={tasks} byId={byId} isToday onToggle={() => {}} />
   </div>,
 );

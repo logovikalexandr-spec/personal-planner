@@ -349,6 +349,7 @@ export const DayTimeline = memo(function DayTimeline({
     <div className={`cal-scroll ${autoScroll ? "" : "daytimeline--static"}`} ref={scrollRef} style={{ flex: autoScroll ? 1 : "none" }}>
       <div
         className="cal-grid"
+        data-testid="cal-grid"
         ref={gridRef}
         style={{ height: HOURS.length * HOUR_H }}
         onPointerDown={onCreateDraft ? onHourDown : undefined}
@@ -368,7 +369,7 @@ export const DayTimeline = memo(function DayTimeline({
         ))}
 
         {isToday && nowMin >= offsetMin && (
-          <div id={nowAnchorId} className="cal-now" style={{ top: ((nowMin - offsetMin) / 60) * HOUR_H }} />
+          <div id={nowAnchorId} className="cal-now" data-testid="now-line" style={{ top: ((nowMin - offsetMin) / 60) * HOUR_H }} />
         )}
 
         {timed.map((t) => {
@@ -391,6 +392,7 @@ export const DayTimeline = memo(function DayTimeline({
           return (
             <div
               key={t.id}
+              data-testid={`task-${t.id}`}
               className={`cal-block ${done ? "done" : ""} ${live ? "resizing" : ""} ${activeId === t.id ? "active" : ""}`}
               style={{
                 top: ((start - offsetMin) / 60) * HOUR_H + 1,
