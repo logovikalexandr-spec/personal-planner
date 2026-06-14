@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { quickParse, removeToken, type ParsedToken, type ParseResult } from "../lib/quickParse";
-import { IcoCalendar2, IcoFlag, IcoBell, IcoTag, IcoSend } from "./icons";
+import { IcoCalendar2, IcoFlag, IcoBell, IcoTag, IcoSend, IcoProjects } from "./icons";
 import { DateSheet, type DateValue } from "./DateSheet";
-import { PriorityPicker, TagPickerSheet } from "./pickers";
-import type { Priority } from "../types";
+import { PriorityPicker, ProjectPickerSheet, TagPickerSheet } from "./pickers";
+import { getProjects } from "../api";
+import type { Priority, Project } from "../types";
 
 // Quick-add — ЕДИНСТВЕННОЕ поле создания задачи (на «+»). NL-подсветка + рабочие чипы:
 // тап чипа дата/приоритет/тег/напоминание открывает пикер-шит ИНЛАЙН (не второе поле),
@@ -21,7 +22,7 @@ function dateLabel(iso: string | null): string | null {
 }
 
 // что владелец выбрал чипами вручную (перекрывает распознанное из текста)
-export interface QuickManual { date?: DateValue; priority?: Priority; tagIds?: number[] }
+export interface QuickManual { date?: DateValue; priority?: Priority; tagIds?: number[]; projectId?: number | null }
 
 export interface QuickAddBarProps {
   onAdd: (p: ParseResult, manual?: QuickManual) => void;
@@ -68,16 +69,20 @@ export function QuickAddBar({ onAdd, placeholder = "Новая задача…",
   const parsed = useMemo(() => quickParse(text), [text]);
 
   // выбранное чипами вручную
-  const [sheet, setSheet] = useState<"date" | "prio" | "tag" | null>(null);
+  const [sheet, setSheet] = useState<"date" | "prio" | "tag" | "project" | null>(null);
   const [mDate, setMDate] = useState<DateValue>(EMPTY_DATE);
   const [mPrio, setMPrio] = useState<Priority>("none");
   const [mTags, setMTags] = useState<number[]>([]);
+  const [mProject, setMProject] = useState<number | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  useEffect(() => { getProjects().then(setProjects).catch(() => {}); }, []);
 
   function reset() {
     setText("");
     setMDate(EMPTY_DATE);
     setMPrio("none");
     setMTags([]);
+    setMProject(null);
   }
 
   function submit() {
@@ -86,6 +91,7 @@ export function QuickAddBar({ onAdd, placeholder = "Новая задача…",
       date: mDate.due_date || mDate.reminder_at ? mDate : undefined,
       priority: mPrio !== "none" ? mPrio : undefined,
       tagIds: mTags.length ? mTags : undefined,
+      projectId: mProject ?? undefined,
     };
     onAdd(parsed, manual);
     reset();
@@ -101,8 +107,11 @@ export function QuickAddBar({ onAdd, placeholder = "Новая задача…",
   const dateIso = mDate.due_date ?? parsed.due_date ?? null;
   const tagCount = mTags.length || parsed.tagNames.length;
 
-  const chips: { key: "date" | "prio" | "tag" | "rem"; label: string; ico: React.ReactNode; on: boolean; open: "date" | "prio" | "tag" }[] = [
+  const projName = mProject != null ? projects.find((p) => p.id === mProject)?.name : undefined;
+  type Open = "date" | "prio" | "tag" | "project";
+  const chips: { key: string; label: string; ico: React.ReactNode; on: boolean; open: Open }[] = [
     { key: "date", label: dateLabel(dateIso) ?? "дата", ico: <IcoCalendar2 />, on: !!dateIso, open: "date" },
+    { key: "project", label: projName ?? "проект", ico: <IcoProjects />, on: mProject != null, open: "project" },
     { key: "prio", label: prio !== "none" ? `P${PRIO_NUM[prio as "high" | "medium" | "low"]}` : "приоритет", ico: <IcoFlag />, on: prio !== "none", open: "prio" },
     { key: "tag", label: tagCount ? `#${tagCount}` : "тег", ico: <IcoTag />, on: tagCount > 0, open: "tag" },
     { key: "rem", label: "напоминание", ico: <IcoBell />, on: !!mDate.reminder_at, open: "date" },
@@ -146,6 +155,15 @@ export function QuickAddBar({ onAdd, placeholder = "Новая задача…",
       )}
       {sheet === "tag" && (
         <TagPickerSheet value={mTags} onChange={setMTags} onClose={() => setSheet(null)} />
+      )}
+      {sheet === "project" && (
+        <ProjectPickerSheet
+          value={mProject}
+          projects={projects}
+          onProjectsChange={setProjects}
+          onPick={(id) => { setMProject(id); setSheet(null); }}
+          onClose={() => setSheet(null)}
+        />
       )}
     </div>
   );

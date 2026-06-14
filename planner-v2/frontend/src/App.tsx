@@ -52,8 +52,9 @@ function AppMain() {
   async function quickAdd(p: ParseResult, manual?: QuickManual) {
     const title = (p.title || p.source).trim();
     if (!title) return;
-    let project_id: number | null = null;
-    if (p.projectName) {
+    // проект: выбранный чипом перекрывает распознанный из текста по имени
+    let project_id: number | null = manual?.projectId ?? null;
+    if (project_id == null && p.projectName) {
       const ps = await getProjects().catch(() => []);
       const m = ps.find((x) => x.name.toLowerCase() === p.projectName!.toLowerCase());
       project_id = m ? m.id : null;
@@ -228,7 +229,7 @@ function AppMain() {
             <div className="qa-overlay-head">
               <span className="t">Быстрая задача</span>
             </div>
-            <QuickAddBar autoFocus value={qaText} onChange={setQaText} onAdd={(p) => { quickAdd(p); setQuickOpen(false); }} />
+            <QuickAddBar value={qaText} onChange={setQaText} onAdd={(p, manual) => { quickAdd(p, manual); setQuickOpen(false); }} />
           </div>
         </>
       )}
