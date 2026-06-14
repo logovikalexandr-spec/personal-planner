@@ -367,9 +367,9 @@ export function TaskDetail({
           onChange={(items) => { patchLocal({ checkitems: items }); }}
         />
 
-        {/* сабтаски (полные задачи, НЕ двигают кольцо) */}
+        {/* подзадачи (полные задачи, НЕ двигают кольцо) */}
         <div className="detail-sub-head">
-          <span className="detail-sub-title">Сабтаски</span>
+          <span className="detail-sub-title">Подзадачи</span>
           {task.subtasks.length > 0 && (
             <span className="detail-sub-count mono">
               {task.subtasks.filter((s) => s.status === "done").length}/{task.subtasks.length}
@@ -389,16 +389,16 @@ export function TaskDetail({
           <input
             className="detail-sub-input"
             autoFocus
-            placeholder="Название сабтаска"
+            placeholder="Название подзадачи"
             value={subDraft}
             onChange={(e) => setSubDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") addSubtask(); if (e.key === "Escape") { setSubDraft(""); setAddingSub(false); } }}
             onBlur={addSubtask}
           />
         ) : (
-          <button className="add-row" aria-label="Добавить сабтаск" onClick={() => setAddingSub(true)}>
+          <button className="add-row" aria-label="Добавить подзадачу" onClick={() => setAddingSub(true)}>
             <span className="add-row-ico"><IcoPlus /></span>
-            <span>Добавить сабтаск</span>
+            <span>Добавить подзадачу</span>
           </button>
         )}
       </div>
