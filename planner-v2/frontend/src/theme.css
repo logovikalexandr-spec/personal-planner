@@ -448,14 +448,16 @@ body.inline-draft .fab { display: none; }
   display: flex; align-items: center; justify-content: center;
   cursor: ns-resize; touch-action: none;
 }
-/* ручки-кружки по диагонали как в Apple Calendar: верх-лево + низ-право, на кромках */
-.cal-resize.top { top: 0; justify-content: flex-start; padding-left: 6px; }
-.cal-resize.bottom { bottom: 0; justify-content: flex-end; padding-right: 6px; }
+/* ручки-кружки по центру верхней/нижней кромки (цвет accent, как прежние полосы) */
+.cal-resize.top { top: 0; }
+.cal-resize.bottom { bottom: 0; }
 .cal-resize-grip {
-  width: 12px; height: 12px; border-radius: 50%;
-  background: var(--accent-contrast); border: 1.5px solid var(--accent);
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent); border: none;
   opacity: 0; transition: opacity 120ms ease;
 }
+.cal-resize.top .cal-resize-grip { align-self: flex-start; }     /* на верхней кромке */
+.cal-resize.bottom .cal-resize-grip { align-self: flex-end; }    /* на нижней кромке */
 /* грипы видны только у активного (зажатого) блока и у черновика */
 .cal-block.active .cal-resize-grip,
 .cal-draft .cal-resize-grip { opacity: 0.7; }
