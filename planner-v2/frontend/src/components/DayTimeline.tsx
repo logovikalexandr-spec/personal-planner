@@ -283,7 +283,9 @@ export const DayTimeline = memo(function DayTimeline({
       c.armed = true;              // взвели: жест теперь наш, протяжка ДВИГАЕТ блок
       haptic("medium");
       startBlocking();             // только теперь глушим нативный скролл
-      setDrag({ id: DRAFT_ID, startMin: c.startMin, endMin: c.startMin + 60 });
+      // превью встаёт на начало часа тапнутой ячейки (драг дальше двигает точно)
+      const h = Math.floor(c.startMin / 60) * 60;
+      setDrag({ id: DRAFT_ID, startMin: h, endMin: h + 60 });
     }, LONGPRESS_MS);
   }
   function onHourMove(e: React.PointerEvent) {
@@ -313,9 +315,12 @@ export const DayTimeline = memo(function DayTimeline({
     setDrag(null);
     stopBlocking();
     if (!onCreateDraft) return;
-    // всегда блок 1ч; armed+двигали → на выбранном месте, иначе → на месте тапа. Длину тянут краями.
-    const baseStart = wasArmed && c.moved && liveStart != null ? liveStart : c.startMin;
-    const { startMin, endMin } = defaultRange(baseStart);
+    // всегда блок 1ч. Осознанный драг → точное место (snap15). Тап/удержание-без-драга →
+    // блок встаёт НА НАЧАЛО часа тапнутой ячейки (тап в середину 07:00-ячейки = 07:00, не 07:30).
+    const isDrag = wasArmed && c.moved && liveStart != null;
+    const baseStart = isDrag ? liveStart : c.startMin;
+    const snap = isDrag ? snap15 : (m: number) => Math.floor(m / 60) * 60;
+    const { startMin, endMin } = defaultRange(baseStart, snap);
     const startClamped = clamp(startMin, offsetMin, DAY_END - STEP_MIN);
     const endClamped = clamp(endMin, startClamped + STEP_MIN, DAY_END);
     onCreateDraft({ startMin: startClamped, endMin: endClamped });
