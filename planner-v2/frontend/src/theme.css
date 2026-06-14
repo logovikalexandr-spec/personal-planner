@@ -473,17 +473,27 @@ body.inline-draft .fab { display: none; }
 .cal-mini-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .cal-mini { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .cal-mini-wd { text-align: center; font-size: 11px; color: var(--text-muted); padding: 4px 0; }
+/* T1·B: скруглённые КВАДРАТЫ-heat (контракт .mini-cal мокапа), не круги */
 .cal-mini-day {
-  aspect-ratio: 1; border: none; background: none; color: var(--text); border-radius: 50%;
+  aspect-ratio: 1; border: none; background: none; color: var(--text); border-radius: 9px;
   cursor: pointer; font-size: 15px; font-family: var(--font-mono);
 }
 .cal-mini-day:active { background: var(--surface-2); }
-/* T1·B heat: заливка дня по нагрузке (g/y/r). Кольцо «сегодня» и выбор — поверх. */
+/* T1·B heat: мягкая заливка дня по нагрузке (g/y/r). Кольцо «сегодня» и выбор — поверх. */
 .cal-mini-day.heat-g { background: rgba(63, 182, 139, 0.20); }
 .cal-mini-day.heat-y { background: rgba(255, 176, 46, 0.20); }
 .cal-mini-day.heat-r { background: rgba(255, 92, 92, 0.22); }
 .cal-mini-day.today { color: var(--accent); font-weight: 700; box-shadow: inset 0 0 0 2px var(--accent); }
-.cal-mini-day.sel { background: var(--accent); color: #fff; font-weight: 700; box-shadow: none; }
+.cal-mini-day.sel { background: var(--accent-soft); color: var(--accent); font-weight: 700; box-shadow: inset 0 0 0 2px var(--accent); }
+
+/* T1·B датапикер = компактный поповер под чипом даты (не бот-шит) */
+.datepop-backdrop { position: fixed; inset: 0; z-index: 49; }
+.mini-cal {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
+  width: 300px; max-width: calc(100vw - 32px);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+  padding: 16px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
 .dr-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 13px 4px; border-top: 1px solid var(--border);
@@ -578,7 +588,7 @@ body.inline-draft .fab { display: none; }
 }
 .t1-burger svg { width: 18px; height: 18px; }
 /* T1 — строка даты: дата-кнопка (мини-календарь) + прыжок «Сегодня»/«Сейчас» */
-.t1-daterow { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); margin-top: 10px; }
+.t1-daterow { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--s2); margin-top: 10px; }
 .t1-datebtn {
   appearance: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;

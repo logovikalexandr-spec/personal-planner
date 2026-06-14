@@ -262,6 +262,13 @@ export function Today({
               </button>
               {!isToday && <button className="t1-jump" data-testid="btn-today-jump" onClick={goToday}>Сегодня</button>}
               {isToday && <button className="t1-jump" data-testid="btn-today-jump" onClick={jumpNow}>Сейчас</button>}
+              {pickerOpen && (
+                <DateJumpSheet
+                  initial={selectedISO}
+                  onPick={(d) => setSelectedISO(d)}
+                  onClose={() => setPickerOpen(false)}
+                />
+              )}
             </div>
             {tasks.length > 0 && (
               <div className="today-summary" data-testid="text-summary">{tasks.length} задач · {closed.length} закрыто</div>
@@ -334,13 +341,6 @@ export function Today({
             {/* onMouseDown preventDefault: не дать инпуту потерять фокус ДО клика (blur уже коммитит — но порядок важен для consistency) */}
             <button onMouseDown={(e) => e.preventDefault()} onClick={commitDraft}>Готово</button>
           </div>
-        )}
-        {pickerOpen && (
-          <DateJumpSheet
-            initial={selectedISO}
-            onPick={(d) => setSelectedISO(d)}
-            onClose={() => setPickerOpen(false)}
-          />
         )}
       </div>
     );

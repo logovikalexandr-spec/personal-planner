@@ -24,6 +24,30 @@ test("A2 — чип-дата открывает датапикер", async ({ pa
   await expect(page.locator(".cal-mini")).toBeVisible(); // мини-календарь DateJumpSheet
 });
 
+// ── T1·B датапикер = поповер (не бот-шит), квадраты-heat, 1 кнопка (контракт мокапа) ──
+
+test("T1·B — пикер = поповер, ячейки квадратные (не круги)", async ({ page }) => {
+  await page.goto(FULL);
+  await page.getByTestId("btn-date").click();
+  await expect(page.getByTestId("datepicker")).toBeVisible();
+  await expect(page.locator(".cal-mini-day").first()).toHaveCSS("border-radius", "9px"); // не 50% (круг)
+});
+
+test("T1·B — одна кнопка «Сегодня», нет «Открыть день»", async ({ page }) => {
+  await page.goto(FULL);
+  await page.getByTestId("btn-date").click();
+  await expect(page.getByTestId("datepicker")).not.toContainText("Открыть день");
+  await expect(page.getByTestId("datepicker").getByRole("button", { name: "Сегодня" })).toBeVisible();
+});
+
+test("T1·B — тап дня применяет сразу (пикер закрылся, дата сменилась)", async ({ page }) => {
+  await page.goto(FULL);
+  await page.getByTestId("btn-date").click();
+  await page.getByTestId("datepicker").getByText("4", { exact: true }).click();
+  await expect(page.getByTestId("datepicker")).toHaveCount(0);      // применил → закрылся
+  await expect(page.getByTestId("btn-date")).toContainText("4 июня"); // чип = новый день (DOM lower-case, capitalize визуальный)
+});
+
 test("A3 — на сегодня показан jump «Сейчас»", async ({ page }) => {
   await page.goto(FULL);
   await expect(page.getByTestId("btn-today-jump")).toHaveText("Сейчас");

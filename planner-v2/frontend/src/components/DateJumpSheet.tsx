@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sheet } from "./Sheet";
 import { getDensity } from "../api";
 
 const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -22,7 +21,7 @@ export function DateJumpSheet({
   onClose: () => void;
 }) {
   const todayISO = localISO(new Date());
-  const [sel, setSel] = useState(initial);
+  const sel = initial; // активный день (на котором открыли) — подсвечен; тап другого дня применяет сразу
   const base = new Date(initial + "T00:00:00");
   const [view, setView] = useState(() => ({ y: base.getFullYear(), m: base.getMonth() }));
 
@@ -48,42 +47,36 @@ export function DateJumpSheet({
     return out;
   }, [view]);
 
+  const apply = (iso: string) => { onPick(iso); onClose(); };
+
   return (
-    <Sheet onClose={onClose}>
-      <div className="cal-mini-head">
-        <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 0 ? v.y - 1 : v.y, m: (v.m + 11) % 12 }))}>‹</button>
-        <span style={{ flex: 1, textAlign: "center", fontWeight: 600, textTransform: "capitalize" }}>{MONTHS[view.m]} {view.y}</span>
-        <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 11 ? v.y + 1 : v.y, m: (v.m + 1) % 12 }))}>›</button>
+    <>
+      <div className="datepop-backdrop" onClick={onClose} />
+      <div className="mini-cal" role="dialog" data-testid="datepicker">
+        <div className="cal-mini-head">
+          <span style={{ flex: 1, fontWeight: 600, textTransform: "capitalize" }}>{MONTHS[view.m]} {view.y}</span>
+          <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 0 ? v.y - 1 : v.y, m: (v.m + 11) % 12 }))}>‹</button>
+          <button className="cal-nav" onClick={() => setView((v) => ({ y: v.m === 11 ? v.y + 1 : v.y, m: (v.m + 1) % 12 }))}>›</button>
+        </div>
+        <div className="cal-mini">
+          {WD.map((w) => <div key={w} className="cal-mini-wd">{w}</div>)}
+          {weeks.flat().map((d, i) => {
+            if (d == null) return <div key={i} />;
+            const iso = localISO(new Date(view.y, view.m, d));
+            const isSel = iso === sel;
+            const isToday = iso === todayISO;
+            const h = heat[iso];
+            return (
+              <button
+                key={i}
+                className={`cal-mini-day ${h ? `heat-${h}` : ""} ${isSel ? "sel" : ""} ${isToday && !isSel ? "today" : ""}`}
+                onClick={() => apply(iso)} // тап дня = выбрать и применить (нет «Открыть день», как мокап)
+              >{d}</button>
+            );
+          })}
+        </div>
+        <button className="btn btn-ghost" style={{ width: "100%", marginTop: 12 }} onClick={() => apply(todayISO)}>Сегодня</button>
       </div>
-      <div className="cal-mini">
-        {WD.map((w) => <div key={w} className="cal-mini-wd">{w}</div>)}
-        {weeks.flat().map((d, i) => {
-          if (d == null) return <div key={i} />;
-          const iso = localISO(new Date(view.y, view.m, d));
-          const isSel = iso === sel;
-          const isToday = iso === todayISO;
-          const h = heat[iso];
-          return (
-            <button
-              key={i}
-              className={`cal-mini-day ${h ? `heat-${h}` : ""} ${isSel ? "sel" : ""} ${isToday && !isSel ? "today" : ""}`}
-              onClick={() => setSel(iso)}
-            >{d}</button>
-          );
-        })}
-      </div>
-      <div className="row" style={{ gap: 8, marginTop: 16 }}>
-        <button
-          className="btn btn-ghost"
-          style={{ flex: 1 }}
-          onClick={() => { onPick(todayISO); onClose(); }}
-        >Сегодня</button>
-        <button
-          className="btn btn-block"
-          style={{ flex: 1, marginTop: 0 }}
-          onClick={() => { onPick(sel); onClose(); }}
-        >Открыть день</button>
-      </div>
-    </Sheet>
+    </>
   );
 }
