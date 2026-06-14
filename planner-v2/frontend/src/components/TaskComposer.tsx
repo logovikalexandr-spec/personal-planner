@@ -20,23 +20,25 @@ function dateSummary(v: DateValue): string | null {
 }
 
 export function TaskComposer({
-  initialDate, initialTime, initialEnd, defaultProjectId = null, onClose, onSaved,
+  initialDate, initialTime, initialEnd, defaultProjectId = null, initialTitle = "", initialPicker = null, onClose, onSaved,
 }: {
   initialDate?: string | null;
   initialTime?: string | null;
   initialEnd?: string | null;
   defaultProjectId?: number | null;
+  initialTitle?: string;       // текст, перенесённый из quick-add при «Развернуть»/тапе чипа
+  initialPicker?: Picker;      // сразу открыть нужный пикер (тап чипа дата/приоритет/тег)
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projLoading, setProjLoading] = useState(true);
   const [projError, setProjError] = useState(false);
-  const [picker, setPicker] = useState<Picker>(null);
+  const [picker, setPicker] = useState<Picker>(initialPicker);
   const [expanded, setExpanded] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState("");
   const [projectId, setProjectId] = useState<number | null>(defaultProjectId);
   const [priority, setPriority] = useState<Priority>("none");

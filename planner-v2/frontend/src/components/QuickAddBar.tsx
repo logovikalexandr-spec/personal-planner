@@ -12,10 +12,17 @@ import { IcoCalendar2, IcoFlag, IcoBell, IcoTag, IcoSend } from "./icons";
 
 const PROJECT_GREEN = "var(--project-tag)";
 
+export type QuickField = "date" | "prio" | "tag" | "rem";
+
 export interface QuickAddBarProps {
   onAdd: (p: ParseResult) => void;
   placeholder?: string;
   autoFocus?: boolean;
+  // контролируемый текст (чтобы родитель мог перенести его в полный composer при «Развернуть»)
+  value?: string;
+  onChange?: (s: string) => void;
+  // тап по чипу → раскрыть полный composer с нужным пикером (date/prio/tag); rem — просто раскрыть
+  onExpand?: (field: QuickField) => void;
 }
 
 function HighlightLayer({
@@ -43,8 +50,13 @@ function HighlightLayer({
   return <div className="qa-text qa-highlight" aria-hidden="true">{parts}{source === "" ? "​" : ""}</div>;
 }
 
-export function QuickAddBar({ onAdd, placeholder = "Новая задача…", autoFocus }: QuickAddBarProps) {
-  const [text, setText] = useState("");
+export function QuickAddBar({ onAdd, placeholder = "Новая задача…", autoFocus, value, onChange, onExpand }: QuickAddBarProps) {
+  const [internal, setInternal] = useState("");
+  const text = value !== undefined ? value : internal;
+  const setText = (s: string | ((c: string) => string)) => {
+    const next = typeof s === "function" ? s(text) : s;
+    if (onChange) onChange(next); else setInternal(next);
+  };
   const inputRef = useRef<HTMLInputElement>(null);
   const parsed = useMemo(() => quickParse(text), [text]);
 
@@ -83,12 +95,24 @@ export function QuickAddBar({ onAdd, placeholder = "Новая задача…",
         />
       </div>
       <div className="qa-chips">
-        {chips.map((c) => (
-          <div key={c.key} className={`qa-chip ${c.on ? "on" : ""}`}>
-            <span className="qa-chip-ico">{c.ico}</span>
-            <span>{c.label}</span>
-          </div>
-        ))}
+        {chips.map((c) =>
+          onExpand ? (
+            <button
+              key={c.key}
+              type="button"
+              className={`qa-chip ${c.on ? "on" : ""}`}
+              onClick={() => onExpand(c.key as QuickField)}
+            >
+              <span className="qa-chip-ico">{c.ico}</span>
+              <span>{c.label}</span>
+            </button>
+          ) : (
+            <div key={c.key} className={`qa-chip ${c.on ? "on" : ""}`}>
+              <span className="qa-chip-ico">{c.ico}</span>
+              <span>{c.label}</span>
+            </div>
+          ),
+        )}
         <button className="qa-send" onClick={submit} aria-label="Добавить"><IcoSend /></button>
       </div>
       <div className="qa-hint mono">распознано: дата · проект · приоритет · тег — тап по токену вернёт в текст</div>
