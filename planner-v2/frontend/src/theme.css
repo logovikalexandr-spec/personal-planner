@@ -614,10 +614,6 @@ body.inline-draft .fab { display: none; }
 .today-back svg { width: 18px; height: 18px; }
 .today-tasks { padding-bottom: calc(var(--tab-h) + var(--fab) + var(--s6)); }
 .today-qa { margin: var(--s3) 0 var(--s2); }
-.today-empty-hint {
-  text-align: center; color: var(--text-muted); font-size: 14px;
-  padding: var(--s3) var(--s4) 0;
-}
 .section-overdue { color: var(--danger); }
 .section-toggle {
   appearance: none; border: none; background: none; cursor: pointer; width: 100%;
