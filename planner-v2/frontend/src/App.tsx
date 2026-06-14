@@ -3,14 +3,12 @@ import { BottomTabs, type TabKey } from "./components/BottomTabs";
 import { Fab } from "./components/Fab";
 import { TaskComposer } from "./components/TaskComposer";
 import { TaskDetail } from "./components/TaskDetail";
-import { QuickAddBar, type QuickField } from "./components/QuickAddBar";
 import { ListView } from "./components/ListView";
 import { Drawer } from "./components/Drawer";
 import { Today } from "./screens/Today";
 import { Gantt } from "./screens/Gantt";
 import { Calendar } from "./screens/Calendar";
 import { Goals } from "./screens/Goals";
-import { useBottomAnchor } from "./lib/viewportAnchor";
 import { Tracking } from "./screens/Tracking";
 import { createTag, createTask, getCounts, getMe, getProjects, getTags } from "./api";
 import type { ActiveList, Task } from "./types";
@@ -38,10 +36,6 @@ function AppMain() {
   const [mountedTabs, setMountedTabs] = useState<Set<TabKey>>(() => new Set<TabKey>(["today"]));
   const [viewing, setViewing] = useState<ActiveList | null>(null); // открытый список из Lists / Inbox из Today
   const [addOpen, setAddOpen] = useState(false);
-  const [quickOpen, setQuickOpen] = useState(false);
-  const [qaText, setQaText] = useState(""); // текст quick-add (контролируемо — для переноса в composer)
-  // перенос в полный composer при «Развернуть»/тапе чипа: текст + какой пикер открыть
-  const [composerInit, setComposerInit] = useState<{ title: string; picker: "date" | "priority" | "tag" | null } | null>(null);
   const [todayView, setTodayView] = useState<"timeline" | "tasks">("timeline"); // вид внутри таба «Сегодня»
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
@@ -52,7 +46,7 @@ function AppMain() {
 
   function bump() { setReloadKey((k) => k + 1); }
 
-  // Волна 2: быстрый ввод из QuickAddBar — резолвим имя проекта/тегов в id, создаём задачу.
+  // Инлайн quick-add в tasks-view экрана Today (onQuickAdd): резолвим имя проекта/тегов → id.
   async function quickAdd(p: ParseResult) {
     const title = (p.title || p.source).trim();
     if (!title) return;
@@ -122,21 +116,7 @@ function AppMain() {
   // выкл при открытых Sheet/composer/picker/viewing-sheet, на табе lists (дубль), во время drag (в Drawer).
   const esx = useRef<number | null>(null);
   const esy = useRef<number | null>(null);
-  // quick-add-оверлей прижимаем к низу видимого вьюпорта (тот же iOS-fixed-баг, что и бар «Готово»)
-  const qaRef = useRef<HTMLDivElement>(null);
-  useBottomAnchor(qaRef, quickOpen);
-
-  // тап чипа дата/приоритет/тег (или «Развернуть») → полный composer с текстом + нужным пикером
-  const expandQuick = useCallback((field?: QuickField) => {
-    // закрыть клаву quick-add ДО открытия composer: иначе шит выезжает из центра вниз
-    // (kb-inset транзишн) — ждём закрытия клавы, потом открываем (шит сразу внизу).
-    (document.activeElement as HTMLElement | null)?.blur();
-    const map = { date: "date", prio: "priority", tag: "tag", rem: null } as const;
-    const init = { title: qaText, picker: field ? map[field] : null };
-    setQuickOpen(false);
-    window.setTimeout(() => { setComposerInit(init); setAddOpen(true); }, 300);
-  }, [qaText]);
-  const anyOverlay = addOpen || quickOpen || drawerOpen || openTaskId != null;
+  const anyOverlay = addOpen || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "gantt" && !viewing);
 
   // Блокируем скролл фона при открытом оверлее: фиксируем body на текущей позиции —
@@ -222,7 +202,7 @@ function AppMain() {
       )}
       {showFab && (
         <Fab
-          onAdd={() => { setQaText(""); setQuickOpen(true); }}
+          onAdd={() => setAddOpen(true)}
           secondary={
             tab === "today" && todayView === "timeline"
               ? { label: "Список", onClick: () => setTodayView("tasks") }
@@ -230,24 +210,10 @@ function AppMain() {
           }
         />
       )}
-      {quickOpen && (
-        <>
-          <div className="qa-scrim" onClick={() => setQuickOpen(false)} />
-          <div className="qa-overlay" ref={qaRef}>
-            <div className="qa-overlay-head">
-              <span className="t">Быстрая задача</span>
-              <button className="qa-expand" onClick={() => expandQuick()}>Развернуть</button>
-            </div>
-            <QuickAddBar autoFocus value={qaText} onChange={setQaText} onExpand={expandQuick} onAdd={(p) => { quickAdd(p); }} />
-          </div>
-        </>
-      )}
       {addOpen && (
         <TaskComposer
           initialDate={tab === "today" ? localToday() : null}
-          initialTitle={composerInit?.title ?? ""}
-          initialPicker={composerInit?.picker ?? null}
-          onClose={() => { setAddOpen(false); setComposerInit(null); }}
+          onClose={() => setAddOpen(false)}
           onSaved={bump}
         />
       )}
