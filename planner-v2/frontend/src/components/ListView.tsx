@@ -71,20 +71,26 @@ export function ListView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadKey, active.kind === "project" ? active.id : active.kind === "smart" ? active.key : ""]);
 
+  // Оптимистик: меняем статус ЛОКАЛЬНО, без load() → нет setStatus("loading") →
+  // список не заменяется скелетоном → скролл НЕ сбрасывается («экран тащило»).
+  // Задача остаётся на месте (стабильная сортировка по id). load() только при ошибке.
   async function toggle(t: Task) {
-    await patchTask(t.id, { status: t.status === "done" ? "todo" : "done" });
-    await load();
+    const next = t.status === "done" || t.status === "wont_do" ? "todo" : "done";
+    setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
+    try { await patchTask(t.id, { status: next }); } catch { load(); }
   }
 
   // ── F2 действия (свайп = одна, batch = набор) ──
   async function doComplete(ts: Task[]) {
     tg()?.HapticFeedback?.impactOccurred?.("light");
-    await Promise.all(ts.map((t) => patchTask(t.id, { status: "done" })));
-    await load();
+    const ids = new Set(ts.map((t) => t.id));
+    setTasks((prev) => prev.map((x) => (ids.has(x.id) ? { ...x, status: "done" } : x)));
+    try { await Promise.all(ts.map((t) => patchTask(t.id, { status: "done" }))); } catch { load(); }
   }
   async function doDelete(ts: Task[]) {
-    await Promise.all(ts.map((t) => deleteTask(t.id)));
-    await load();
+    const ids = new Set(ts.map((t) => t.id));
+    setTasks((prev) => prev.filter((x) => !ids.has(x.id)));
+    try { await Promise.all(ts.map((t) => deleteTask(t.id))); } catch { load(); }
   }
   function openPickerFor(p: BatchPicker, ts: Task[]) {
     setPickTargets(ts);
