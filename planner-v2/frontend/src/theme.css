@@ -444,7 +444,7 @@ select.input { appearance: none; -webkit-appearance: none; }
   clip-path: inset(0 round 10px);
 }
 /* колонки наложений — ширина/смещение задаются инлайном (left/width), здесь только переходы */
-.cal-block { transition: left 120ms ease, width 120ms ease; }
+.cal-block { transition: left 120ms ease, width 120ms ease, opacity 260ms ease; }
 /* черновик создания — намеренно ОТЛИЧЕН от обычного блока (пунктир ember) */
 .cal-draft {
   position: absolute; border-radius: 10px; padding: 5px 9px; z-index: 5;
@@ -501,7 +501,14 @@ body.inline-draft .fab { display: none; }
 .cal-cb.wontdo { background: var(--surface-2); border-color: var(--text-muted); color: var(--text); }
 .cal-cb.wontdo svg { stroke-width: 2.6; }
 .cal-cb svg { width: 11px; height: 11px; }
-.cal-block .bt { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-block .bt {
+  font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  width: fit-content; max-width: 100%;
+  /* зачёркивание-прорисовка: линия рисуется слева направо при отметке выполнения */
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat; background-position: 0 58%; background-size: 0% 1.5px;
+  transition: background-size 260ms ease, color 220ms ease;
+}
 .cal-block .bm {
   font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
   margin-top: 1px; display: flex; align-items: center; gap: 5px;
@@ -509,7 +516,8 @@ body.inline-draft .fab { display: none; }
 }
 .cal-block .bm svg { width: 12px; height: 12px; flex: 0 0 auto; }
 .cal-block.done { opacity: 0.5; }
-.cal-block.done .bt { text-decoration: line-through; }
+/* выполнено: дорисовать зачёркивание (линия слева направо) + приглушить заголовок */
+.cal-block.done .bt, .cal-block.wontdo .bt { background-size: 100% 1.5px; color: var(--text-muted); }
 /* блок таймлайна: без выделения/копирования текста при зажатии (перенос/ресайз) */
 .cal-block {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
@@ -1736,3 +1744,18 @@ body.inline-draft .fab { display: none; }
 
 /* A8 новый проект */
 .t4-newbtn { width: 100%; background: var(--accent-soft); color: var(--accent); border: 1px dashed var(--accent); border-radius: 14px; padding: 14px; font-size: 14px; font-weight: 600; font-family: inherit; margin-top: var(--s1); cursor: pointer; }
+
+/* ════════════════ Анимация отметки выполнения (актуальная → выполненная) ════════════════ */
+/* галочка/крест выскакивает с пружиной при заливке кружка */
+@keyframes cb-pop {
+  0%   { transform: scale(0.3); opacity: 0.2; }
+  55%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.cal-cb.done svg, .cal-cb.wontdo svg,
+.checkbox.done svg, .checkbox.wontdo svg { animation: cb-pop 260ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+/* плавная заливка кружка (а не мгновенная) */
+.cal-cb, .checkbox { transition: background 200ms ease, border-color 200ms ease; }
+/* список: приглушение заголовка при отметке (НЕ opacity на всю строку — иначе сквозь
+   полупрозрачную строку просвечивают кнопки свайпа за ней). Фон строки непрозрачный. */
+.title-done { transition: color 220ms ease; }
