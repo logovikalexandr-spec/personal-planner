@@ -212,6 +212,7 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
             selected={selected}
             onTapDay={(d) => setSelected(d)}
             onOpenTask={(t) => setOpenedId(t.id)}
+            onToggle={toggle}
           />
         ) : (
           <CalendarAgenda

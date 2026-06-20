@@ -1,6 +1,7 @@
 import { useMemo } from "react";
+import { TaskItem } from "./TaskItem";
 import { dowShort, localISO, monthMatrix, sameDay } from "../lib/calDates";
-import { resolveColor, tint } from "../lib/projectColor";
+import { resolveColor } from "../lib/projectColor";
 import type { Milestone, Project, Task } from "../types";
 
 const DOW = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -24,7 +25,7 @@ function Flag({ color }: { color: string }) {
  * Сводка вех месяца + легенда проектов. НЕ планирование (это в «Неделе»).
  */
 export function CalendarMonth({
-  month, tasks, milestones, byId, today, selected, onTapDay, onOpenTask,
+  month, tasks, milestones, byId, today, selected, onTapDay, onOpenTask, onToggle,
 }: {
   month: Date;
   tasks: Task[];
@@ -34,6 +35,7 @@ export function CalendarMonth({
   selected: Date | null;
   onTapDay: (d: Date) => void;
   onOpenTask: (t: Task) => void;
+  onToggle: (t: Task) => void;
 }) {
   const cells = useMemo(() => monthMatrix(month.getFullYear(), month.getMonth()), [month]);
 
@@ -67,7 +69,6 @@ export function CalendarMonth({
 
   const selISO = selected ? localISO(selected) : null;
   const selTasks = selISO ? (tasksByDay.get(selISO) ?? []) : [];
-  const projKeys = [...byId.values()].filter((p) => !p.is_inbox && p.color).slice(0, 4);
 
   return (
     <div className="cm" data-testid="cal-month">
@@ -147,42 +148,15 @@ export function CalendarMonth({
           {selTasks.length === 0 ? (
             <div className="cm-dp-empty">На этот день задач нет</div>
           ) : (
-            selTasks.map((t) => {
-              const c = resolveColor(t.project_id, byId);
-              const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
-              return (
-                <button
-                  key={t.id}
-                  data-testid={`cm-dp-task-${t.id}`}
-                  className="cm-dp-task"
-                  style={{ ["--c" as string]: c ?? "var(--accent)" }}
-                  onClick={() => onOpenTask(t)}
-                >
-                  <span className="cm-dp-cb" style={{ ["--c" as string]: c ?? "var(--accent)" }} />
-                  <span>
-                    <span className="cm-dp-nm">{t.title}</span>
-                    <span className="cm-dp-sub">
-                      {t.due_time && <span className="cm-dp-time">{t.due_time.slice(0, 5)}</span>}
-                      {proj && !proj.is_inbox && (
-                        <span className="cm-dp-cant" style={{ color: c ?? "var(--text-muted)", background: tint(c, 0.13) }}>{proj.name}</span>
-                      )}
-                      {t.stage_label && (
-                        <span className="cm-dp-cant" style={{ color: "var(--text-muted)", background: "var(--surface-2)" }}>{t.stage_label}</span>
-                      )}
-                    </span>
-                  </span>
-                </button>
-              );
-            })
+            selTasks.map((t) => (
+              // общий TaskItem (как в Today/Списках/Ленте) — единый дизайн карточек
+              <div className="cm-dp-item" key={t.id} data-testid={`cm-dp-task-${t.id}`}>
+                <TaskItem task={t} onToggle={onToggle} onOpen={onOpenTask} color={resolveColor(t.project_id, byId)} />
+              </div>
+            ))
           )}
         </div>
       )}
-
-      <div className="cm-keys">
-        {projKeys.map((p) => (
-          <div className="cm-key" key={p.id}><span className="cm-pt" style={{ background: p.color! }} />{p.name}</div>
-        ))}
-      </div>
     </div>
   );
 }
