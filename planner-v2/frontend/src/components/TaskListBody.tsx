@@ -5,6 +5,19 @@ import { IcoChevron } from "./icons";
 import { groupByProject } from "../lib/groupByProject";
 import type { Project, Task } from "../types";
 
+// Сортировка задач внутри группы смарт-списка: приоритет ↓, дата ↑ (старше сверху), время ↑.
+// Задачи без даты/времени — в конец своей приоритет-группы.
+const PRIO_RANK: Record<Task["priority"], number> = { high: 3, medium: 2, low: 1, none: 0 };
+function cmpSmartTask(a: Task, b: Task): number {
+  const pr = PRIO_RANK[b.priority] - PRIO_RANK[a.priority];
+  if (pr) return pr;
+  const da = a.due_date ?? "9999-99-99", db = b.due_date ?? "9999-99-99";
+  if (da !== db) return da < db ? -1 : 1;
+  const ta = a.due_time ?? "99:99", tb = b.due_time ?? "99:99";
+  if (ta !== tb) return ta < tb ? -1 : 1;
+  return 0;
+}
+
 // Волна 2 F2 — общий рендер списка задач: свайпы + long-press multi-select + batch-панель
 // + свёрнутая секция «Выполнено и Won't Do». ОДНО поведение везде (PATTERNS):
 // ListView и Tasks делегируют сюда, чтобы строка/выбор/секция вели себя одинаково.
@@ -39,10 +52,13 @@ export function TaskListBody({
   const open = useMemo(() => tasks.filter((t) => t.status !== "done" && t.status !== "wont_do"), [tasks]);
   const closed = useMemo(() => tasks.filter((t) => t.status === "done" || t.status === "wont_do"), [tasks]);
 
-  // группы открытых задач по проектам (закреплённые проекты выше); null-проект последней группой
+  // группы открытых задач по проектам (закреплённые проекты выше); null-проект последней группой.
+  // Внутри группы: приоритет ↓ (Высокий→Средний→Низкий→без), затем дата ↑ (старше сверху), время ↑.
+  // Без даты — в конец. (по запросу владельца для смарт-списков.)
   const groups = useMemo(() => {
     if (!groupByProjectMap) return null;
     const gs = groupByProject(open, groupByProjectMap);
+    gs.forEach((g) => g.tasks.sort(cmpSmartTask));
     return gs.sort((a, b) => Number(b.project?.pinned ?? false) - Number(a.project?.pinned ?? false));
   }, [open, groupByProjectMap]);
 
