@@ -151,3 +151,27 @@ def test_metric_patch_and_delete_entry(client):
     assert d.status_code == 200, d.text
     left = {e["entry_date"] for e in d.json()["entries"]}
     assert "2026-06-11" not in left and "2026-06-10" in left
+
+
+def test_habit_create_full_schedule(client):
+    # count + по дням + шаг + цвет
+    r = client.post("/api/habits", json={
+        "name": "Вода", "mark_type": "count", "target": 2, "unit": "л", "step": 0.25,
+        "color": "#5B8DEF", "schedule_kind": "by_days", "schedule_days": [0, 2, 4],
+    }, headers=HDR)
+    assert r.status_code == 201, r.text
+    b = r.json()
+    assert b["step"] == 0.25 and b["unit"] == "л" and b["schedule_kind"] == "by_days"
+    assert b["schedule_days"] == [0, 2, 4]
+
+    # цель к дате
+    r2 = client.post("/api/habits", json={
+        "name": "Без травы", "mark_type": "check", "schedule_kind": "goal_date",
+        "goal_date": "2026-06-22", "goal_total": 16,
+    }, headers=HDR)
+    assert r2.status_code == 201, r2.text
+    assert r2.json()["goal_total"] == 16
+
+    # N раз в неделю
+    r3 = client.post("/api/habits", json={"name": "Зал", "schedule_kind": "weekly_n", "schedule_n": 3}, headers=HDR)
+    assert r3.status_code == 201 and r3.json()["schedule_n"] == 3

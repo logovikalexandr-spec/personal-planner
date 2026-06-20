@@ -7,7 +7,7 @@ import {
   getHabits, getHabitHistory, getMetrics, getRetro, measureMetric, patchHabit, patchMetric, toggleHabit,
   type HabitHistoryOut, type RetroOut,
 } from "../api";
-import type { HabitOut, MetricOut, Task } from "../types";
+import type { HabitInput, HabitOut, MetricOut, Task } from "../types";
 
 // ── Форк E (T5): таб «Привычки» на реальном API. ZERO-AFK — бэк LLM не зовёт.
 // Сегменты: Привычки | Метрики | Ретро. Зачёт привычки-счётчика = градиент (heat7 0-4 с бэка).
@@ -560,37 +560,130 @@ function MeasureSheet({ metric, onClose, onSaved }: { metric: MetricOut; onClose
   );
 }
 
+// #1 — полный конструктор привычки (T5-flows #1): тип · [Число: ед/норма/ШАГ] · расписание · цвет.
+const STEP_PRESETS = [0.25, 0.5, 1];
+const FieldLbl = ({ children }: { children: React.ReactNode }) => (
+  <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".4px", margin: "16px 0 8px" }}>{children}</div>
+);
+const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <button onClick={onClick} style={{
+    padding: "9px 13px", borderRadius: 9, cursor: "pointer", fontSize: 13,
+    border: on ? "1px solid var(--accent)" : "1px solid var(--border)",
+    background: on ? "var(--accent-soft)" : "var(--surface-2)",
+    color: on ? "var(--accent)" : "var(--text)",
+  }}>{children}</button>
+);
+
 function NewHabitSheet({ onClose, onCreated }: { onClose: () => void; onCreated: (h: HabitOut) => void }) {
   const [name, setName] = useState("");
   const [type, setType] = useState<"check" | "count">("check");
   const [target, setTarget] = useState("");
   const [unit, setUnit] = useState("");
+  const [step, setStep] = useState(1);
+  const [customStep, setCustomStep] = useState("");
+  const [stepCustom, setStepCustom] = useState(false);
+  const [sched, setSched] = useState<"daily" | "weekly_n" | "by_days" | "goal_date">("daily");
+  const [weeklyN, setWeeklyN] = useState("3");
+  const [days, setDays] = useState<number[]>([]);
+  const [goalDate, setGoalDate] = useState("");
+  const [goalTotal, setGoalTotal] = useState("");
+  const [color, setColor] = useState(HABIT_PALETTE[1]);
+
+  const toggleDay = (i: number) => setDays((p) => p.includes(i) ? p.filter((x) => x !== i) : [...p, i].sort());
+
   const submit = async () => {
     if (!name.trim()) return;
-    const h = await createHabit({
-      name: name.trim(), mark_type: type,
-      target: type === "count" ? parseFloat(target.replace(",", ".")) || null : null,
-      unit: type === "count" ? unit.trim() || null : null,
-      step: type === "count" ? 0.5 : null,
-    });
-    onCreated(h);
+    const eff = stepCustom ? (parseFloat(customStep.replace(",", ".")) || 1) : step;
+    const payload: HabitInput = { name: name.trim(), mark_type: type, color, schedule_kind: sched };
+    if (type === "count") {
+      payload.target = parseFloat(target.replace(",", ".")) || null;
+      payload.unit = unit.trim() || null;
+      payload.step = eff;
+    }
+    if (sched === "weekly_n") payload.schedule_n = parseInt(weeklyN) || 3;
+    if (sched === "by_days") payload.schedule_days = days;
+    if (sched === "goal_date") { payload.goal_date = goalDate || null; payload.goal_total = parseInt(goalTotal) || null; }
+    onCreated(await createHabit(payload));
   };
+
   return (
     <div className="sheet-scrim" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet" style={{ maxHeight: "88vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-title">Новая привычка</div>
+
+        <FieldLbl>Название</FieldLbl>
         <input className="input" placeholder="Напр. «Бег утром»" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <div className="seg" style={{ marginTop: 10 }}>
-          <button className={type === "check" ? "seg-on" : ""} onClick={() => setType("check")}>Галка</button>
-          <button className={type === "count" ? "seg-on" : ""} onClick={() => setType("count")}>Число</button>
+
+        <FieldLbl>Тип отметки</FieldLbl>
+        <div className="seg">
+          <button className={type === "check" ? "seg-on" : ""} onClick={() => setType("check")}>Галка (да/нет)</button>
+          <button className={type === "count" ? "seg-on" : ""} onClick={() => setType("count")}>Число (норма)</button>
         </div>
+
         {type === "count" && (
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <input className="input" placeholder="Норма (8)" value={target} onChange={(e) => setTarget(e.target.value)} inputMode="decimal" />
-            <input className="input" placeholder="Ед. (стак/л)" value={unit} onChange={(e) => setUnit(e.target.value)} />
+          <>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <input className="input" placeholder="Норма/день (2)" value={target} onChange={(e) => setTarget(e.target.value)} inputMode="decimal" />
+              <input className="input" placeholder="Ед. (л/раз/мин)" value={unit} onChange={(e) => setUnit(e.target.value)} />
+            </div>
+            <FieldLbl>Шаг +/−</FieldLbl>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {STEP_PRESETS.map((s) => (
+                <Chip key={s} on={!stepCustom && step === s} onClick={() => { setStepCustom(false); setStep(s); }}>{s}</Chip>
+              ))}
+              <Chip on={stepCustom} onClick={() => setStepCustom(true)}>своё</Chip>
+              {stepCustom && (
+                <input className="input" style={{ flex: "1 1 80px", minWidth: 70 }} placeholder="шаг" value={customStep}
+                  onChange={(e) => setCustomStep(e.target.value)} inputMode="decimal" />
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
+              напр. вода 0.25 · медитация 1 · отжимания 5
+            </div>
+          </>
+        )}
+
+        <FieldLbl>Расписание</FieldLbl>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Chip on={sched === "daily"} onClick={() => setSched("daily")}>Ежедневно</Chip>
+          <Chip on={sched === "weekly_n"} onClick={() => setSched("weekly_n")}>N×/нед</Chip>
+          <Chip on={sched === "by_days"} onClick={() => setSched("by_days")}>По дням</Chip>
+          <Chip on={sched === "goal_date"} onClick={() => setSched("goal_date")}>Цель к дате</Chip>
+        </div>
+        {sched === "weekly_n" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+            <input className="input" style={{ width: 80 }} value={weeklyN} onChange={(e) => setWeeklyN(e.target.value)} inputMode="numeric" />
+            <span style={{ color: "var(--text-muted)", fontSize: 13 }}>раз в неделю</span>
           </div>
         )}
-        <button className="btn-primary" style={{ marginTop: 14, width: "100%" }} onClick={submit}>Создать привычку</button>
+        {sched === "by_days" && (
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            {WD.map((d, i) => (
+              <button key={i} onClick={() => toggleDay(i)} style={{
+                flex: 1, padding: "9px 0", borderRadius: 8, cursor: "pointer", fontSize: 12,
+                border: days.includes(i) ? "1px solid var(--accent)" : "1px solid var(--border)",
+                background: days.includes(i) ? "var(--accent-soft)" : "var(--surface-2)",
+                color: days.includes(i) ? "var(--accent)" : "var(--text-muted)",
+              }}>{d}</button>
+            ))}
+          </div>
+        )}
+        {sched === "goal_date" && (
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <input className="input" type="date" value={goalDate} onChange={(e) => setGoalDate(e.target.value)} />
+            <input className="input" placeholder="дней (16)" value={goalTotal} onChange={(e) => setGoalTotal(e.target.value)} inputMode="numeric" />
+          </div>
+        )}
+
+        <FieldLbl>Цвет</FieldLbl>
+        <div style={{ display: "flex", gap: 10 }}>
+          {HABIT_PALETTE.map((c) => (
+            <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
+              style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
+          ))}
+        </div>
+
+        <button className="btn-primary" style={{ marginTop: 18, width: "100%" }} onClick={submit}>Создать привычку</button>
       </div>
     </div>
   );

@@ -163,6 +163,11 @@ export interface HabitInput {
   target?: number | null;
   unit?: string | null;
   step?: number | null;
+  schedule_kind?: "daily" | "weekly_n" | "by_days" | "goal_date";
+  schedule_n?: number | null;
+  schedule_days?: number[] | null;
+  goal_date?: string | null;
+  goal_total?: number | null;
 }
 export interface MetricInput {
   name: string;
