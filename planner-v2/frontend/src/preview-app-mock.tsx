@@ -42,6 +42,7 @@ const DAY_TASKS: Task[] = [
   { id: 2, title: "Анализы — сдать кровь", status: "todo", priority: "high", project_id: 2, due_date: TODAY, due_time: "11:00:00", end_time: "11:30:00", stage_label: "этап 1", stage_status: "late", impact: 45 } as Task,
   { id: 3, title: "Оплатить аренду", status: "todo", priority: "high", project_id: 1, due_date: TODAY, due_time: null, end_time: null } as Task,
   { id: 4, title: "Позвонить маме", status: "todo", priority: "none", project_id: 2, due_date: TODAY, due_time: null, end_time: null } as Task,
+  { id: 5, title: "Встреча (отменена)", status: "wont_do", priority: "low", project_id: 1, due_date: TODAY, due_time: "13:00:00", end_time: "14:00:00" } as Task,
 ];
 const OVERDUE: Task[] = [
   { id: 90, title: "Просроченный отчёт", status: "todo", priority: "high", project_id: 3, due_date: "2026-06-01", due_time: null, end_date: null, end_time: null, days_late: 9 } as Task,
@@ -76,7 +77,10 @@ const RETRO = {
   tasks: { done: 12, planned: 18, impact_sum: 240, by_project: [{ project_id: 1, name: "ZIMA", color: "#3FB68B", done: 5, total: 7 }], overdue: [], top_task: { title: "Созвон ZIMA", impact: 80, project: "ZIMA" } },
   habits: { done_days: 5, total_days: 7, count: 2, items: HABITS.map((h) => ({ id: h.id, name: h.name, color: h.color, week: h.week, week_done: h.week_done, streak: h.streak, tag: null })) },
 };
-const INBOX = [{ id: 1, raw_text: "Купить подарок маме", created_at: TODAY, suggested_project_id: 2 }];
+const INBOX = [
+  { id: 1, kind: "note", source: "manual", raw_content: "Купить подарок маме", status: "pending" },
+  { id: 2, kind: "note", source: "session", raw_content: "Идея: автосводка недели в боте", status: "pending" },
+];
 
 const json = (data: unknown) =>
   Promise.resolve(new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json" } }));
@@ -87,7 +91,7 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   const m = (init?.method ?? "GET").toUpperCase();
   if (url.includes("/api/me")) return json({ id: 1, first_name: "Test" });
   if (url.includes("/api/projects")) return json(PROJECTS);
-  if (url.includes("/api/counts")) return json({ inbox: 1, today: DAY_TASKS.length, overdue: OVERDUE.length });
+  if (url.includes("/api/counts")) return json({ all: 42, inbox: INBOX.length, today: DAY_TASKS.length + OVERDUE.length, tomorrow: 0, next7: DAY_TASKS.length, overdue: OVERDUE.length });
   if (url.includes("/api/tags")) return json([]);
   if (url.includes("/api/tasks/density")) return json(HEAT);
   if (url.includes("/api/stages")) {
@@ -105,7 +109,20 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   if (detailMatch && m === "GET") {
     const id = Number(detailMatch[1]);
     const base = [...DAY_TASKS, ...OVERDUE].find((t) => t.id === id) ?? DAY_TASKS[0];
-    return json({ ...base, checkitems: [], reminders: [], subtasks: [], tags: [] });
+    return json({
+      ...base,
+      description: "Купить абонемент в бассейн на 3 месяца, уточнить расписание дорожек, взять справку от врача, не забыть шапочку и очки, проверить акции на сайте, сравнить с соседним клубом, спросить про заморозку абонемента.",
+      checkitems: [
+        { id: 501, task_id: id, title: "Шапочка", done: true, order_index: 0 },
+        { id: 502, task_id: id, title: "Очки", done: false, order_index: 1 },
+      ],
+      reminders: [],
+      subtasks: [
+        { id: 601, title: "Купить абонемент", status: "todo", priority: "medium", project_id: base.project_id, due_date: TODAY, due_time: null },
+        { id: 602, title: "Взять справку у врача", status: "todo", priority: "low", project_id: base.project_id, due_date: null, due_time: null },
+      ],
+      tags: [],
+    });
   }
   if (url.includes("/api/tasks")) {
     if (url.includes("scope=overdue")) return json(OVERDUE);

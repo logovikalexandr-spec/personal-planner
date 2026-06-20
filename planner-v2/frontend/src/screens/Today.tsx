@@ -87,7 +87,9 @@ export function Today({
 
   const toggle = useCallback(async (t: Task) => {
     tg()?.HapticFeedback?.impactOccurred?.("light");
-    await patchTask(t.id, { status: t.status === "done" ? "todo" : "done" });
+    // клик по чекбоксу: done/wont_do → todo (снять), иначе → done
+    const next = t.status === "done" || t.status === "wont_do" ? "todo" : "done";
+    await patchTask(t.id, { status: next });
     load();
   }, [load]);
 
@@ -218,9 +220,16 @@ export function Today({
     [tasks],
   );
 
-  const jumpNow = useCallback(() => {
-    document.getElementById("today-now")?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, []);
+  // Прыжок к now-линии теперь делает DayTimeline (GPU-transform скролл) по сигналу-ключу.
+  const [scrollNowKey, setScrollNowKey] = useState(0);
+  const jumpNow = useCallback(() => setScrollNowKey((k) => k + 1), []);
+
+  // По умолчанию показывать now-линию ВВЕРХУ при показе таба «Задачи» на сегодня+таймлайн (после загрузки).
+  useEffect(() => {
+    if (hidden || view !== "timeline" || selectedISO !== localToday() || state !== "ready") return;
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setScrollNowKey((k) => k + 1)));
+    return () => cancelAnimationFrame(id);
+  }, [hidden, view, selectedISO, state]);
 
   // «Сегодня» в шапке: не на сегодня → прыжок на сегодня; уже сегодня → скролл к now.
   const goToday = useCallback(() => {
@@ -327,6 +336,7 @@ export function Today({
               isToday={isToday}
               autoScroll={false}
               gridRef={gridRef}
+              scrollToNowKey={scrollNowKey}
               onCreateDraft={openDraft}
               draft={draft}
               onDraftChange={(title) => setDraft((d) => (d ? { ...d, title } : d))}

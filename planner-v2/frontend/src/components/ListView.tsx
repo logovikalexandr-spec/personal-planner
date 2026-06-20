@@ -22,8 +22,13 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
 async function fetchFor(a: ActiveList): Promise<Task[]> {
   if (a.kind === "project") return getTasks("all", a.id, true);
   if (a.kind === "smart") {
-    if (a.key === "today") return getTasks("today");
-    if (a.key === "next7" || a.key === "week") return getTasks("week");
+    if (a.key === "today") {
+      // «Сегодня» = задачи на сегодня + просроченные (они «подтягиваются» в сегодня).
+      const [today, overdue] = await Promise.all([getTasks("today"), getTasks("overdue")]);
+      const seen = new Set(today.map((t) => t.id));
+      return [...overdue.filter((t) => !seen.has(t.id)), ...today];
+    }
+    if (a.key === "next7") return getTasks("week");
     if (a.key === "tomorrow") {
       const all = await getTasks("all");
       const tmr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);

@@ -9,6 +9,6 @@ createRoot(document.getElementById("root")!).render(
     <div style={{ flex: 1, overflowY: "auto", paddingBottom: 90 }}>
       <Tracking />
     </div>
-    <BottomTabs active="tracking" onChange={() => {}} inboxCount={0} />
+    <BottomTabs active="tracking" onChange={() => {}} />
   </div>,
 );

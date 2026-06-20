@@ -7,7 +7,7 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Project } from "../types";
 import { childCountMap, flatten, indentFor, type FlatProject } from "../lib/projectTree";
-import { IcoChevron, IcoDot, IcoMore, IcoPin } from "./icons";
+import { IcoChevron, IcoMore, IcoPin } from "./icons";
 import { tg } from "../telegram";
 
 export type { FlatProject };
@@ -20,10 +20,8 @@ function arrayMoveLocal<T>(arr: T[], from: number, to: number): T[] {
 }
 
 function Icon({ p }: { p: Project }) {
-  if (p.icon) return <span style={{ fontSize: 18, lineHeight: 1 }}>{p.icon}</span>;
-  if (p.color)
-    return <span style={{ display: "block", width: 11, height: 11, borderRadius: "50%", background: p.color, margin: "0 auto" }} />;
-  return <IcoDot />;
+  // Эмодзи выбран через пикер → он; не выбран → 📁 (явный «нет эмодзи», единый фолбэк во всех 3 местах).
+  return <span style={{ fontSize: 18, lineHeight: 1 }}>{p.icon ?? "📁"}</span>;
 }
 
 const Row = memo(function Row({

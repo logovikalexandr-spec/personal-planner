@@ -97,6 +97,15 @@ export function Checklist({
           onKeyDown={(e) => { if (e.key === "Enter") add(); }}
           onBlur={add}
         />
+        <button
+          className="add-confirm-btn"
+          aria-label="Сохранить пункт"
+          disabled={!draft.trim() || busy}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={add}
+        >
+          <IcoCheck />
+        </button>
       </div>
     </div>
   );

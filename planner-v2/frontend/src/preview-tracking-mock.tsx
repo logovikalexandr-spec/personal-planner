@@ -74,6 +74,6 @@ createRoot(document.getElementById("root")!).render(
     <div style={{ paddingBottom: 20 }}>
       <Tracking />
     </div>
-    <BottomTabs active="tracking" onChange={() => {}} inboxCount={0} />
+    <BottomTabs active="tracking" onChange={() => {}} />
   </div>,
 );

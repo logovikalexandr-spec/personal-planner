@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DETAIL задачи — правки + варианты подзадач</title>
+<style>
+  :root{
+    --onyx:#0F0F11; --surface:#1A1A1E; --surface2:#232329; --hairline:#2C2C33;
+    --ink:#ECECEF; --muted:#8A8A93; --ember:#EE8A3C; --danger:#FF5C5C; --warning:#FFB02E;
+    --blue:#4C8DFF; --green:#3FB68B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"Geist","Segoe UI",sans-serif}
+  body{background:#0a0a0c;color:var(--ink);padding:20px;line-height:1.4}
+  h1{font-size:20px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:22px;max-width:760px}
+  .sec{margin-bottom:30px;max-width:430px}
+  .sec>h2{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--ember);margin-bottom:4px}
+  .sec>.note{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .phone{background:var(--onyx);border:1px solid var(--hairline);border-radius:18px;padding:16px}
+  .cmp{display:flex;gap:12px;flex-wrap:wrap}
+  .cmp .half{flex:1;min-width:190px}
+  .tag{display:inline-block;font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:6px;margin-bottom:8px}
+  .tag.bad{background:rgba(255,92,92,.14);color:#E0726B}
+  .tag.good{background:rgba(63,182,139,.16);color:var(--green)}
+
+  /* строки приоритета */
+  .prow{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;background:var(--surface)}
+  .prow+.prow{margin-top:6px}
+  .prow.activeM{background:rgba(238,138,60,.16)}
+  .prow.activeOld{background:rgba(255,176,46,.16)}
+  .flag{font-size:16px;width:18px;text-align:center}
+  .prow .nm{flex:1;font-size:15px}
+  .chk{color:var(--ember)}
+  /* флажки цветом */
+  .fH{color:var(--danger)} .fM_old{color:var(--warning)} .fL_old{color:var(--ember)}
+  .fM_new{color:var(--ember)} .fL_new{color:var(--blue)} .fN{color:var(--muted)}
+
+  /* заметки */
+  .notes-old{background:var(--surface);border-radius:10px;padding:12px;height:54px;overflow:hidden;color:var(--muted);font-size:14px;position:relative}
+  .notes-old::after{content:"";position:absolute;left:0;right:0;bottom:0;height:20px;background:linear-gradient(transparent,var(--surface))}
+  .notes-new{background:var(--surface);border-radius:10px;padding:12px;max-height:120px;overflow-y:auto;color:var(--ink);font-size:14px;border:1px solid var(--hairline)}
+  .notes-new::-webkit-scrollbar{width:5px} .notes-new::-webkit-scrollbar-thumb{background:var(--hairline);border-radius:3px}
+
+  /* строка задачи / подзадачи */
+  .trow{display:flex;align-items:center;gap:11px;background:var(--surface);border-radius:10px;padding:12px}
+  .cb{width:20px;height:20px;border-radius:50%;border:2px solid var(--muted);flex:0 0 auto}
+  .cb.ember{border-color:var(--ember)}
+  .trow .t{flex:1;font-size:15px}
+  .trow .m{font-size:12px;color:var(--muted);font-family:ui-monospace,monospace}
+
+  /* подзадачи-заголовок */
+  .subhead{display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .subhead .cnt{font-family:ui-monospace,monospace}
+
+  /* родитель-якорь для вариантов */
+  .parent{display:flex;align-items:center;gap:11px;background:var(--surface);border-radius:10px;padding:12px;border-left:3px solid var(--ember)}
+  .parent .t{flex:1;font-weight:600}
+
+  /* Вариант A: рейка */
+  .vA{position:relative;margin-left:10px;padding-left:18px}
+  .vA::before{content:"";position:absolute;left:0;top:-6px;bottom:14px;width:2px;background:var(--hairline)}
+  .vA .trow{margin-top:8px;position:relative}
+  .vA .trow::before{content:"";position:absolute;left:-18px;top:50%;width:14px;height:2px;background:var(--hairline)}
+
+  /* Вариант B: контейнер-карточка */
+  .vB{margin-top:8px;background:rgba(255,255,255,.025);border:1px solid var(--hairline);border-radius:12px;padding:8px}
+  .vB .trow{background:var(--surface2)}
+  .vB .trow+.trow{margin-top:6px}
+  .vB .cap{font-size:11px;color:var(--muted);padding:2px 6px 6px}
+
+  /* Вариант C: отступ + точка-связка */
+  .vC .trow{margin-top:8px;margin-left:22px;position:relative}
+  .vC .trow::before{content:"";position:absolute;left:-13px;top:50%;width:7px;height:7px;border-radius:50%;background:var(--ember);transform:translateY(-50%)}
+
+  /* свайп подзадачи */
+  .swwrap{position:relative;margin-top:8px;border-radius:10px;overflow:hidden}
+  .swacts{position:absolute;right:0;top:0;bottom:0;display:flex}
+  .swbtn{width:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:#fff}
+  .swbtn.edit{background:var(--blue)} .swbtn.del{background:var(--danger)}
+  .swwrap .trow{position:relative;transform:translateX(-128px)}
+
+  /* add-row с кнопкой подтверждения */
+  .addrow{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px dashed var(--hairline);border-radius:10px;padding:10px 12px;margin-top:8px}
+  .addrow .plus{color:var(--ember);font-size:18px;width:18px;text-align:center}
+  .addrow input{flex:1;background:transparent;border:0;color:var(--ink);font-size:14px;outline:none}
+  .addrow input::placeholder{color:var(--muted)}
+  .confirm{width:30px;height:30px;border-radius:8px;background:var(--ember);color:#1a0d03;border:0;font-size:16px;font-weight:700;flex:0 0 auto}
+  .confirm.off{background:var(--surface2);color:var(--muted)}
+  .pick{font-size:11px;color:var(--green);margin-top:6px}
+</style>
+</head>
+<body>
+  <h1>Деталь задачи — правки по твоим замечаниям</h1>
+  <p class="sub">Каждый блок: слева/сверху «сейчас», справа/снизу «предложение». Подзадачи — 3 варианта связи, выбери один.</p>
+
+  <!-- 1. ПРИОРИТЕТ -->
+  <div class="sec">
+    <h2>1 · Цвета приоритета</h2>
+    <div class="note">Средний → оранжевый, Низкий → синий. Высокий остаётся красным.</div>
+    <div class="cmp">
+      <div class="half phone">
+        <span class="tag bad">Сейчас</span>
+        <div class="prow"><span class="flag fH">⚑</span><span class="nm">Высокий</span></div>
+        <div class="prow activeOld"><span class="flag fM_old">⚑</span><span class="nm">Средний</span><span class="chk">✓</span></div>
+        <div class="prow"><span class="flag fL_old">⚑</span><span class="nm">Низкий</span></div>
+        <div class="prow"><span class="flag fN">⚐</span><span class="nm">Без приоритета</span></div>
+      </div>
+      <div class="half phone">
+        <span class="tag good">Предложение</span>
+        <div class="prow"><span class="flag fH">⚑</span><span class="nm">Высокий</span></div>
+        <div class="prow activeM"><span class="flag fM_new">⚑</span><span class="nm">Средний</span><span class="chk">✓</span></div>
+        <div class="prow"><span class="flag fL_new">⚑</span><span class="nm">Низкий</span></div>
+        <div class="prow"><span class="flag fN">⚐</span><span class="nm">Без приоритета</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. ЗАМЕТКИ -->
+  <div class="sec">
+    <h2>2 · Заметки — длинный текст</h2>
+    <div class="note">Сейчас поле фикс 2 строки, длинный текст обрезан и не виден. Предложение: поле растёт до ~5 строк, дальше — прокрутка внутри.</div>
+    <div class="cmp">
+      <div class="half phone">
+        <span class="tag bad">Сейчас (обрезано)</span>
+        <div class="notes-old">Купить абонемент в бассейн на 3 месяца, уточнить расписание дорожек, взять справку от врача, не забыть шапочку и очки, проверить акции…</div>
+      </div>
+      <div class="half phone">
+        <span class="tag good">Предложение (скролл)</span>
+        <div class="notes-new">Купить абонемент в бассейн на 3 месяца, уточнить расписание дорожек, взять справку от врача, не забыть шапочку и очки, проверить акции на сайте, сравнить с соседним клубом, спросить про заморозку абонемента.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ПОДЗАДАЧИ — ВАРИАНТЫ СВЯЗИ -->
+  <div class="sec" style="max-width:460px">
+    <h2>3 · Связь подзадач с задачей — выбери вариант</h2>
+    <div class="note">Сейчас подзадачи — плоский список под заголовком, не видно что они «внутри» задачи. Три способа показать вложенность:</div>
+
+    <div class="phone" style="margin-bottom:14px">
+      <div class="tag good">Вариант A — рейка (линия-дерево)</div>
+      <div class="parent"><span class="cb ember"></span><span class="t">Бассейн</span></div>
+      <div class="vA">
+        <div class="trow"><span class="cb"></span><span class="t">Купить абонемент</span></div>
+        <div class="trow"><span class="cb"></span><span class="t">Взять справку</span></div>
+      </div>
+    </div>
+
+    <div class="phone" style="margin-bottom:14px">
+      <div class="tag good">Вариант B — карточка-контейнер</div>
+      <div class="parent"><span class="cb ember"></span><span class="t">Бассейн</span></div>
+      <div class="vB">
+        <div class="cap">Подзадачи · 0/2</div>
+        <div class="trow"><span class="cb"></span><span class="t">Купить абонемент</span></div>
+        <div class="trow"><span class="cb"></span><span class="t">Взять справку</span></div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="tag good">Вариант C — отступ + точка</div>
+      <div class="parent"><span class="cb ember"></span><span class="t">Бассейн</span></div>
+      <div class="vC">
+        <div class="trow"><span class="cb"></span><span class="t">Купить абонемент</span></div>
+        <div class="trow"><span class="cb"></span><span class="t">Взять справку</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. СВАЙП + КНОПКИ ПОДТВЕРЖДЕНИЯ -->
+  <div class="sec">
+    <h2>4 · Свайп подзадачи + кнопка подтверждения</h2>
+    <div class="note">Подзадачу можно свайпнуть → Изменить / Удалить. При добавлении подзадачи и пункта чеклиста — явная кнопка ✓ (не только Enter).</div>
+    <div class="phone">
+      <div class="subhead">Подзадачи <span class="cnt">0/2</span></div>
+
+      <div class="swwrap">
+        <div class="swacts">
+          <div class="swbtn edit">✎<span>Изменить</span></div>
+          <div class="swbtn del">🗑<span>Удалить</span></div>
+        </div>
+        <div class="trow"><span class="cb"></span><span class="t">Купить абонемент</span></div>
+      </div>
+      <div class="trow" style="margin-top:8px"><span class="cb"></span><span class="t">Взять справку</span></div>
+
+      <div class="addrow"><span class="plus">+</span><input placeholder="Название подзадачи" value="Записаться к тренеру"><button class="confirm">✓</button></div>
+      <div class="pick">↑ кнопка ✓ активна, пока есть текст</div>
+
+      <div class="subhead" style="margin-top:18px">Чеклист</div>
+      <div class="addrow"><span class="plus">+</span><input placeholder="Добавить пункт"><button class="confirm off">✓</button></div>
+      <div class="pick" style="color:var(--muted)">↑ пусто → кнопка ✓ серая/неактивна</div>
+    </div>
+  </div>
+
+</body>
+</html>

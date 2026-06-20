@@ -6,11 +6,11 @@ import { Sheet } from "./Sheet";
 import { IcoChevron } from "./icons";
 import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
 
-// DESIGN.md §2 / PATTERNS.md «Приоритет»: high=Signal Red, medium=Amber, low=Ember, none=Steel (без синего, 1 акцент)
+// Приоритет (решение владельца 2026-06-20): high=красный, medium=оранжевый(ember), low=синий, none=steel.
 export const PRIORITY_COLOR: Record<Priority, string> = {
   high: "var(--danger)",
-  medium: "var(--warning)",
-  low: "var(--accent)",
+  medium: "var(--accent)",
+  low: "var(--blue)",
   none: "var(--text-muted)",
 };
 const PRIORITY_LABEL: Record<Priority, string> = {

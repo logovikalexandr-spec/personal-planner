@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createProject, deleteProject, getCounts, getProjects, patchProject, reorderProjects } from "../api";
 import { canHaveChild, subtreeCountMap } from "../lib/projectTree";
-import { IcoAll, IcoInbox, IcoNext7, IcoPlus, IcoTodaySmall, IcoTomorrow, IcoWeekPlan } from "./icons";
+import { IcoAll, IcoInbox, IcoNext7, IcoPlus, IcoTodaySmall, IcoTomorrow } from "./icons";
 import { ProjectTree, type TreeLoadState } from "./ProjectTree";
 import { ProjectMenu } from "./ProjectMenu";
 import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
@@ -17,7 +17,6 @@ const SMART: { key: SmartKey; title: string; Ico: () => JSX.Element }[] = [
   { key: "tomorrow", title: "Завтра", Ico: IcoTomorrow },
   { key: "next7", title: "Следующие 7 дней", Ico: IcoNext7 },
   { key: "inbox", title: "Входящие", Ico: IcoInbox },
-  { key: "week", title: "План на неделю", Ico: IcoWeekPlan },
 ];
 
 function countFor(k: SmartKey, c: Counts | null): number {
@@ -25,7 +24,7 @@ function countFor(k: SmartKey, c: Counts | null): number {
   if (k === "all") return c.all;
   if (k === "today") return c.today;
   if (k === "tomorrow") return c.tomorrow;
-  if (k === "next7" || k === "week") return c.next7;
+  if (k === "next7") return c.next7;
   if (k === "inbox") return c.inbox;
   return 0;
 }

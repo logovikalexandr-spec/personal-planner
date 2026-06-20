@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Фолбэк иконки проекта без эмодзи — сейчас vs предложение</title>
+<style>
+  :root{
+    --onyx:#0F0F11; --surface:#1A1A1E; --surface2:#232329; --hairline:#2C2C33;
+    --ink:#ECECEF; --muted:#8A8A93; --ember:#EE8A3C; --zima:#3FB68B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"Geist","Segoe UI",sans-serif}
+  body{background:var(--onyx);color:var(--ink);padding:24px;line-height:1.45}
+  h1{font-size:19px;margin-bottom:6px}
+  .lead{color:var(--muted);font-size:14px;margin-bottom:22px;max-width:680px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:760px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}}
+  .col{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px}
+  .col h2{font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  .col.bad h2{color:#E0726B}
+  .col.good h2{color:var(--zima)}
+  .lbl{font-size:11px;color:var(--muted);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+  .lbl:first-of-type{margin-top:0}
+
+  /* строка шторки */
+  .drawer-row{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:10px}
+  .drawer-row .nm{font-size:15px;flex:1}
+  .drawer-row .cnt{color:var(--muted);font-size:13px}
+
+  /* шапка ⋯-меню */
+  .menu-head{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface2);border-radius:10px}
+  .menu-head .nm{font-size:16px;font-weight:600}
+
+  /* кнопка иконки в листе правки */
+  .sheet-icon{display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px}
+  .sheet-icon .ibtn{width:46px;height:46px;border-radius:12px;background:#15151a;border:1px solid var(--hairline);display:flex;align-items:center;justify-content:center;font-size:24px}
+  .sheet-icon .cap{font-size:13px;color:var(--muted)}
+
+  /* представления иконки */
+  .emoji{font-size:20px;line-height:1}
+  .emoji.big{font-size:24px}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--zima);display:block}
+  .dot.big{width:16px;height:16px}
+
+  .note{margin-top:22px;max-width:760px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--hairline);border-left:3px solid var(--ember);border-radius:10px;padding:12px 14px}
+  .note b{color:var(--ink)}
+</style>
+</head>
+<body>
+  <h1>Проект «ZIMA» без эмодзи (только цвет) — как показывается иконка</h1>
+  <p class="lead">Сейчас в трёх местах три разных фолбэка. Один проект выглядит по-разному. Слева — как сейчас, справа — предложение (единая цветная точка цвета проекта, без случайного эмодзи).</p>
+
+  <div class="grid">
+    <!-- СЕЙЧАС -->
+    <div class="col bad">
+      <h2>Сейчас — 3 разных</h2>
+
+      <div class="lbl">Шторка (список проектов)</div>
+      <div class="drawer-row"><span class="dot"></span><span class="nm">ZIMA</span><span class="cnt">3</span></div>
+
+      <div class="lbl">⋯-меню проекта</div>
+      <div class="menu-head"><span class="emoji big">🗂️</span><span class="nm">ZIMA</span></div>
+
+      <div class="lbl">Лист «Изменить проект»</div>
+      <div class="sheet-icon"><div class="ibtn">📁</div><span class="cap">Тапни иконку — выбрать эмодзи</span></div>
+    </div>
+
+    <!-- ВЫБРАНО -->
+    <div class="col good">
+      <h2>Выбрано — 📁 везде</h2>
+
+      <div class="lbl">Шторка (список проектов)</div>
+      <div class="drawer-row"><span class="emoji">📁</span><span class="nm">ZIMA</span><span class="cnt">3</span></div>
+
+      <div class="lbl">⋯-меню проекта</div>
+      <div class="menu-head"><span class="emoji big">📁</span><span class="nm">ZIMA</span></div>
+
+      <div class="lbl">Лист «Изменить проект»</div>
+      <div class="sheet-icon"><div class="ibtn">📁</div><span class="cap">Тапни иконку — выбрать эмодзи</span></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Что меняется:</b> только фолбэк, когда у проекта НЕ выбран эмодзи. Если эмодзи выбран через пикер — везде показывается он (как сейчас). Точка = цвета проекта (у ZIMA зелёная). <br>
+    <b>Почему точка, а не эмодзи:</b> правило проекта — emoji только как осознанная иконка через пикер; случайный 🗂️/📁 как «заглушка» = эмодзи в хроме, против правила.
+  </div>
+</body>
+</html>

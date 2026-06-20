@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { IcoBellMicro, IcoRepeatMicro, IcoCheck, IcoStage } from "./icons";
+import { IcoBellMicro, IcoRepeatMicro, IcoCheck, IcoStage, IcoXCircle } from "./icons";
 import { tg } from "../telegram";
 import { shouldShowImpact } from "../lib/impact";
 import { stageColor } from "../lib/stage";
@@ -13,6 +13,8 @@ import {
 const START_HOUR = 5; // таймлайн начинается с 05:00 (ночь 00–04 скрыта, если на неё нет задач)
 const LONGPRESS_MS = 220;       // удержание тела блока → «поднять» для переноса
 const CANCEL_PX = 12;           // сдвиг до long-press = это скролл, отменяем подъём (tolerance как у dnd-kit)
+const CLAIM_MS = 110;           // создание: палец неподвижен N мс → «клеймим» жест (блок скролла),
+                                // иначе iOS WebView крадёт удержание под скролл и срывает long-press до взвода
 const MOVE_THRESH = 16;         // мёртвая зона после взвода: дрейф пальца < порога не двигает черновик
 
 function haptic(style: "light" | "medium" = "light") {
@@ -42,7 +44,7 @@ type Draft = { startMin: number; endMin: number; title: string; state: "editing"
 
 export const DayTimeline = memo(function DayTimeline({
   tasks, byId, isToday, onTapHour, onToggle, onOpen, onResize, autoScroll = true, nowAnchorId,
-  gridRef: gridRefProp, onCreateDraft, compact = false, startHourOverride,
+  gridRef: gridRefProp, onCreateDraft, compact = false, startHourOverride, scrollToNowKey = 0,
   draft, onDraftChange, onDraftCommit, onDraftCancel, onDraftRetry, onDraftResize,
 }: {
   tasks: Task[];
@@ -65,6 +67,8 @@ export const DayTimeline = memo(function DayTimeline({
   compact?: boolean;
   /** Фикс. час начала сетки (общий для N колонок «Дни»). Без него — динамический от earliest задачи. */
   startHourOverride?: number;
+  /** Сигнал «прыгнуть к now-линии» (Today бампает при показе таба / кнопке «Сейчас»). */
+  scrollToNowKey?: number;
   /** Черновик создаваемой задачи (state живёт в родителе — Today). */
   draft?: Draft | null;
   onDraftChange?: (title: string) => void;
@@ -77,6 +81,13 @@ export const DayTimeline = memo(function DayTimeline({
   const scrollRef = useRef<HTMLDivElement>(null);
   const localGridRef = useRef<HTMLDivElement>(null);
   const gridRef = gridRefProp ?? localGridRef;
+  // GPU-transform скролл (Today timeline): смещение контента + ref-API «прыжок к now» + актуальный nowMin
+  const offsetRef = useRef(0);
+  const scrollNowRef = useRef<() => void>(() => {});
+  const scrollDraftRef = useRef<() => void>(() => {});   // подскролл черновика над клавой
+  const nowMinRef = useRef(0);
+  const draftActiveRef = useRef(false);                  // редактируется черновик → заморозить refit/скролл
+  const draftStartRef = useRef(0);
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
 
   // Начало сетки: 05:00, но растягиваем раньше, если есть задача до 05:00 (edge — задача не теряется).
@@ -121,6 +132,9 @@ export const DayTimeline = memo(function DayTimeline({
 
   // Поминутный пересчёт линии «сейчас» (мгновенный, без transition — §6).
   const [nowMin, setNowMin] = useState(() => new Date().getHours() * 60 + new Date().getMinutes());
+  nowMinRef.current = nowMin;
+  draftActiveRef.current = draft?.state === "editing";
+  draftStartRef.current = draft?.startMin ?? 0;
   useEffect(() => {
     if (!isToday) return;
     const id = window.setInterval(() => {
@@ -267,40 +281,146 @@ export const DayTimeline = memo(function DayTimeline({
   // Обычный драг по сетке = нативный СКРОЛЛ (не перехватываем!).
   // Тап = блок 1ч на месте тапа. Удержание (long-press) → ДВИГАЕМ 1ч-блок пальцем (выбор времени),
   // на отпускании блок встаёт там. Дальше длину тянешь за края готового черновика (как у блоков).
-  const createRef = useRef<{ startMin: number; originY: number; armed: boolean; moved: boolean } | null>(null);
+  const createRef = useRef<{ startMin: number; originY: number; armed: boolean; moved: boolean; claimed: boolean } | null>(null);
   const createLpRef = useRef<number | null>(null);
+  const createClaimRef = useRef<number | null>(null);   // таймер «клейма» жеста (блок скролла)
   function clearCreateLp() {
     if (createLpRef.current != null) { window.clearTimeout(createLpRef.current); createLpRef.current = null; }
+    if (createClaimRef.current != null) { window.clearTimeout(createClaimRef.current); createClaimRef.current = null; }
   }
   function gridTop(): number {
     return gridRef.current?.getBoundingClientRect().top ?? 0;
   }
+  // дебаг жеста снят после диагностики на устройстве — оставлена no-op заглушка вызовов
+  function dbg(_s: string) { /* no-op */ }
+  // GPU-TRANSFORM СКРОЛЛ (Today timeline). Лупа/iOS-перехват глушатся только блоком нативного
+  // скролла (touchstart preventDefault) → нативный скролл недоступен. Поэтому таймлайн = клип-вьюпорт
+  // фикс-высоты (overflow:hidden), а контент двигаем `translate3d` НА КОМПОЗИТОРЕ (плавно, как нативно).
+  // Создание (pointer-жест) работает поверх — gridTop() учитывает transform → расчёт минут верен.
+  useEffect(() => {
+    const sc = scrollRef.current, g = gridRef.current;
+    if (!sc || !g || autoScroll || !onCreateDraft) return;   // только Today-таймлайн (static + создание)
+
+    // maxOff КЕШИРУЕМ (не читать scrollHeight/clientHeight на каждый touchmove — это reflow = джанк)
+    let maxOff = 0;
+    const recalcMax = () => { maxOff = Math.max(0, g.scrollHeight - sc.clientHeight); };
+    const fitHeight = () => {
+      // во время редактирования черновика НЕ рефитим: клава дёргает visualViewport много раз →
+      // высота клипа скакала бы каждый кадр → черновик «прыгает». Замораживаем раскладку.
+      if (draftActiveRef.current) return;
+      const top = sc.getBoundingClientRect().top;
+      const vh = window.visualViewport?.height ?? window.innerHeight;
+      sc.style.height = `${Math.max(180, Math.round(vh - top - 76))}px`;   // до низа экрана минус таб-бар
+      recalcMax();
+    };
+    const apply = () => { g.style.transform = `translate3d(0,${-offsetRef.current}px,0)`; };
+    const setOff = (v: number) => { offsetRef.current = Math.max(0, Math.min(v, maxOff)); apply(); };
+
+    fitHeight(); apply();
+    scrollNowRef.current = () => {                            // прыжок: now-линия вверху + ~час до неё над ней
+      fitHeight();
+      setOff(((nowMinRef.current - offsetMin) / 60) * HOUR_H - 70);
+    };
+    scrollDraftRef.current = () => {                          // черновик к верху клипа (над клавой), один раз
+      setOff(((draftStartRef.current - offsetMin) / 60) * HOUR_H - 80);
+    };
+
+    let startY = 0, startOff = 0, lastY = 0, lastT = 0, vy = 0, raf = 0, dragging = false;
+    const onTS = (e: TouchEvent) => {
+      const t = e.target as HTMLElement;
+      if (t.closest(".cal-block, .cal-draft, input, textarea, button")) { dragging = false; return; }
+      e.preventDefault();                                    // глушим лупу + iOS-перехват (нативный скролл выкл.)
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      recalcMax();                                           // один reflow на старте жеста, не на каждый move
+      startY = lastY = e.touches[0].clientY; startOff = offsetRef.current; lastT = e.timeStamp; vy = 0; dragging = true;
+    };
+    const onTM = (e: TouchEvent) => {
+      if (!dragging || createRef.current?.armed) return;     // взвели создание → не скроллим (двигаем блок)
+      const y = e.touches[0].clientY;
+      offsetRef.current = Math.max(0, Math.min(startOff - (y - startY), maxOff));
+      apply();                                               // ПРЯМО (transform на композиторе дешёвый, без reflow/rAF-лага)
+      const dt = e.timeStamp - lastT;
+      if (dt > 0) { const inst = (y - lastY) / dt; vy = vy * 0.7 + inst * 0.3; }   // сглаженная скорость
+      lastY = y; lastT = e.timeStamp;
+    };
+    const onTE = () => {
+      dragging = false;
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      let v = vy * 16;                                        // инерция (затухание как нативное)
+      if (Math.abs(v) < 0.6) return;
+      const step = () => {
+        offsetRef.current = Math.max(0, Math.min(offsetRef.current - v, maxOff));
+        apply(); v *= 0.95;
+        raf = (Math.abs(v) > 0.35 && offsetRef.current > 0 && offsetRef.current < maxOff) ? requestAnimationFrame(step) : 0;
+      };
+      raf = requestAnimationFrame(step);
+    };
+    g.addEventListener("touchstart", onTS, { passive: false });
+    g.addEventListener("touchmove", onTM, { passive: false });
+    g.addEventListener("touchend", onTE);
+    g.addEventListener("touchcancel", onTE);
+    window.addEventListener("resize", fitHeight);
+    window.visualViewport?.addEventListener("resize", fitHeight);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      g.removeEventListener("touchstart", onTS);
+      g.removeEventListener("touchmove", onTM);
+      g.removeEventListener("touchend", onTE);
+      g.removeEventListener("touchcancel", onTE);
+      window.removeEventListener("resize", fitHeight);
+      window.visualViewport?.removeEventListener("resize", fitHeight);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onCreateDraft, autoScroll, offsetMin]);
+
+  // Прыжок к now-линии (по сигналу от Today: показ таба / кнопка «Сейчас»). После main-эффекта.
+  useEffect(() => { scrollNowRef.current(); }, [scrollToNowKey]);
+
+  // Вход в редактирование черновика → подскроллить его к верху (над клавой), один раз.
+  useEffect(() => {
+    if (draft?.state !== "editing") return;
+    const id = requestAnimationFrame(() => scrollDraftRef.current());
+    return () => cancelAnimationFrame(id);
+  }, [draft?.state, draft?.startMin]);
+
   function onHourDown(e: React.PointerEvent) {
-    if (!onCreateDraft) return;
+    if (!onCreateDraft) { dbg("DOWN: no onCreateDraft"); return; }
     // тап по существующему блоку/черновику — это «открыть», не «создать» (E1)
-    if ((e.target as HTMLElement).closest(".cal-block,.cal-draft")) return;
+    const hitBlock = !!(e.target as HTMLElement).closest(".cal-block,.cal-draft");
+    dbg(`DOWN tgt=${((e.target as HTMLElement).className + "").slice(0, 12)} blk=${hitBlock} pt=${e.pointerType}`);
+    if (hitBlock) return;
     setActiveId(null);   // тронули пустую сетку → снимаем активность с блока
     // НЕ stopPropagation/preventDefault и НЕ startBlocking здесь — иначе убьём нативный скролл.
     const m = pointerToMinutes(e.clientY, gridTop(), scrollRef.current?.scrollTop ?? 0, offsetMin);
-    createRef.current = { startMin: m, originY: e.clientY, armed: false, moved: false };
+    createRef.current = { startMin: m, originY: e.clientY, armed: false, moved: false, claimed: false };
     clearCreateLp();
+    // палец неподвижен CLAIM_MS → клеймим жест: глушим скролл, чтобы iOS не украл удержание ДО взвода.
+    // быстрый драг (move до CLAIM_MS) отменит этот таймер в onHourMove → нативный скролл сохранится.
+    createClaimRef.current = window.setTimeout(() => {
+      const c = createRef.current; if (c) c.claimed = true;
+      startBlocking(); dbg("CLAIM block");
+    }, CLAIM_MS);
     createLpRef.current = window.setTimeout(() => {
       const c = createRef.current;
-      if (!c) return;
+      if (!c) { dbg("ARM: createRef null"); return; }
       c.armed = true;              // взвели: жест теперь наш, протяжка ДВИГАЕТ блок
       haptic("medium");
       startBlocking();             // только теперь глушим нативный скролл
       // превью встаёт на начало часа тапнутой ячейки (драг дальше двигает точно)
       const h = Math.floor(c.startMin / 60) * 60;
       setDrag({ id: DRAFT_ID, startMin: h, endMin: h + 60 });
+      dbg("ARMED ✓");
     }, LONGPRESS_MS);
   }
   function onHourMove(e: React.PointerEvent) {
     const c = createRef.current;
     if (!c) return;
     if (!c.armed) {
-      // до взвода сдвиг = это скролл → отдаём нативу, отменяем создание
-      if (Math.abs(e.clientY - c.originY) > CANCEL_PX) { clearCreateLp(); createRef.current = null; }
+      // до взвода сдвиг пальца = это листание (ручной скролл в touchmove-эффекте) → отменяем создание.
+      // (нативный скролл заглушён touchstart-pd, потому iOS больше не крадёт удержание — взвод надёжен)
+      if (Math.abs(e.clientY - c.originY) > CANCEL_PX) {
+        dbg(`CANCEL move=${Math.round(e.clientY - c.originY)}`); clearCreateLp(); stopBlocking(); createRef.current = null;
+      }
       return;
     }
     // мёртвая зона: мелкий дрейф пальца при удержании НЕ двигает блок (баг «зажал 7:00 → встал 7:30»).
@@ -312,9 +432,11 @@ export const DayTimeline = memo(function DayTimeline({
     const start = clamp(cur, offsetMin, DAY_END - 60);
     setDrag({ id: DRAFT_ID, startMin: start, endMin: start + 60 });
   }
+  function onHourCancel() { dbg("PCANCEL (iOS забрал жест)"); onHourUp(); }
   function onHourUp() {
     clearCreateLp();
     const c = createRef.current;
+    dbg(`UP armed=${c?.armed ?? "—"}`);
     createRef.current = null;
     if (!c) return;                // скролл — создание было отменено
     const liveStart = drag?.startMin;
@@ -373,7 +495,8 @@ export const DayTimeline = memo(function DayTimeline({
         onPointerDown={onCreateDraft ? onHourDown : undefined}
         onPointerMove={onCreateDraft ? onHourMove : undefined}
         onPointerUp={onCreateDraft ? onHourUp : undefined}
-        onPointerCancel={onCreateDraft ? onHourUp : undefined}
+        onPointerCancel={onCreateDraft ? onHourCancel : undefined}
+        onContextMenu={onCreateDraft ? (e) => e.preventDefault() : undefined}
       >
         {HOURS.map((h) => (
           <div
@@ -395,6 +518,8 @@ export const DayTimeline = memo(function DayTimeline({
           const endRaw = parseMin(t.end_time);
           const baseEnd = endRaw && endRaw > baseStart ? endRaw : baseStart + 60;
           const done = t.status === "done";
+          const wontDo = t.status === "wont_do";
+          const closed = done || wontDo;   // wont_do = как выполненная (затемнён/зачёркнут), но крестик
           const live = drag && drag.id === t.id ? drag : null;
           const start = live ? live.startMin : baseStart;
           const end = live ? live.endMin : baseEnd;
@@ -405,7 +530,7 @@ export const DayTimeline = memo(function DayTimeline({
           const c = resolveColor(t.project_id, byId);
           const prio = priorityColor(t.priority); // кант строго по приоритету; none → нет цвета
           const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
-          const enabled = !!onResize && !done;
+          const enabled = !!onResize && !closed;
           const lay = cols.get(t.id) ?? { colIndex: 0, colCount: 1 };
           const heightPx = Math.max((dur / 60) * HOUR_H - 2, 22);
           const short = heightPx < 40; // короткий блок (≤~30мин): обе строки не влезают → центрируем заголовок
@@ -413,7 +538,7 @@ export const DayTimeline = memo(function DayTimeline({
             <div
               key={t.id}
               data-testid={`task-${t.id}`}
-              className={`cal-block ${done ? "done" : ""} ${live ? "resizing" : ""} ${activeId === t.id ? "active" : ""} ${short ? "short" : ""}`}
+              className={`cal-block ${closed ? "done" : ""} ${wontDo ? "wontdo" : ""} ${live ? "resizing" : ""} ${activeId === t.id ? "active" : ""} ${short ? "short" : ""}`}
               style={{
                 top: ((start - offsetMin) / 60) * HOUR_H + 1,
                 height: heightPx,
@@ -441,12 +566,12 @@ export const DayTimeline = memo(function DayTimeline({
                 </div>
               )}
               <div
-                className={`cal-cb ${done ? "done" : ""}`}
+                className={`cal-cb ${done ? "done" : ""} ${wontDo ? "wontdo" : ""}`}
                 onClick={(e) => { e.stopPropagation(); onToggle(t); }}
                 role="button"
-                aria-label="done"
+                aria-label={wontDo ? "не буду делать" : "done"}
               >
-                {done ? <IcoCheck /> : null}
+                {done ? <IcoCheck /> : wontDo ? <IcoXCircle /> : null}
               </div>
               <div
                 className="cal-block-main"

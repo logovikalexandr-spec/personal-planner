@@ -139,9 +139,9 @@ async def smart_list_counts(session) -> dict[str, int]:
     )
     count_all = r_all.scalar_one()
 
-    # today
+    # today + просрочка (= что показывает смарт-список «Сегодня»: due_date <= сегодня, не done)
     r_today = await session.execute(
-        select(func.count()).where(Task.status.in_(open_statuses), Task.due_date == today)
+        select(func.count()).where(Task.status.in_(open_statuses), Task.due_date <= today)
     )
     count_today = r_today.scalar_one()
 

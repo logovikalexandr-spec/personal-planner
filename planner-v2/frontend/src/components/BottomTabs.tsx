@@ -11,15 +11,14 @@ const TABS: { key: TabKey; label: string; Ico: (p: { active?: boolean }) => Reac
 ];
 
 export function BottomTabs({
-  active, onChange, inboxCount,
-}: { active: TabKey; onChange: (k: TabKey) => void; inboxCount: number }) {
+  active, onChange,
+}: { active: TabKey; onChange: (k: TabKey) => void }) {
   return (
     <nav className="tabbar">
       {TABS.map(({ key, label, Ico }) => (
         <button key={key} className={active === key ? "active" : ""} onClick={() => onChange(key)}>
           <Ico active={active === key} />
           <span>{label}</span>
-          {key === "today" && inboxCount > 0 && <span className="tab-badge">{inboxCount}</span>}
         </button>
       ))}
     </nav>

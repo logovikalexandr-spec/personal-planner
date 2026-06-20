@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createTask, deleteTask, getProjects, getTaskDetail, patchTask, putReminders,
 } from "../api";
@@ -39,6 +39,12 @@ function confirmDelete(message: string): Promise<boolean> {
 
 function prioClass(p: Priority): string {
   return p === "high" ? "prio-high" : p === "medium" ? "prio-medium" : p === "low" ? "prio-low" : "";
+}
+// Заметки: textarea растёт под контент до max-height (CSS), дальше скролл внутри.
+const NOTES_MAX = 156;
+function autoGrow(el: HTMLTextAreaElement) {
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight, NOTES_MAX)}px`;
 }
 function fmtDate(iso: string | null, time: string | null, end: string | null): string {
   if (!iso) return "Нет";
@@ -89,6 +95,7 @@ export function TaskDetail({
   const [subDraft, setSubDraft] = useState("");
   const [addingSub, setAddingSub] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // ⋯ меню шапки (Подзадача/Не буду делать/Удалить)
+  const notesRef = useRef<HTMLTextAreaElement>(null);
 
   async function load() {
     setStatus("loading");
@@ -107,6 +114,11 @@ export function TaskDetail({
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
+
+  // длинная заметка существующей задачи: растянуть поле под контент при открытии
+  useEffect(() => {
+    if (status === "ready" && notesRef.current) autoGrow(notesRef.current);
+  }, [status]);
 
   function patchLocal(p: Partial<TaskDetailT>) {
     setTask((cur) => (cur ? { ...cur, ...p } : cur));
@@ -132,7 +144,7 @@ export function TaskDetail({
   async function toggleDone() {
     if (!task) return;
     tg()?.HapticFeedback?.impactOccurred?.("light");
-    const next = task.status === "done" ? "todo" : "done";
+    const next = task.status === "done" || task.status === "wont_do" ? "todo" : "done";
     patchLocal({ status: next });
     await patchTask(task.id, { status: next });
     onChanged();
@@ -140,7 +152,7 @@ export function TaskDetail({
   async function toggleSub(s: TaskDetailT["subtasks"][number]) {
     if (!task) return;
     tg()?.HapticFeedback?.impactOccurred?.("light");
-    const next = s.status === "done" ? "todo" : "done";
+    const next = s.status === "done" || s.status === "wont_do" ? "todo" : "done";
     patchLocal({ subtasks: (task.subtasks ?? []).map((x) => (x.id === s.id ? { ...x, status: next } : x)) });
     await patchTask(s.id, { status: next });
     onChanged();
@@ -151,6 +163,12 @@ export function TaskDetail({
     if (!t) { setAddingSub(false); return; }
     setSubDraft("");
     await createTask(t, { parent_task_id: task.id, project_id: task.project_id });
+    await load();
+    onChanged();
+  }
+  async function deleteSubtask(s: TaskDetailT["subtasks"][number]) {
+    if (!task) return;
+    await deleteTask(s.id);
     await load();
     onChanged();
   }
@@ -227,6 +245,8 @@ export function TaskDetail({
   }
 
   const done = task.status === "done";
+  const wontDo = task.status === "wont_do";
+  const closed = done || wontDo;   // wont_do = как выполненная (зачёркнут), но крестик
   const pColor = PRIORITY_COLOR[task.priority];
   const proj = task.project_id != null ? byId.get(task.project_id) : undefined;
   const dateActive = !!task.due_date;
@@ -270,14 +290,14 @@ export function TaskDetail({
         {/* inline title + checkbox в цвете приоритета */}
         <div className="detail-title-row">
           <button
-            className={`checkbox detail-cb ${done ? "done" : ""}`}
-            style={{ borderColor: done ? undefined : pColor }}
-            onClick={toggleDone} role="checkbox" aria-checked={done} aria-label="Выполнено"
+            className={`checkbox detail-cb ${closed ? "done" : ""} ${wontDo ? "wontdo" : ""}`}
+            style={{ borderColor: closed ? undefined : pColor }}
+            onClick={toggleDone} role="checkbox" aria-checked={closed} aria-label={wontDo ? "не буду делать" : "Выполнено"}
           >
-            {done ? <IcoCheck /> : null}
+            {done ? <IcoCheck /> : wontDo ? <IcoXCircle /> : null}
           </button>
           <textarea
-            className={`detail-title-input ${done ? "title-done" : ""}`}
+            className={`detail-title-input ${closed ? "title-done" : ""}`}
             value={titleDraft}
             onChange={(e) => setTitleDraft(e.target.value)}
             onBlur={commitTitle}
@@ -287,9 +307,10 @@ export function TaskDetail({
         </div>
 
         <textarea
+          ref={notesRef}
           className="detail-notes"
           value={notesDraft}
-          onChange={(e) => setNotesDraft(e.target.value)}
+          onChange={(e) => { setNotesDraft(e.target.value); autoGrow(e.currentTarget); }}
           onBlur={commitNotes}
           placeholder="Заметки…"
           rows={2}
@@ -376,25 +397,47 @@ export function TaskDetail({
             </span>
           )}
         </div>
-        {(task.subtasks ?? []).map((s) => (
-          <TaskItem
-            key={s.id}
-            task={s}
-            onToggle={() => toggleSub(s)}
-            onOpen={onOpenTask ? () => onOpenTask(s.id) : undefined}
-            color={resolveColor(s.project_id, byId)}
-          />
-        ))}
+        {/* Вариант A (рейка): подзадачи связаны с задачей вертикальной линией-деревом.
+            Свайп подзадачи влево → Изменить (открыть деталь) / Удалить. */}
+        {(task.subtasks?.length ?? 0) > 0 && (
+          <div className="detail-sub-rail">
+            {task.subtasks!.map((s) => (
+              <div key={s.id} className="sub-rail-row">
+                <TaskItem
+                  task={s}
+                  onToggle={() => toggleSub(s)}
+                  onOpen={onOpenTask ? () => onOpenTask(s.id) : undefined}
+                  onSwipeComplete={() => toggleSub(s)}
+                  onSwipeEdit={onOpenTask ? () => onOpenTask(s.id) : undefined}
+                  onSwipeDelete={() => deleteSubtask(s)}
+                  color={resolveColor(s.project_id, byId)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
         {addingSub ? (
-          <input
-            className="detail-sub-input"
-            autoFocus
-            placeholder="Название подзадачи"
-            value={subDraft}
-            onChange={(e) => setSubDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") addSubtask(); if (e.key === "Escape") { setSubDraft(""); setAddingSub(false); } }}
-            onBlur={addSubtask}
-          />
+          <div className="add-confirm-row">
+            <span className="add-row-ico"><IcoPlus /></span>
+            <input
+              className="add-confirm-input"
+              autoFocus
+              placeholder="Название подзадачи"
+              value={subDraft}
+              onChange={(e) => setSubDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") addSubtask(); if (e.key === "Escape") { setSubDraft(""); setAddingSub(false); } }}
+              onBlur={addSubtask}
+            />
+            <button
+              className="add-confirm-btn"
+              aria-label="Сохранить подзадачу"
+              disabled={!subDraft.trim()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={addSubtask}
+            >
+              <IcoCheck />
+            </button>
+          </div>
         ) : (
           <button className="add-row" aria-label="Добавить подзадачу" onClick={() => setAddingSub(true)}>
             <span className="add-row-ico"><IcoPlus /></span>

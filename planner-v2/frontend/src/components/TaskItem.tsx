@@ -3,7 +3,7 @@ import type { Task } from "../types";
 import { tg } from "../telegram";
 import { shouldShowImpact } from "../lib/impact";
 import { stageColor } from "../lib/stage";
-import { IcoCalendar2, IcoMove, IcoTrash, IcoCheck, IcoSelectCircle, IcoXCircle, IcoStage } from "./icons";
+import { IcoCalendar2, IcoMove, IcoTrash, IcoCheck, IcoSelectCircle, IcoXCircle, IcoStage, IcoEdit } from "./icons";
 
 // Волна 2 F2 — строка задачи со свайпом + long-press → multi-select. Мокапы B (swipe) + D (select/won't-do).
 // ОДНО поведение везде (PATTERNS): этот компонент — единственная строка задачи в списках.
@@ -11,7 +11,7 @@ import { IcoCalendar2, IcoMove, IcoTrash, IcoCheck, IcoSelectCircle, IcoXCircle,
 // Long-press (~450мс) = войти в режим выбора (родитель держит selectMode/selected).
 // В режиме выбора: тап = toggle, свайп выключен, слева кружок выбора.
 
-const LEFT_REVEAL = 186; // ширина левого слота (3 кнопки по 62px), мокап B
+const BTN_W = 62; // ширина одной кнопки слота
 const RIGHT_REVEAL = 80; // ширина «Готово»
 const COMPLETE_THRESHOLD = 64; // свайп вправо дальше этого = сразу выполнить
 const OPEN_THRESHOLD = 60; // свайп влево дальше этого = зафиксировать открытый слот
@@ -42,6 +42,7 @@ export interface TaskItemProps {
   onOpen?: (t: Task) => void;
   // Волна 2 F2: свайп-действия (если не переданы — слот не показывается).
   onSwipeComplete?: (t: Task) => void;
+  onSwipeEdit?: (t: Task) => void;   // «Изменить» (подзадачи): открыть деталь
   onSwipeDate?: (t: Task) => void;
   onSwipeMove?: (t: Task) => void;
   onSwipeDelete?: (t: Task) => void;
@@ -54,9 +55,12 @@ export interface TaskItemProps {
 
 function TaskItemBase({
   task, onToggle, color, onOpen,
-  onSwipeComplete, onSwipeDate, onSwipeMove, onSwipeDelete,
+  onSwipeComplete, onSwipeEdit, onSwipeDate, onSwipeMove, onSwipeDelete,
   selectMode = false, selected = false, onLongPress, onSelectToggle,
 }: TaskItemProps) {
+  // Ширина левого слота = число активных кнопок × ширина кнопки (Изменить/Дата/В список/Удалить).
+  const leftCount = [onSwipeEdit, onSwipeDate, onSwipeMove, onSwipeDelete].filter(Boolean).length;
+  const LEFT_REVEAL = leftCount * BTN_W;
   const done = task.status === "done";
   const wontDo = task.status === "wont_do";
   const isOverdue = !done && !wontDo && isOverdueDate(task.due_date);
@@ -74,7 +78,7 @@ function TaskItemBase({
     ? `linear-gradient(0deg, ${color}22, ${color}22), var(--surface)`
     : undefined;
 
-  const swipeEnabled = !selectMode && (!!onSwipeComplete || !!onSwipeDate || !!onSwipeMove || !!onSwipeDelete);
+  const swipeEnabled = !selectMode && (!!onSwipeComplete || !!onSwipeEdit || !!onSwipeDate || !!onSwipeMove || !!onSwipeDelete);
 
   // dx = текущее смещение строки; реф для жеста, state для рендера (анимация через transform).
   const [dx, setDx] = useState(0);
@@ -160,7 +164,7 @@ function TaskItemBase({
       return;
     }
     // свайп влево → зафиксировать слот действий
-    if (dx < -OPEN_THRESHOLD && (onSwipeDate || onSwipeMove || onSwipeDelete)) {
+    if (dx < -OPEN_THRESHOLD && (onSwipeEdit || onSwipeDate || onSwipeMove || onSwipeDelete)) {
       setDx(-LEFT_REVEAL);
       openSlot.current = "left";
       return;
@@ -186,8 +190,13 @@ function TaskItemBase({
   return (
     <div className="task-swipe">
       {/* левый слот действий (виден при свайпе влево) */}
-      {swipeEnabled && (onSwipeDate || onSwipeMove || onSwipeDelete) && (
+      {swipeEnabled && (onSwipeEdit || onSwipeDate || onSwipeMove || onSwipeDelete) && (
         <div className="swipe-actions right" aria-hidden={openSlot.current !== "left"}>
+          {onSwipeEdit && (
+            <button className="swipe-btn edit" onClick={() => { closeSlot(); onSwipeEdit(task); }}>
+              <IcoEdit /><span>Изменить</span>
+            </button>
+          )}
           {onSwipeDate && (
             <button className="swipe-btn date" onClick={() => { closeSlot(); onSwipeDate(task); }}>
               <IcoCalendar2 /><span>Дата</span>

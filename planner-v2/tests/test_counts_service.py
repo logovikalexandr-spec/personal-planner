@@ -136,6 +136,8 @@ async def test_smart_list_counts(db_session):
         Task(title="a4", project_id=other.id, status="todo", due_date=in7),
         # open, due out7 -> all only
         Task(title="a5", project_id=other.id, status="todo", due_date=out7),
+        # open, overdue (due 3 дня назад) -> all + today (просрочка подтягивается в «Сегодня»)
+        Task(title="a9", project_id=other.id, status="todo", due_date=today - timedelta(days=3)),
         # done, due today -> not counted anywhere
         Task(title="a6", project_id=other.id, status="done", due_date=today),
         # archived, due today -> not counted
@@ -147,13 +149,13 @@ async def test_smart_list_counts(db_session):
 
     c = await smart_list_counts(db_session)
 
-    # all open tasks: a1, a2, a3, a4, a5, a8 = 6
-    assert c["all"] == 6
-    # today: a2 = 1
-    assert c["today"] == 1
+    # all open tasks: a1, a2, a3, a4, a5, a8, a9 = 7
+    assert c["all"] == 7
+    # today: a2 (сегодня) + a9 (просрочка) = 2
+    assert c["today"] == 2
     # tomorrow: a3 = 1
     assert c["tomorrow"] == 1
-    # next7: a2 (today), a3 (tomorrow), a4 (day 5) = 3
+    # next7: a2 (today), a3 (tomorrow), a4 (day 5) = 3 (a9 просрочка не входит в next7)
     assert c["next7"] == 3
     # inbox: a8 = 1
     assert c["inbox"] == 1
