@@ -424,6 +424,11 @@ select.input { appearance: none; -webkit-appearance: none; }
   border-top: 1px solid var(--border); padding-left: 52px;
 }
 .cal-hour:active { background: var(--surface); }
+/* маркер конца суток (00:00 на 24ч): линия + подпись на нижней границе сетки */
+.cal-hour-end {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: 1px solid var(--border); padding-left: 52px; pointer-events: none;
+}
 .cal-hourlabel {
   position: absolute; left: 0; top: -8px; width: 46px; text-align: right;
   font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
