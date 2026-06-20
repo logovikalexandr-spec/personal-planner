@@ -268,7 +268,10 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
         />
       )}
       {openedId != null && (
-        <TaskDetail taskId={openedId} onClose={() => setOpenedId(null)} onChanged={bump} onOpenTask={(id) => setOpenedId(id)} />
+        // полноэкранный оверлей (как на табе «Задачи»), а не в потоке снизу
+        <div className="detail-overlay">
+          <TaskDetail taskId={openedId} onClose={() => setOpenedId(null)} onChanged={bump} onOpenTask={(id) => setOpenedId(id)} />
+        </div>
       )}
     </div>
   );
