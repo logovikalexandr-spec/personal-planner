@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // текущая высота клавиатуры из visualViewport (0 если клавы нет / нет API)
 function kbHeight(): number {
@@ -26,7 +27,10 @@ export function Sheet({ onClose, children }: { onClose: () => void; children: Re
     };
   }, []);
 
-  return (
+  // Портал в body: иначе шит, отрендеренный внутри Drawer (у .drawer transform+
+  // will-change → containing block для position:fixed), позиционируется относительно
+  // шторки = «висит в воздухе», drag/backdrop ломаются. В body — fixed резолвится к вьюпорту.
+  return createPortal(
     <div className="sheet-backdrop" style={{ paddingBottom: pad }} onClick={onClose}>
       <div
         className="sheet"
@@ -53,6 +57,7 @@ export function Sheet({ onClose, children }: { onClose: () => void; children: Re
         <div className="sheet-grip" />
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

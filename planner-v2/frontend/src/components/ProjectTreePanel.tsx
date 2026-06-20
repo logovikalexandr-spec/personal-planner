@@ -66,11 +66,17 @@ export function ProjectTreePanel({
     getProjects().then((ps) => {
       setProjects(ps);
       setTreeState("ready");
+      // Дефолт — всё СВЁРНУТО (по слову владельца): подсписки скрыты, раскрывает сам.
+      // Раскрываем только цепочку к активному проекту, чтобы он был виден.
       if (!didInitExpand.current) {
         didInitExpand.current = true;
-        const parents = new Set<number>();
-        for (const p of ps) if (p.parent_id != null) parents.add(p.parent_id);
-        if (parents.size) setExpanded(parents);
+        if (active.kind === "project") {
+          const byId = new Map(ps.map((p) => [p.id, p]));
+          const chain = new Set<number>();
+          let cur = byId.get(active.id)?.parent_id ?? null;
+          while (cur != null) { chain.add(cur); cur = byId.get(cur)?.parent_id ?? null; }
+          if (chain.size) setExpanded(chain);
+        }
       }
     }).catch(() => setTreeState("error"));
   }

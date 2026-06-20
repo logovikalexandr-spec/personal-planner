@@ -32,6 +32,8 @@ const PROJECTS: Project[] = [
   { id: 1, name: "ZIMA", slug: "zima", is_inbox: false, parent_id: null, open_count: 3, color: "#3FB68B", icon: null, pinned: true, order_index: 0 },
   { id: 2, name: "Здоровье", slug: "health", is_inbox: false, parent_id: null, open_count: 2, color: "#5B8DEF", icon: null, pinned: false, order_index: 1 },
   { id: 3, name: "Финансы", slug: "fin", is_inbox: false, parent_id: null, open_count: 1, color: "#E0B341", icon: null, pinned: false, order_index: 2 },
+  { id: 4, name: "Духовность", slug: "spirit", is_inbox: false, parent_id: null, open_count: 9, color: "#9B6BE0", icon: "🕉️", pinned: false, order_index: 3 },
+  { id: 5, name: "Внутренняя работа", slug: "inner", is_inbox: false, parent_id: 4, open_count: 8, color: "#4FB477", icon: "🧩", pinned: false, order_index: 0 },
   { id: 99, name: "Входящие", slug: "inbox", is_inbox: true, parent_id: null, open_count: 1, color: null, icon: null, pinned: false, order_index: 99 },
 ];
 
