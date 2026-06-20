@@ -139,10 +139,10 @@ function weekDates(): { dates: string[]; todayIdx: number } {
   return { dates, todayIdx };
 }
 
-function HabitsView({ habits, onToggle, onCount, onOpen, onMenu, onBackfill, onNew }: {
+function HabitsView({ habits, onToggle, onCount, onOpen, onMenu, onCellTap, onNew }: {
   habits: HabitOut[]; onToggle: (h: HabitOut) => void; onCount: (h: HabitOut) => void;
   onOpen: (h: HabitOut) => void; onMenu: (h: HabitOut) => void;
-  onBackfill: (h: HabitOut, iso: string) => void; onNew: () => void;
+  onCellTap: (h: HabitOut, iso: string, level: number) => void; onNew: () => void;
 }) {
   if (habits.length === 0) {
     return <Empty text="Пока нет привычек. Заведи первую рутину — стрик начнётся с сегодня."
@@ -164,20 +164,20 @@ function HabitsView({ habits, onToggle, onCount, onOpen, onMenu, onBackfill, onN
           <div className="hd" />
           {WD.map((d) => <div className="hd" key={d}>{d}</div>)}
           {habits.map((h) => (
-            <HeatRow key={h.id} habit={h} dates={dates} todayIdx={todayIdx} onBackfill={onBackfill} />
+            <HeatRow key={h.id} habit={h} dates={dates} todayIdx={todayIdx} onCellTap={onCellTap} />
           ))}
         </div>
         <div className="hleg">
           меньше <span className="lv0" /><span className="lv1" /><span className="lv2" /><span className="lv3" /><span className="lv4" /> больше
         </div>
-        <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 7 }}>Тап по прошлой пустой ячейке — отметить задним числом.</div>
+        <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 7 }}>Тап по прошлому дню — отметить, снять или вписать значение.</div>
       </div>
     </>
   );
 }
 
-function HeatRow({ habit, dates, todayIdx, onBackfill }: {
-  habit: HabitOut; dates: string[]; todayIdx: number; onBackfill: (h: HabitOut, iso: string) => void;
+function HeatRow({ habit, dates, todayIdx, onCellTap }: {
+  habit: HabitOut; dates: string[]; todayIdx: number; onCellTap: (h: HabitOut, iso: string, level: number) => void;
 }) {
   const levels = habit.heat7 ?? [];
   return (
@@ -186,11 +186,11 @@ function HeatRow({ habit, dates, todayIdx, onBackfill }: {
       {dates.map((iso, i) => {
         const lv = levels[i] ?? 0;
         const isFuture = i > todayIdx;
-        const canBackfill = i < todayIdx && lv === 0; // прошлый пустой день
+        const canTap = i < todayIdx; // любой прошлый день: отметить / снять / вписать
         return (
           <div key={i} className={`cell lv${lv}`}
-            onClick={canBackfill ? () => onBackfill(habit, iso) : undefined}
-            style={{ opacity: isFuture ? 0.3 : 1, cursor: canBackfill ? "pointer" : "default" }} />
+            onClick={canTap ? () => onCellTap(habit, iso, lv) : undefined}
+            style={{ opacity: isFuture ? 0.3 : 1, cursor: canTap ? "pointer" : "default" }} />
         );
       })}
     </>
@@ -406,7 +406,7 @@ export function Tracking() {
   const [measure, setMeasure] = useState<MetricOut | null>(null);
   const [detail, setDetail] = useState<HabitOut | null>(null);
   const [editHabit, setEditHabit] = useState<HabitOut | null>(null);
-  const [countSheet, setCountSheet] = useState<HabitOut | null>(null);
+  const [countSheet, setCountSheet] = useState<{ habit: HabitOut; date: string } | null>(null);
   const [menu, setMenu] = useState<HabitOut | null>(null);
   const [metricDetail, setMetricDetail] = useState<MetricOut | null>(null);
 
@@ -428,9 +428,11 @@ export function Tracking() {
     tg()?.HapticFeedback?.impactOccurred?.("light");
     try { replaceHabit(await toggleHabit(h.id, todayISO())); } catch { load(); }
   }
-  async function onBackfillMain(h: HabitOut, iso: string) {
+  // тап по ячейке heatmap прошлого дня: check = тоггл (вкл/снять), count = открыть степпер ввода значения дня
+  async function onCellTap(h: HabitOut, iso: string, level: number) {
+    if (h.mark_type === "count") { setCountSheet({ habit: h, date: iso }); return; }
     tg()?.HapticFeedback?.impactOccurred?.("light");
-    try { replaceHabit(await backfillHabit(h.id, iso, h.target ?? 1)); } catch { load(); }
+    try { replaceHabit(await backfillHabit(h.id, iso, level > 0 ? 0 : 1)); } catch { load(); } // value<=0 = снять
   }
   function archiveHabit(h: HabitOut) {
     tg()?.showConfirm?.(`Архивировать «${h.name}»? Скроется, история сохранится.`, async (ok: boolean) => {
@@ -471,7 +473,7 @@ export function Tracking() {
         <button className={view === "retro" ? "seg-on" : ""} onClick={() => setView("retro")}>Ретро</button>
       </div>
 
-      {view === "habits" && <HabitsView habits={habits} onToggle={onToggle} onCount={setCountSheet} onOpen={setDetail} onMenu={setMenu} onBackfill={onBackfillMain} onNew={() => setSheet("habit")} />}
+      {view === "habits" && <HabitsView habits={habits} onToggle={onToggle} onCount={(h) => setCountSheet({ habit: h, date: todayISO() })} onOpen={setDetail} onMenu={setMenu} onCellTap={onCellTap} onNew={() => setSheet("habit")} />}
       {view === "metrics" && <MetricsView metrics={metrics} onOpen={setMetricDetail} onNew={() => setSheet("metric")} />}
       {view === "retro" && <RetroView retro={retro} metrics={metrics} onTaskToggle={onOverdueDone} />}
 
@@ -490,7 +492,7 @@ export function Tracking() {
         />
       )}
       {countSheet && (
-        <CountStepSheet habit={countSheet} onClose={() => setCountSheet(null)}
+        <CountStepSheet habit={countSheet.habit} date={countSheet.date} onClose={() => setCountSheet(null)}
           onSaved={(h) => { replaceHabit(h); setDetail((d) => (d && d.id === h.id ? h : d)); setCountSheet(null); }} />
       )}
       {menu && (
@@ -752,22 +754,24 @@ function EditHabitSheet({ habit, onClose, onSaved }: { habit: HabitOut; onClose:
   );
 }
 
-// #4 — count-степпер-шит: −/+ по шагу + чипы-пресеты, сохраняет дневной итог (backfill upsert).
-function CountStepSheet({ habit, onClose, onSaved }: { habit: HabitOut; onClose: () => void; onSaved: (h: HabitOut) => void }) {
+// #4 — count-степпер-шит: −/+ по шагу + чипы-пресеты, сохраняет итог дня (backfill upsert).
+// date = на какой день пишем (сегодня с карточки, или прошлый день из heatmap).
+function CountStepSheet({ habit, date, onClose, onSaved }: { habit: HabitOut; date: string; onClose: () => void; onSaved: (h: HabitOut) => void }) {
+  const isToday = date === todayISO();
   const step = habit.step ?? 1;
   const unit = habit.unit ? ` ${habit.unit}` : "";
   const round = (n: number) => Math.max(0, Math.round(n * 100) / 100);
-  const [val, setVal] = useState<number>(round(habit.today_value ?? 0));
+  const [val, setVal] = useState<number>(round(isToday ? (habit.today_value ?? 0) : 0));
   const [saving, setSaving] = useState(false);
   const presets = [step, step * 2, habit.target ?? step * 4].filter((v, i, a) => v > 0 && a.indexOf(v) === i);
   const save = async () => {
     if (saving) return; setSaving(true);
-    try { onSaved(await backfillHabit(habit.id, todayISO(), val)); } catch { setSaving(false); }
+    try { onSaved(await backfillHabit(habit.id, date, val)); } catch { setSaving(false); }
   };
   return (
     <div className="sheet-scrim" onClick={onClose}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-title">{habit.name} · сегодня</div>
+        <div className="sheet-title">{habit.name} · {isToday ? "сегодня" : fmtEntryDate(date)}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "18px 0 10px" }}>
           <button className="hchk" style={{ ["--c" as string]: habit.color }} onClick={() => setVal((v) => round(v - step))} aria-label="Минус">−</button>
           <div style={{ flex: 1, textAlign: "center" }}>
