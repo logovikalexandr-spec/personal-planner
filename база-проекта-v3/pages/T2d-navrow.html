@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Календарь — ряд навигации (дата + степпер 2/3/4/7)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#16171b; --card:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --ember:#EE8A3C; --ember-soft:rgba(238,138,60,.16);
+    --hairline:rgba(255,255,255,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;font-family:Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding:30px;color:var(--bone);display:flex;gap:34px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .phone{width:390px;background:var(--onyx);border-radius:30px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.5);padding:16px 14px 24px}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:6px 2px 12px}
+  .seg{display:flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:11px;padding:3px;margin-bottom:10px}
+  .seg button{flex:1;border:none;background:none;color:var(--steel);font-family:inherit;font-size:13px;font-weight:600;padding:7px 0;border-radius:8px}
+  .seg button.on{background:var(--slate);color:var(--bone)}
+
+  .lbl{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.5px;color:var(--steel);text-transform:uppercase;margin:18px 2px 6px}
+
+  /* ── СЕЙЧАС (плохо): дата flex:1 ест всё, степпер мелкий ── */
+  .old{display:flex;align-items:center;gap:8px;margin:0 2px}
+  .old .nav{color:var(--bone);font-size:17px;padding:4px 8px;min-width:32px;text-align:center}
+  .old .rlbl{flex:1;text-align:center;font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel)}
+  .old .step{display:flex;background:var(--smoke);border:1px solid var(--hairline);border-radius:9px;padding:2px}
+  .old .step button{border:0;background:none;color:var(--steel);font-family:"Geist Mono",monospace;font-size:12px;font-weight:600;width:26px;height:24px;border-radius:7px}
+  .old .step button.on{background:var(--slate);color:var(--ember)}
+
+  /* ── НОВОЕ: дата = группа натуральной ширины слева (центр, min под длинный месяц),
+       степпер крупнее справа (тап-таргеты 40×34, активный — ember-заливка) ── */
+  .nav2{display:flex;align-items:center;gap:10px;margin:0 2px}
+  .nav2 .dategrp{display:flex;align-items:center;gap:2px}
+  .nav2 .nav{color:var(--bone);font-size:18px;width:30px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;border:0;background:none;flex:0 0 auto}
+  .nav2 .nav:active{background:var(--smoke)}
+  /* дата: центрирована, min-width под «20–21 сентября», растёт под кросс-месяц */
+  .nav2 .rlbl{font-family:"Geist Mono",monospace;font-size:12.5px;color:var(--bone);text-align:center;min-width:108px;white-space:nowrap}
+  .nav2 .step{display:flex;gap:3px;margin-left:auto;background:var(--smoke);border:1px solid var(--hairline);border-radius:11px;padding:3px}
+  .nav2 .step button{border:0;background:none;color:var(--steel);font-family:"Geist Mono",monospace;font-size:15px;font-weight:600;width:40px;height:34px;border-radius:8px}
+  .nav2 .step button.on{background:var(--ember);color:#1a1209}
+  .nav2 .step button .sub{display:block;font-family:Geist,sans-serif;font-size:8px;font-weight:600;line-height:1;margin-top:1px;opacity:.85}
+
+  .note{font-size:12px;color:var(--steel);margin:8px 2px 0;line-height:1.5}
+  .note b{color:var(--ember)}
+  .legend{width:340px;font-size:13px;line-height:1.7}
+  .legend h2{font-size:17px;margin-bottom:10px}
+  .legend .row{margin-bottom:12px;padding-left:12px;border-left:2px solid var(--ember)}
+  .legend b{color:var(--ember)}
+  .fcode{display:inline-block;background:#EE8A3C;color:#1a1209;font-weight:700;border-radius:6px;padding:2px 8px;margin-right:8px;font-family:"Geist Mono",monospace;font-size:12px}
+</style></head>
+<body>
+
+<div class="phone">
+  <h1>Календарь</h1>
+  <div class="seg"><button class="on">Дни</button><button>Месяц</button><button>Лента</button></div>
+
+  <div class="lbl">сейчас — степпер мелкий, дата ест всё место</div>
+  <div class="old">
+    <span class="nav">‹</span>
+    <span class="rlbl">20–21 июня</span>
+    <span class="nav">›</span>
+    <span class="step"><button class="on">2</button><button>3</button><button>4</button><button>7</button></span>
+  </div>
+
+  <div class="lbl">новое — дата сжата, степпер крупный (тап 40×34, активный ember)</div>
+  <div class="nav2">
+    <span class="dategrp">
+      <button class="nav">‹</button>
+      <span class="rlbl">20–21 июня</span>
+      <button class="nav">›</button>
+    </span>
+    <span class="step">
+      <button class="on">2</button>
+      <button>3</button>
+      <button>4</button>
+      <button>7<span class="sub">нед</span></button>
+    </span>
+  </div>
+
+  <div class="lbl">проверка: самый длинный диапазон влезает</div>
+  <div class="nav2">
+    <span class="dategrp">
+      <button class="nav">‹</button>
+      <span class="rlbl">29 сент. – 5 окт.</span>
+      <button class="nav">›</button>
+    </span>
+    <span class="step">
+      <button>2</button><button>3</button><button>4</button>
+      <button class="on">7<span class="sub">нед</span></button>
+    </span>
+  </div>
+</div>
+
+<div class="legend">
+  <h2><span class="fcode">T2d·nav</span>Ряд навигации Календаря</h2>
+  <div class="row"><b>Проблема:</b> дата `flex:1` растягивалась на всю ширину → пустота по центру, а степпер 2/3/4/7 жался справа мелкими 26×24 (трудно попасть).</div>
+  <div class="row"><b>Дата</b> — группа `‹ дата ›` натуральной ширины слева, дата центрирована, `min-width` под одномесячный максимум («20–21 сентября»). Кросс-месяц («29 сент. – 5 окт.») — сокращаю месяц до 4 букв, чтобы влезал без растяжки.</div>
+  <div class="row"><b>Степпер</b> крупнее: тап-таргет <b>40×34</b> (было 26×24), шрифт 15px. Активный = <b>ember-заливка</b> (ярко видно выбор). Прижат вправо (`margin-left:auto`).</div>
+  <div class="row"><b>«7»</b> с подписью «нед» мелким под цифрой (= неделя).</div>
+  <div class="row">Освободившееся место по центру убрано — компактно, тапать удобно.</div>
+</div>
+
+</body></html>

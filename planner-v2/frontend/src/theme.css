@@ -720,9 +720,12 @@ body.inline-draft .fab { display: none; }
   font-size: 13px; font-weight: 600; color: var(--text);
 }
 .section-subcount { color: var(--text-muted); font-size: 12px; }
-/* статический таймлайн в Today: без под-скролла, естественная высота */
+/* статический таймлайн в Today: без под-скролла, естественная высота.
+   Нижний клиренс под ПЛАВАЮЩИЙ FAB+пилюлю: .app резервирует только высоту таб-бара,
+   а FAB висит на ~(--fab + --s3) выше него → без этого паддинга нижние часы (день/вечер,
+   ниже now-линии) не выскролливаются выше FAB и long-press-создание там попадает в кнопку. */
 .daytimeline--static .cal-scroll,
-.daytimeline--static.cal-scroll { overflow: visible; flex: none; }
+.daytimeline--static.cal-scroll { overflow: visible; flex: none; padding-bottom: calc(var(--fab) + var(--s5)); }
 
 /* cal-block тактильное нажатие + транзишн часа (§6) */
 .cal-block { transition: transform 140ms ease; }
@@ -1239,19 +1242,23 @@ body.inline-draft .fab { display: none; }
 .cal2-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--s4) 76px; }
 .cal2-scroll::-webkit-scrollbar { display: none; }
 .cal2-range {
-  display: flex; align-items: center; gap: var(--s2);
-  font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+  display: flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-size: 12.5px; color: var(--text-muted);
   margin: 0 2px var(--s3);
 }
-.cal2-range .rlbl { flex: 1 1 auto; text-align: center; }
+/* дата — натуральная ширина (не ест всю строку): min-width под длинный одномесячный
+   диапазон, кросс-месяц растягивает чуть шире. flex:0 1 — ужимается при «Сегодня»+степпер. */
+.cal2-range .rlbl { flex: 0 1 auto; min-width: 98px; text-align: center; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal2-range .nav {
-  background: none; border: 0; color: var(--text); font-size: 17px; line-height: 1;
-  padding: 4px 8px; cursor: pointer; min-width: 32px;
+  background: none; border: 0; color: var(--text); font-size: 18px; line-height: 1;
+  width: 24px; height: 34px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; cursor: pointer; flex: 0 0 auto;
 }
+.cal2-range .nav:active { background: var(--surface); }
 .cal2-today {
   font-family: var(--font-mono); font-size: 11px; color: var(--accent);
   border: 1px solid var(--accent-soft); background: var(--accent-soft);
-  border-radius: 8px; padding: 4px 10px; cursor: pointer;
+  border-radius: 8px; padding: 4px 8px; cursor: pointer; flex: 0 0 auto;
 }
 
 /* — состояния (empty / error / skeleton) — */
@@ -1389,16 +1396,18 @@ body.inline-draft .fab { display: none; }
 .dt-compact .cal-cb { display: none; }
 
 /* степпер 2/3/4/7 — компактный сегментед справа от диапазона (виден только в «Дни») */
+/* степпер прижат вправо (margin-left:auto), крупные тап-таргеты 34×34, активный = ember-заливка */
 .cal2-dstep {
-  display: flex; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 9px; padding: 2px; flex: 0 0 auto;
+  display: flex; gap: 2px; margin-left: auto; flex: 0 0 auto;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 11px; padding: 3px;
 }
 .cal2-dstep button {
   position: relative; border: 0; background: none; color: var(--text-muted);
-  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
-  min-width: 26px; height: 24px; border-radius: 7px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 15px; font-weight: 600;
+  width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
 }
-.cal2-dstep button.on { background: var(--surface-2); color: var(--accent); }
+.cal2-dstep button.on { background: var(--accent); color: var(--accent-contrast); }
 
 /* ── МЕСЯЦ ── */
 .cm-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 7px; }
