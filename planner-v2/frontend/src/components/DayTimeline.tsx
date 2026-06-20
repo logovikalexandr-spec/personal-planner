@@ -10,7 +10,6 @@ import {
   pointerToMinutes, defaultRange, normalizeRange,
 } from "../lib/timelineLayout";
 
-const START_HOUR = 5; // таймлайн начинается с 05:00 (ночь 00–04 скрыта, если на неё нет задач)
 const LONGPRESS_MS = 220;       // удержание тела блока → «поднять» для переноса
 const CANCEL_PX = 12;           // сдвиг до long-press = это скролл, отменяем подъём (tolerance как у dnd-kit)
 const CLAIM_MS = 110;           // создание: палец неподвижен N мс → «клеймим» жест (блок скролла),
@@ -90,17 +89,9 @@ export const DayTimeline = memo(function DayTimeline({
   const draftStartRef = useRef(0);
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
 
-  // Начало сетки: 05:00, но растягиваем раньше, если есть задача до 05:00 (edge — задача не теряется).
+  // Начало сетки: 00:00 (полные сутки — владелец хочет 00:00 в начале и в конце).
   // startHourOverride: общий старт для N колонок «Дни» (иначе разный earliest рассинхронит высоты).
-  const startHour = useMemo(() => {
-    if (startHourOverride != null) return startHourOverride;
-    let min = START_HOUR;
-    for (const t of timed) {
-      const m = parseMin(t.due_time);
-      if (m != null) min = Math.min(min, Math.floor(m / 60));
-    }
-    return min;
-  }, [timed, startHourOverride]);
+  const startHour = startHourOverride ?? 0;
   const HOURS = useMemo(
     () => Array.from({ length: 24 - startHour }, (_, i) => startHour + i),
     [startHour],
@@ -492,10 +483,10 @@ export const DayTimeline = memo(function DayTimeline({
         className="cal-grid"
         data-testid="cal-grid"
         ref={gridRef}
-        // при редактировании черновика добавляем нижний воздух (≈высота клавы): scrollHeight растёт →
-        // maxOff растёт → поздний черновик (напр. 19:00) можно поднять к верху клипа над клавой одним
-        // transform-скроллом. Без спейсера late-блок упирался в кламп и застревал у клавы.
-        style={{ height: HOURS.length * HOUR_H + (draft?.state === "editing" ? 360 : 0) }}
+        // Нижний воздух: (а) ~110px у Today, чтобы метку 24:00 (00:00) можно было проскроллить
+        // выше плавающих «Список»/FAB/таб-бара (иначе она прячется за ними у нижней границы);
+        // (б) при редактировании черновика +360 (≈высота клавы) — late-черновик поднимается над клавой.
+        style={{ height: HOURS.length * HOUR_H + (compact ? 0 : 110) + (draft?.state === "editing" ? 360 : 0) }}
         onPointerDown={onCreateDraft ? onHourDown : undefined}
         onPointerMove={onCreateDraft ? onHourMove : undefined}
         onPointerUp={onCreateDraft ? onHourUp : undefined}
@@ -512,6 +503,11 @@ export const DayTimeline = memo(function DayTimeline({
             <span className="cal-hourlabel">{`${h}`.padStart(2, "0")}:00</span>
           </div>
         ))}
+
+        {/* конец суток: маркер 00:00 на отметке 24ч (нижняя граница сетки) */}
+        <div className="cal-hour-end" style={{ top: HOURS.length * HOUR_H }}>
+          <span className="cal-hourlabel">00:00</span>
+        </div>
 
         {timed.map((t) => {
           const baseStart = parseMin(t.due_time)!;

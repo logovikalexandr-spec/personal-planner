@@ -16,7 +16,8 @@ function cmpSmartTask(a: Task, b: Task): number {
   if (da !== db) return da < db ? -1 : 1;
   const ta = a.due_time ?? "99:99", tb = b.due_time ?? "99:99";
   if (ta !== tb) return ta < tb ? -1 : 1;
-  return 0;
+  return a.id - b.id;   // стабильный тайбрейк (id неизменен) → позиция детерминирована,
+                        // отметка «готово»/рефетч НЕ перетасовывают задачу — стоит там же
 }
 
 // Волна 2 F2 — общий рендер списка задач: свайпы + long-press multi-select + batch-панель
@@ -47,18 +48,16 @@ export function TaskListBody({
 }: TaskListBodyProps) {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [closedOpen, setClosedOpen] = useState(false); // секция «Выполнено и Won't Do»
   const [collapsedGroups, setCollapsedGroups] = useState<Set<number | "none">>(new Set());
 
-  const open = useMemo(() => tasks.filter((t) => t.status !== "done" && t.status !== "wont_do"), [tasks]);
-  const closed = useMemo(() => tasks.filter((t) => t.status === "done" || t.status === "wont_do"), [tasks]);
-
-  // группы открытых задач по проектам. Порядок групп = КАК В ШТОРКЕ (древо-порядок:
-  // pinned → order_index → name, родитель перед детьми); «без проекта» — в конец.
-  // Внутри группы: приоритет ↓ (Высокий→Средний→Низкий→без), затем дата ↑ (старше сверху), время ↑.
+  // ВСЕ задачи (вкл. done/wont_do) рендерятся в группах: выполненная остаётся на своём
+  // месте зачёркнутой (как на таймлайне), не уезжает в отдельную секцию. Клик по чекбоксу
+  // тогглит обратно. Отдельной секции «Выполнено» нет.
+  // Порядок групп = КАК В ШТОРКЕ (древо-порядок: pinned → order_index → name, родитель
+  // перед детьми); «без проекта» — в конец. Внутри группы: приоритет ↓, дата ↑, время ↑.
   const groups = useMemo(() => {
     if (!groupByProjectMap) return null;
-    const gs = groupByProject(open, groupByProjectMap);
+    const gs = groupByProject(tasks, groupByProjectMap);
     gs.forEach((g) => g.tasks.sort(cmpSmartTask));
     // ранг проекта по тому же обходу дерева, что рисует шторка (flatten развёрнутого дерева)
     const all = [...groupByProjectMap.values()].sort(
@@ -71,7 +70,7 @@ export function TaskListBody({
       if (!b.project) return -1;
       return (rank.get(a.project.id) ?? 1e9) - (rank.get(b.project.id) ?? 1e9);
     });
-  }, [open, groupByProjectMap]);
+  }, [tasks, groupByProjectMap]);
 
   const selectedTasks = useMemo(() => tasks.filter((t) => selected.has(t.id)), [tasks, selected]);
 
@@ -121,7 +120,7 @@ export function TaskListBody({
     />
   );
   function selectAll() {
-    setSelected(new Set(open.map((t) => t.id)));
+    setSelected(new Set(tasks.map((t) => t.id)));
   }
 
   // batch-обёртка: вызвать действие над выбранными, затем выйти из режима.
@@ -159,33 +158,7 @@ export function TaskListBody({
           );
         })
       ) : (
-        <div className="list">{open.map(renderTask)}</div>
-      )}
-
-      {closed.length > 0 && (
-        <div className="closed-section">
-          <button className="closed-head" onClick={() => setClosedOpen((v) => !v)}>
-            <span className={`closed-chev ${closedOpen ? "open" : ""}`}><IcoChevron /></span>
-            <span>Выполнено и Won't Do</span>
-            <span className="closed-count mono">· {closed.length}</span>
-          </button>
-          {closedOpen && (
-            <div className="list" style={{ marginTop: 8 }}>
-              {closed.map((t) => (
-                <TaskItem
-                  key={t.id}
-                  task={t}
-                  onToggle={onToggle}
-                  onOpen={onOpen}
-                  color={colorOf?.(t)}
-                  selectMode={selectMode}
-                  selected={selected.has(t.id)}
-                  onSelectToggle={toggleSelect}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        <div className="list">{tasks.map(renderTask)}</div>
       )}
 
       {selectMode && (

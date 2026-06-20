@@ -19,13 +19,23 @@ const LONGPRESS_MS = 450;
 
 // Дата/время строки задачи: ISO -> «3 июня», время -> «17:00» (без секунд). Мета DESIGN §"Строка задачи".
 const MONTH_SHORT = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
-function fmtMeta(date: string | null, time: string | null): string {
+function fmtDay(date: string): string | null {
+  const d = new Date(date + "T00:00:00");
+  return Number.isNaN(d.getTime()) ? null : `${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`;
+}
+// Полная длительность: «20 июн · 19:00–22:00»; многодневная: «20 июн – 22 июн · 19:00–22:00».
+function fmtMeta(date: string | null, time: string | null, endDate?: string | null, endTime?: string | null): string {
   const parts: string[] = [];
   if (date) {
-    const d = new Date(date + "T00:00:00");
-    if (!Number.isNaN(d.getTime())) parts.push(`${d.getDate()} ${MONTH_SHORT[d.getMonth()]}`);
+    const ds = fmtDay(date);
+    const de = endDate && endDate !== date ? fmtDay(endDate) : null;
+    if (ds) parts.push(de ? `${ds} – ${de}` : ds);
   }
-  if (time) parts.push(time.slice(0, 5));
+  if (time) {
+    const t1 = time.slice(0, 5);
+    const t2 = endTime ? endTime.slice(0, 5) : null;
+    parts.push(t2 && t2 !== t1 ? `${t1}–${t2}` : t1);
+  }
   return parts.join(" · ");
 }
 function isOverdueDate(date: string | null): boolean {
@@ -257,7 +267,7 @@ function TaskItemBase({
               className="mono"
               style={{ fontSize: 13, marginTop: 2, color: isOverdue ? "var(--danger)" : "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}
             >
-              {(task.due_date || task.due_time) && <span>{fmtMeta(task.due_date, task.due_time)}</span>}
+              {(task.due_date || task.due_time) && <span>{fmtMeta(task.due_date, task.due_time, task.end_date, task.end_time)}</span>}
               {task.stage_label && (
                 <span className="stagelbl" style={{ color: stageColor(task.stage_status) }}>
                   <IcoStage />{task.stage_label}{task.stage_status === "late" ? " !" : ""}
