@@ -3,6 +3,7 @@ import { TaskItem } from "./TaskItem";
 import { BatchBar } from "./BatchBar";
 import { IcoChevron } from "./icons";
 import { groupByProject } from "../lib/groupByProject";
+import { flatten } from "../lib/projectTree";
 import type { Project, Task } from "../types";
 
 // Сортировка задач внутри группы смарт-списка: приоритет ↓, дата ↑ (старше сверху), время ↑.
@@ -52,14 +53,24 @@ export function TaskListBody({
   const open = useMemo(() => tasks.filter((t) => t.status !== "done" && t.status !== "wont_do"), [tasks]);
   const closed = useMemo(() => tasks.filter((t) => t.status === "done" || t.status === "wont_do"), [tasks]);
 
-  // группы открытых задач по проектам (закреплённые проекты выше); null-проект последней группой.
+  // группы открытых задач по проектам. Порядок групп = КАК В ШТОРКЕ (древо-порядок:
+  // pinned → order_index → name, родитель перед детьми); «без проекта» — в конец.
   // Внутри группы: приоритет ↓ (Высокий→Средний→Низкий→без), затем дата ↑ (старше сверху), время ↑.
-  // Без даты — в конец. (по запросу владельца для смарт-списков.)
   const groups = useMemo(() => {
     if (!groupByProjectMap) return null;
     const gs = groupByProject(open, groupByProjectMap);
     gs.forEach((g) => g.tasks.sort(cmpSmartTask));
-    return gs.sort((a, b) => Number(b.project?.pinned ?? false) - Number(a.project?.pinned ?? false));
+    // ранг проекта по тому же обходу дерева, что рисует шторка (flatten развёрнутого дерева)
+    const all = [...groupByProjectMap.values()].sort(
+      (a, b) => Number(b.pinned) - Number(a.pinned) || a.order_index - b.order_index || a.name.localeCompare(b.name),
+    );
+    const rank = new Map<number, number>();
+    flatten(all).forEach((p, i) => rank.set(p.id, i));
+    return gs.sort((a, b) => {
+      if (!a.project) return 1;            // «Без проекта» — всегда в конец
+      if (!b.project) return -1;
+      return (rank.get(a.project.id) ?? 1e9) - (rank.get(b.project.id) ?? 1e9);
+    });
   }, [open, groupByProjectMap]);
 
   const selectedTasks = useMemo(() => tasks.filter((t) => selected.has(t.id)), [tasks, selected]);
