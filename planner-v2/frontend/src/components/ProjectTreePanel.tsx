@@ -132,7 +132,11 @@ export function ProjectTreePanel({
         .map((p) => { const u = patchMap.get(p.id); return u ? { ...p, parent_id: u.parent_id, order_index: u.order_index } : p; })
         .sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.order_index - b.order_index || a.name.localeCompare(b.name)),
     );
-    try { await reorderProjects(items); } finally { loadProjects(); }
+    // Оптимистик уже переставил локально тем же sort, что персистит сервер (pinned, order_index,
+    // name) → серверная правда == текущий стейт. НЕ перезагружаем на успехе: loadProjects дёргал
+    // treeState→"loading" (скелетон-флип) + полный setProjects ремонтил dnd-список = экран дёргался
+    // после дропа. Перезагрузка ТОЛЬКО при ошибке — откатить к правде сервера.
+    try { await reorderProjects(items); } catch { loadProjects(); }
   }
 
   return (
