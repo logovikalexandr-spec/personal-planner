@@ -151,7 +151,7 @@ function HeatRow({ name, levels }: { name: string; levels: number[] }) {
   return (
     <>
       <div className="rn">{name}</div>
-      {levels.map((lv, i) => <div key={i} className={`cell lv${lv}`} />)}
+      {(levels ?? []).map((lv, i) => <div key={i} className={`cell lv${lv}`} />)}
     </>
   );
 }

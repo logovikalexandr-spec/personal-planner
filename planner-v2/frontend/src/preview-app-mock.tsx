@@ -2,6 +2,7 @@ import "./theme.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import type { Project, Task } from "./types";
 
 // ── Весь App с мок-сетью (для аудита дрейфа: все экраны/табы рендерятся с данными) ──
@@ -47,9 +48,22 @@ const HEAT: Record<string, "g" | "y" | "r"> = {
   [TODAY]: "g", "2026-06-04": "r", "2026-06-09": "y", "2026-06-11": "g", "2026-06-12": "r", "2026-06-18": "r",
 };
 
+// Этапы проектов (Форк 0) — для Гант (T3) + Цели (T4) в app-навигации.
+const STAGES: Record<number, unknown[]> = {
+  1: [
+    { id: 11, project_id: 1, name: "Подготовка", order_index: 0, start_date: "2026-06-01", end_date: "2026-06-15", status: "done", progress: 100, is_milestone: false, milestone_date: null, depends_on_ids: [] },
+    { id: 12, project_id: 1, name: "Переговоры", order_index: 1, start_date: "2026-06-15", end_date: "2026-07-10", status: "current", progress: 60, is_milestone: false, milestone_date: null, depends_on_ids: [11] },
+    { id: 13, project_id: 1, name: "Сделка", order_index: 2, start_date: "2026-07-10", end_date: "2026-08-15", status: "future", progress: 0, is_milestone: true, milestone_date: "2026-08-15", depends_on_ids: [12] },
+  ],
+  2: [
+    { id: 21, project_id: 2, name: "Анализы", order_index: 0, start_date: "2026-06-05", end_date: "2026-06-22", status: "late", progress: 30, is_milestone: false, milestone_date: "2026-06-22", depends_on_ids: [] },
+  ],
+  3: [],
+};
+
 const HABITS = [
-  { id: 1, name: "Зарядка + валик", color: "#5B8DEF", mark_type: "check", target: null, unit: null, step: null, done_today: true, streak: 12, week: [true, true, true, true, true, false, false], week_done: 5, today_value: 1, heat_level: 4 },
-  { id: 2, name: "Вода 2л", color: "#3FB68B", mark_type: "count", target: 2, unit: "л", step: 0.5, done_today: false, streak: 4, week: [true, true, true, false, true, false, false], week_done: 4, today_value: 1, heat_level: 2 },
+  { id: 1, name: "Зарядка + валик", color: "#5B8DEF", mark_type: "check", target: null, unit: null, step: null, done_today: true, streak: 12, week: [true, true, true, true, true, false, false], week_done: 5, today_value: 1, heat_level: 4, heat7: [4, 4, 3, 4, 4, 0, 0] },
+  { id: 2, name: "Вода 2л", color: "#3FB68B", mark_type: "count", target: 2, unit: "л", step: 0.5, done_today: false, streak: 4, week: [true, true, true, false, true, false, false], week_done: 4, today_value: 1, heat_level: 2, heat7: [2, 3, 2, 0, 2, 0, 0] },
 ];
 const METRICS = [
   { id: 1, name: "Вес", unit: "кг", good_direction: "down", color: "#3FB68B", archived: false, order_index: 0, last_value: 78, last_date: TODAY, week_delta: -0.5 },
@@ -74,6 +88,10 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   if (url.includes("/api/counts")) return json({ inbox: 1, today: DAY_TASKS.length, overdue: OVERDUE.length });
   if (url.includes("/api/tags")) return json([]);
   if (url.includes("/api/tasks/density")) return json(HEAT);
+  if (url.includes("/api/stages")) {
+    const pid = Number(new URL(url, "http://x").searchParams.get("project_id"));
+    return json(STAGES[pid] ?? []);
+  }
   if (url.includes("/api/milestones")) return json([]);
   if (url.includes("/api/inbox")) return json(INBOX);
   if (url.includes("/api/habits")) return json(HABITS);
@@ -97,5 +115,5 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof window.fetch;
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode><App /></StrictMode>,
+  <StrictMode><ErrorBoundary><App /></ErrorBoundary></StrictMode>,
 );
