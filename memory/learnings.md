@@ -2,6 +2,14 @@
 
 > Что узнали по ходу. Одна запись = один урок. Линкуй `[[решения/X]]`.
 
+## Цвет за скруглённый угол карточки = overflow:hidden НЕ клипает на дробном transform-слое → clip-path (2026-06-20)
+**Симптом:** у тинт/бордюр-карточек (блоки таймлайна `.cal-block`, all-day `.cal-chip`, строки списка `.task-row`/`.task-swipe`) цвет вылезал тонкой ДУГОЙ за правый/левый скруглённый угол на iOS. В списке — красный (слот свайпа «Удалить» за строкой), на таймлайне — тинт/border-left.
+**3 ЛОЖНЫХ ФИКСА (вслепую, НЕ повторять):** (1) child сам скругляет фон + radius:0/var; (2) `translateZ(0)` на родителе `.task-swipe`; (3) `translateZ(0)` на самом элементе («промотировать в свой слой»). Все мимо — translateZ сам шов и ПРОВОЦИРУЕТ. `-webkit-mask-image: radial-gradient` тоже НЕ помог.
+**КАК ВОСПРОИЗВЁЛ (ключевой приём!):** десктоп-Chromium ОБЫЧНО не показывает (целочисленный сдвиг). Репро: поставить родителю `transform: translate3d(0,-0.37px,0)` (ДРОБНЫЙ — имитирует инерцию скролла `.cal-grid`) + элементу `transform: scale(7)` + зум угла. Тогда `overflow:hidden+border-radius` светит цвет сзади тонкой дугой — видно в Chromium через chrome-devtools (preview-app-mock на vite). Запуск Chrome для MCP: `Google Chrome --remote-debugging-port=9222 --headless=new`, потом navigate.
+**ИСТИННЫЙ КОРЕНЬ:** `overflow:hidden` + `border-radius` НЕ обрезает скруглённый угол идеально, когда контейнер на дробно-сдвинутом GPU-слое (composited + non-integer offset). WebKit рисует контент/задний слой на ~1px за радиус.
+**ФИКС (подтверждён в репро живьём):** `clip-path: inset(0 round R)` — клипает точно, GPU-аккуратно, угол чистый. Добавлен к `.task-swipe`/`.cal-block`/`.cal-chip` (оставил overflow+radius как fallback). Клипает и задний слой (свайп), и border-left, и тинт.
+**Применять:** скруглённая карточка с цветом/задним слоем внутри transform-контекста (GPU-скролл/инерция) на iOS → клип через `clip-path: inset(0 round R)`, НЕ только `overflow:hidden`. Десктоп-репро = дробный `translate3d` на предке + scale-зум. translateZ-промоция НЕ лечит. Связано: [[feedback-visual-verify]].
+
 ## iOS-таймлайн: long-press-создание vs нативный скролл vs лупа = трилемма → GPU-transform скролл (2026-06-20)
 **Симптом:** long-press-создание задачи на таймлайне Today «не работает ниже now-линии». Долгая сага диагностики.
 **ЛОЖНЫЕ СЛЕДЫ (каждый отвергнут замером, НЕ повторять):** now-line (`pointer-events:none` ✓ не виновата) · FAB/таб-бар клиренс (перекрывают лишь низ ~56-130px) · код-гейт по `nowMin` (нет, grep) · «граница=now» = артефакт авто-скролла (тестируемая зона = ниже now) · `user-select:none`+`touch-callout:none` (применяются — computed `none` — но Telegram-WebView лупу НЕ глушат) · `selectstart`/`dragstart` preventDefault (не глушат лупу) · `disableVerticalSwipes` (уже был).
