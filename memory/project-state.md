@@ -2,6 +2,23 @@
 
 > Где остановились. Апдейтить на `/wrapup`.
 
+## Последнее обновление: 2026-06-20 (ФИНАЛ: T3+T4 слиты → ВСЕ 5 табов на проде, single build)
+
+**Сделано:** домержены последние 2 блока в `planner-v2-phase0` → один build → деплой.
+- `merge feat/t3-gantt` (17ce259) + `merge feat/t4-goals` (1a40dad). Конфликт ТОЛЬКО `theme.css` (оба аппендят секции в хвост от базы d934e7b) — резолв = оставить обе секции (T2→T3→T4), 0 потерь. Gantt.tsx/Goals.tsx — без конфликтов (per-screen файлы).
+- **Гейт зелёный:** lint:tokens PASS · tsc 0 · vitest 66 · vite build чист · **e2e 104 passed / 12 skipped / exit 0** (T3+T4 функц.+токен-смоук на chromium+webkit; 12 skip = визуал-baseline T3/T4, эталон утверждает владелец).
+- **ЗАДЕПЛОЕНО:** frontend-only rsync → `docker compose build && up`. Бэк НЕ трогал (прод alembic head `b9c0d1e2f3a4` = downstream от Форк0/impact/habits/stages → бэк полный, все эндпоинты живые). Прод-бандл `index-Cq_chkmP.js` (= локальный build-хэш), health 200, маркеры g-seg(T3)/t4-card/t4-pulse в живом бандле.
+- **Итог: 5 табов на проде** — Задачи · Календарь · Гант · Цели · Привычки. Один build, без клоббера.
+
+**ОСТАЛОСЬ (только человек/владелец):**
+1. **Финальный визуал-гейт в Telegram** по Гант+Цели (открыть Mini App, глазами под мокап T3a/b + T4-celi).
+2. **Baseline-утверждение** (агент НЕ трогает): после визуал-ОК владелец сам `npx playwright test T3-gantt T4-celi --update-snapshots --project=chromium` → закоммитить эталоны (тогда 12 skip станут зелёными визуал-тестами).
+3. Старые TODO актуальны: per-worktree порты vite; стейл T1 baseline; error-boundary; pinch-zoom/драг Волна-2 T3 (в COVERAGE-DEFER).
+
+**Worktree-ветки** feat/t3-gantt/feat/t4-goals слиты — можно `git worktree remove planner-wt-t3 planner-wt-t4` (по слову владельца).
+
+---
+
 ## Последнее обновление: 2026-06-15 (КООРДИНАТОР: T1-доводка + T2 слит → ОБА на проде; T3/T4 в работе)
 
 **Прод:** `index-DzivQVfq.js`, health 200. Содержит **T1 (мои правки) + T2 Календарь**. Полный лог — [сессия 2026-06-15](../контекст/сессии/2026-06-15.md).
