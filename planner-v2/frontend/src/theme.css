@@ -514,7 +514,9 @@ body.inline-draft .fab { display: none; }
 
 /* now-линия чисто декоративна → НЕ перехватывает указатель (иначе крадёт клик/long-press
    у блока, в который попадает текущее время; «Тоо» 10:00–12:45 ловила линию в центре). */
-.cal-now { position: absolute; left: 50px; right: 0; height: 2px; background: var(--accent); z-index: 3; pointer-events: none; }
+.cal-now { position: absolute; left: 50px; right: 0; height: 2px; background: var(--accent); z-index: 3; pointer-events: none;
+  /* авто-скролл block:end ставит линию выше нижней панели (FAB+таб-бар) + ~час контекста */
+  scroll-margin-bottom: calc(var(--tab-h) + var(--fab) + var(--s6)); }
 .cal-now::before {
   content: ""; position: absolute; left: 0; top: -3px; width: 8px; height: 8px;
   border-radius: 50%; background: var(--accent);
@@ -1241,6 +1243,9 @@ body.inline-draft .fab { display: none; }
 /* нижний отступ прокрутки = свёрнутый лоток (~52px) + воздух, чтобы легенда не пряталась за ним */
 .cal2-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--s4) 76px; }
 .cal2-scroll::-webkit-scrollbar { display: none; }
+/* шапка: заголовок слева + «Сегодня» справа (вынесен из ряда навигации выше) */
+.cal2-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.cal2-head h1 { margin: 0; }
 .cal2-range {
   display: flex; align-items: center; gap: 4px;
   font-family: var(--font-mono); font-size: 12.5px; color: var(--text-muted);
@@ -1396,16 +1401,16 @@ body.inline-draft .fab { display: none; }
 .dt-compact .cal-cb { display: none; }
 
 /* степпер 2/3/4/7 — компактный сегментед справа от диапазона (виден только в «Дни») */
-/* степпер прижат вправо (margin-left:auto), крупные тап-таргеты 34×34, активный = ember-заливка */
+/* степпер заполняет ряд (Сегодня вынесен выше): flex:1, кнопки равной ширины (пропорционально) */
 .cal2-dstep {
-  display: flex; gap: 2px; margin-left: auto; flex: 0 0 auto;
+  display: flex; gap: 2px; flex: 1 1 auto; margin-left: 8px;
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 11px; padding: 3px;
 }
 .cal2-dstep button {
-  position: relative; border: 0; background: none; color: var(--text-muted);
+  position: relative; flex: 1 1 0; border: 0; background: none; color: var(--text-muted);
   font-family: var(--font-mono); font-size: 15px; font-weight: 600;
-  width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+  height: 34px; border-radius: 8px; cursor: pointer;
 }
 .cal2-dstep button.on { background: var(--accent); color: var(--accent-contrast); }
 

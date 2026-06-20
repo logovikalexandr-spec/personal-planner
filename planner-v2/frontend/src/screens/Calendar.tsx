@@ -136,7 +136,10 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
   return (
     <div className="cal2" data-testid="screen-calendar" data-view={view}>
       <div style={{ padding: "var(--s5) var(--s4) 0" }}>
-        <h1>Календарь</h1>
+        <div className="cal2-head">
+          <h1>Календарь</h1>
+          {!isCurrentPeriod && <button className="cal2-today" data-testid="cal-today" onClick={goToday}>Сегодня</button>}
+        </div>
         <div className="seg" role="tablist">
           <button className={view === "days" ? "seg-on" : ""} data-testid="seg-days" onClick={() => setView("days")}>Дни</button>
           <button className={view === "month" ? "seg-on" : ""} data-testid="seg-month" onClick={() => setView("month")}>Месяц</button>
@@ -146,7 +149,6 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
           {showNav && <button className="nav" data-testid="cal-prev" aria-label="Назад" onClick={() => shift(-1)}>‹</button>}
           <span className="rlbl" data-testid="cal-range">{rangeLabel}</span>
           {showNav && <button className="nav" data-testid="cal-next" aria-label="Вперёд" onClick={() => shift(1)}>›</button>}
-          {!isCurrentPeriod && <button className="cal2-today" data-testid="cal-today" onClick={goToday}>Сегодня</button>}
           {view === "days" && (
             <div className="cal2-dstep" role="group" aria-label="Кол-во дней">
               {DAY_COUNTS.map((n) => (
