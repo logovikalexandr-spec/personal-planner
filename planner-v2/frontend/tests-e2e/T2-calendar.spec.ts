@@ -132,23 +132,32 @@ test("лента: группы Сегодня/Завтра + строка сво
   await expect(page.locator('[data-testid="cal-agenda"] .ca-free').first()).toBeVisible();
 });
 
-test("лента: веха-строка + метка этапа + дедлайн-бейдж (A3, A4, A6, A7)", async ({ page }) => {
+test("лента: веха-строка + метка этапа (общий TaskItem) (A3, A4, A6)", async ({ page }) => {
   await page.clock.install({ time: NOON });
   await page.goto(VIEW);
   await page.getByTestId("seg-agenda").click();
   await expect(page.getByTestId("ca-veha-103")).toContainText("Юр.готовность ZIMA");
   await expect(page.getByTestId("ca-veha-103")).toContainText("веха");
+  // задачи рендерятся общим TaskItem (как везде) — метка этапа видна в карточке
   await expect(page.getByTestId("ca-task-13")).toContainText("этап 4");
-  await expect(page.locator('[data-testid="cal-agenda"] .ca-danger').first()).toContainText("важно");
 });
 
-test("лента: чекбокс закрывает задачу не уходя с ленты", async ({ page }) => {
+test("лента: чекбокс TaskItem закрывает задачу не уходя с ленты", async ({ page }) => {
   await page.clock.install({ time: NOON });
   await page.goto(VIEW);
   await page.getByTestId("seg-agenda").click();
   const row = page.getByTestId("ca-task-11");
-  await row.locator(".ca-chk").click();
-  await expect(row.locator(".ca-chk")).toHaveClass(/done/);
+  await row.locator(".checkbox").click();
+  await expect(row.locator(".checkbox")).toHaveClass(/done/);
+});
+
+test("лента: «Просрочено» сворачивается по тапу (A8)", async ({ page }) => {
+  await page.goto(VIEW);
+  await page.getByTestId("seg-agenda").click();
+  const od = page.getByTestId("ca-overdue");
+  await expect(od.getByTestId("ca-task-30")).toBeVisible();   // развёрнуто по умолчанию (overdue id=30)
+  await page.getByTestId("ca-overdue-toggle").click();         // свернуть
+  await expect(od.getByTestId("ca-task-30")).toHaveCount(0);
 });
 
 // ── СОСТОЯНИЯ ──

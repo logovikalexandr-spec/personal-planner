@@ -404,6 +404,17 @@ select.input { appearance: none; -webkit-appearance: none; }
 /* margin (не padding!) — первый лейбл 05:00 (top:-8px) не режется липкой шапкой;
    margin двигает rect.top целиком → жест-математика (getBoundingClientRect) не ломается. */
 .cal-grid { position: relative; margin-top: var(--s3); }
+/* iOS: при удержании на сетке всплывала лупа выделения текста и КРАЛА long-press-создание
+   (палец отпускался раньше взвода). Жёстко глушим выделение/callout на всём поддереве сетки. */
+.cal-grid, .cal-grid * {
+  -webkit-user-select: none !important; user-select: none !important;
+  -webkit-touch-callout: none !important; -webkit-user-drag: none;
+}
+/* инпут черновика — выделение текста нужно (ввод названия) */
+.cal-grid input, .cal-grid textarea {
+  -webkit-user-select: text !important; user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
 .cal-hour {
   position: relative; box-sizing: border-box;
   border-top: 1px solid var(--border); padding-left: 52px;
@@ -515,8 +526,8 @@ body.inline-draft .fab { display: none; }
 /* now-линия чисто декоративна → НЕ перехватывает указатель (иначе крадёт клик/long-press
    у блока, в который попадает текущее время; «Тоо» 10:00–12:45 ловила линию в центре). */
 .cal-now { position: absolute; left: 50px; right: 0; height: 2px; background: var(--accent); z-index: 3; pointer-events: none;
-  /* авто-скролл block:end ставит линию выше нижней панели (FAB+таб-бар) + ~час контекста */
-  scroll-margin-bottom: calc(var(--tab-h) + var(--fab) + var(--s6)); }
+  /* авто-скролл block:start ставит линию ВВЕРХУ: отступ = липкая шапка + ~час прошлого над линией */
+  scroll-margin-top: 188px; }
 .cal-now::before {
   content: ""; position: absolute; left: 0; top: -3px; width: 8px; height: 8px;
   border-radius: 50%; background: var(--accent);
@@ -1501,11 +1512,18 @@ body.inline-draft .fab { display: none; }
 .ca-free { display: flex; align-items: center; gap: 9px; padding: 9px 12px; font-size: 12.5px; color: var(--text-muted); font-style: italic; margin-bottom: 8px; }
 .ca-free::before { content: ""; flex: 0 0 auto; width: 19px; height: 1px; background: var(--border); }
 /* просрочено — закреплено сверху */
-.ca-od-hdr { display: flex; align-items: baseline; gap: 8px; margin: 2px 2px 11px; }
+/* заголовок «Просрочено» — кнопка-тоггл (сворачивает группу), шеврон вращается */
+.ca-od-hdr {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 2px 2px 11px; padding: 4px 0; background: none; border: 0; cursor: pointer; text-align: left;
+}
 .ca-od-hdr .d { font-size: 15px; font-weight: 700; color: var(--danger); }
+.ca-od-chev { margin-left: auto; color: var(--danger); display: flex; transition: transform 160ms ease; }
+.ca-od-chev svg { width: 18px; height: 18px; }
+.ca-od-chev.open { transform: rotate(90deg); }
 .ca-od-rule { height: 1px; background: rgba(255, 92, 92, 0.25); margin: 0 2px 7px; }
-.ca-task.od { border-color: rgba(255, 92, 92, 0.28); }
-.ca-od-date { font-size: 11px; color: var(--danger); font-family: var(--font-mono); }
+/* строка задачи в ленте = общий TaskItem, лёгкий вертикальный ритм между карточками */
+.ca-item + .ca-item { margin-top: 2px; }
 /* веха-строка — рубеж проекта (без чекбокса) */
 .ca-veha { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border); border-radius: 13px; margin-bottom: 8px; }
 .ca-veha svg { width: 13px; height: 13px; flex: 0 0 auto; }

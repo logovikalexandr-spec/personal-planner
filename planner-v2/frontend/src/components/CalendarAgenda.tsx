@@ -1,63 +1,17 @@
-import { useMemo } from "react";
-import { IcoCheck } from "./icons";
-import { addDays, fmtAgendaDay, localISO, parseISO } from "../lib/calDates";
-import { resolveColor, tint } from "../lib/projectColor";
+import { useMemo, useState } from "react";
+import { IcoChevron } from "./icons";
+import { TaskItem } from "./TaskItem";
+import { addDays, fmtAgendaDay, localISO } from "../lib/calDates";
+import { resolveColor } from "../lib/projectColor";
 import type { Milestone, Project, Task } from "../types";
 
 const HORIZON = 14; // сколько дней вперёд показывает лента
-const MONTHS_GEN = [
-  "января", "февраля", "марта", "апреля", "мая", "июня",
-  "июля", "августа", "сентября", "октября", "ноября", "декабря",
-];
-
-function fmtWasDate(iso: string): string {
-  const d = parseISO(iso);
-  return `было ${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`;
-}
-
-function TaskRow({ t, byId, onToggle, onOpen, overdue }: {
-  t: Task; byId: Map<number, Project>; onToggle: (t: Task) => void; onOpen: (t: Task) => void; overdue?: boolean;
-}) {
-  const c = resolveColor(t.project_id, byId);
-  const cm = c ?? "var(--text-muted)";
-  const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
-  const done = t.status === "done";
-  return (
-    <div
-      className={`ca-task${overdue ? " od" : ""}`}
-      data-testid={`ca-task-${t.id}`}
-      style={{ ["--c" as string]: cm }}
-      onClick={() => onOpen(t)}
-    >
-      <button
-        className={`ca-chk${done ? " done" : ""}`}
-        style={{ borderColor: cm, background: done ? cm : undefined }}
-        onClick={(e) => { e.stopPropagation(); onToggle(t); }}
-        aria-label={done ? "Снять отметку" : "Выполнить"}
-      >
-        {done && <IcoCheck />}
-      </button>
-      <div className="ca-body">
-        <div className={`ca-name${done ? " done" : ""}`}>{t.title}</div>
-        <div className="ca-sub">
-          {overdue && t.due_date && <span className="ca-od-date">{fmtWasDate(t.due_date)}</span>}
-          {!overdue && t.due_time && <span className="ca-time">{t.due_time.slice(0, 5)}</span>}
-          {proj && !proj.is_inbox && (
-            <span className="ca-cant" style={{ color: cm, background: tint(c, 0.13) }}>{proj.name}</span>
-          )}
-          {t.stage_label && <span className="ca-cant ca-stage">{t.stage_label}</span>}
-          {t.priority === "high" && <span className="ca-cant ca-danger">важно</span>}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /**
  * Лента (Agenda) — вертикальный скан ближайших дней (Things-стиль Upcoming).
- * Просрочка закреплена сверху (forward-скан теряет хвосты). Вехи-рубежи —
- * отдельной строкой без чекбокса. Чекбокс прямо в строке, метка проекта/этапа,
- * high-приоритет = красный бейдж. Пустые дни — тонкая строка «свободно».
+ * Просрочка закреплена сверху и СВОРАЧИВАЕТСЯ (тап по заголовку). Задачи —
+ * общий компонент TaskItem (как в Today/Списках/везде). Вехи-рубежи — отдельной
+ * строкой без чекбокса. Пустые дни — тонкая строка «свободно».
  */
 export function CalendarAgenda({
   start, tasks, overdue, milestones, byId, today, onToggle, onOpen,
@@ -71,6 +25,8 @@ export function CalendarAgenda({
   onToggle: (t: Task) => void;
   onOpen: (t: Task) => void;
 }) {
+  const [overdueOpen, setOverdueOpen] = useState(true);
+
   const byDay = useMemo(() => {
     const m = new Map<string, Task[]>();
     for (const t of tasks) {
@@ -96,15 +52,31 @@ export function CalendarAgenda({
     [start],
   );
 
+  const renderTask = (t: Task) => (
+    <div className="ca-item" key={t.id} data-testid={`ca-task-${t.id}`}>
+      <TaskItem task={t} onToggle={onToggle} onOpen={onOpen} color={resolveColor(t.project_id, byId)} />
+    </div>
+  );
+
   return (
     <div className="ca" data-testid="cal-agenda">
       {overdue.length > 0 && (
         <div className="ca-day" data-testid="ca-overdue">
-          <div className="ca-od-hdr"><span className="d">Просрочено · {overdue.length}</span></div>
-          <div className="ca-od-rule" />
-          {overdue.map((t) => (
-            <TaskRow key={t.id} t={t} byId={byId} onToggle={onToggle} onOpen={onOpen} overdue />
-          ))}
+          <button
+            className="ca-od-hdr"
+            data-testid="ca-overdue-toggle"
+            onClick={() => setOverdueOpen((o) => !o)}
+            aria-expanded={overdueOpen}
+          >
+            <span className="d">Просрочено · {overdue.length}</span>
+            <span className={`ca-od-chev${overdueOpen ? " open" : ""}`}><IcoChevron /></span>
+          </button>
+          {overdueOpen && (
+            <>
+              <div className="ca-od-rule" />
+              {overdue.map(renderTask)}
+            </>
+          )}
         </div>
       )}
 
@@ -138,9 +110,7 @@ export function CalendarAgenda({
             {items.length === 0 && flags.length === 0 ? (
               <div className="ca-free">свободно</div>
             ) : (
-              items.map((t) => (
-                <TaskRow key={t.id} t={t} byId={byId} onToggle={onToggle} onOpen={onOpen} />
-              ))
+              items.map(renderTask)
             )}
           </div>
         );
