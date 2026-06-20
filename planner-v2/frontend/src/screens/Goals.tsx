@@ -30,17 +30,24 @@ function isBehind(p: Project, stages: Stage[]): boolean {
   return note?.type === "risk" || stages.some((s) => s.status === "late");
 }
 
-// «этап N / M»: N = позиция текущего (или число закрытых, если текущего нет)
-function stagePosition(stages: Stage[]): { pos: number; total: number } {
-  const total = stages.length;
-  const curIdx = stages.findIndex((s) => s.status === "current");
-  const done = stages.filter((s) => s.status === "done").length;
-  return { pos: curIdx >= 0 ? curIdx + 1 : done, total };
+// активный этап = тот, что в работе ИЛИ просрочен (late = блокирующий, тоже «текущий»)
+function activeIdx(stages: Stage[]): number {
+  return stages.findIndex((s) => s.status === "current" || s.status === "late");
 }
 
-// следующая веха = текущий этап, иначе первый будущий
+// «этап N / M»: N = позиция активного этапа (current|late), иначе число закрытых
+function stagePosition(stages: Stage[]): { pos: number; total: number } {
+  const total = stages.length;
+  const ai = activeIdx(stages);
+  const done = stages.filter((s) => s.status === "done").length;
+  return { pos: ai >= 0 ? ai + 1 : done, total };
+}
+
+// следующая веха = активный этап (current|late), иначе первый будущий
 function nextStage(stages: Stage[]): Stage | null {
-  return stages.find((s) => s.status === "current") ?? stages.find((s) => s.status === "future") ?? null;
+  const ai = activeIdx(stages);
+  if (ai >= 0) return stages[ai];
+  return stages.find((s) => s.status === "future") ?? null;
 }
 
 const IcoBolt = () => (
@@ -86,7 +93,7 @@ function ProjectCard({ p, stages }: { p: Project; stages: Stage[] }) {
       {total > 0 && (
         <div className="t4-stages" data-testid={`goal-stages-${p.id}`}>
           {stages.map((s) => (
-            <i key={s.id} className={s.status === "done" || s.status === "current" ? "on" : ""} />
+            <i key={s.id} className={s.status === "done" || s.status === "current" || s.status === "late" ? "on" : ""} />
           ))}
         </div>
       )}
@@ -174,10 +181,10 @@ export function Goals() {
     return (
       <div className="screen t4" data-testid="goals-error">
         <h1>Цели</h1>
-        <div className="t4-state">
-          <div className="t4-state-ic"><IcoWarn /></div>
-          <div className="t4-state-ttl">Не удалось загрузить</div>
-          <button className="t4-state-btn" onClick={() => void load()}>Повторить</button>
+        <div className="state-stub">
+          <div className="state-ico"><IcoWarn /></div>
+          <div className="state-title">Не удалось загрузить</div>
+          <button className="lnk" style={{ marginTop: 10 }} onClick={() => void load()}>Повторить</button>
         </div>
       </div>
     );
@@ -211,10 +218,10 @@ export function Goals() {
       </div>
 
       {projects.length === 0 ? (
-        <div className="t4-state" data-testid="goals-empty">
-          <div className="t4-state-ic"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /></svg></div>
-          <div className="t4-state-ttl">Пока нет целей</div>
-          <div className="t4-state-sub">Разбери первый проект с ИИ — появится карточка с шансом, сроком и этапами.</div>
+        <div className="state-stub" data-testid="goals-empty">
+          <div className="state-ico"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /></svg></div>
+          <div className="state-title">Пока нет целей</div>
+          <div className="state-sub">Разбери первый проект с ИИ — появится карточка с шансом, сроком и этапами.</div>
         </div>
       ) : (
         <>
