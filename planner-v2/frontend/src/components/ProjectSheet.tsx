@@ -1,7 +1,19 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Project } from "../types";
 import { Sheet } from "./Sheet";
 import { canHaveChild } from "../lib/projectTree";
+
+// Берём последний эмодзи-графём из ввода (нативная клава может прислать строку).
+// Intl.Segmenter корректно режет ZWJ/флаги; иначе фолбэк по кодпойнтам.
+function lastEmoji(v: string): string | null {
+  if (!v) return null;
+  const Seg = (Intl as unknown as { Segmenter?: typeof Intl.Segmenter }).Segmenter;
+  const parts = Seg
+    ? Array.from(new Seg().segment(v), (s) => (s as { segment: string }).segment)
+    : Array.from(v);
+  const last = parts[parts.length - 1]?.trim();
+  return last || null;
+}
 
 // hex-allowlist: палитра выбора цвета проекта = данные (хранятся per-project в БД), не токены хрома. Не заменять на var().
 const COLORS = ["#EE8A3C", "#E5564B", "#E0B341", "#4FB477", "#3C8EEE", "#9B6BE0", "#7C8794"];
@@ -30,6 +42,7 @@ export function ProjectSheet({
   const [icon, setIcon] = useState<string | null>(initial?.icon ?? null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const iconInputRef = useRef<HTMLInputElement>(null);
 
   // edit can't set itself or its own descendants as parent
   const blocked = new Set<number>();
@@ -63,8 +76,23 @@ export function ProjectSheet({
 
   return (
     <Sheet onClose={onClose}>
-      <div className="row" style={{ gap: "var(--s2)", alignItems: "center" }}>
-        <span style={{ fontSize: 26, width: 34, textAlign: "center" }}>{icon ?? "🗂️"}</span>
+      <div className="row" style={{ gap: "var(--s2)", alignItems: "center", position: "relative" }}>
+        {/* Тап по иконке → нативная клавиатура (переключаешь на эмодзи) → любой символ */}
+        <button
+          type="button"
+          className="proj-icon-btn"
+          aria-label="Выбрать эмодзи"
+          onClick={() => iconInputRef.current?.focus()}
+        >
+          {icon ?? "🗂️"}
+        </button>
+        <input
+          ref={iconInputRef}
+          className="proj-icon-input"
+          aria-label="Свой эмодзи"
+          value=""
+          onChange={(e) => { const em = lastEmoji(e.target.value); if (em) setIcon(em); e.target.value = ""; }}
+        />
         <input
           className="input"
           autoFocus
@@ -75,6 +103,7 @@ export function ProjectSheet({
           style={{ flex: 1 }}
         />
       </div>
+      <div className="muted" style={{ fontSize: 12 }}>Тапни иконку слева — любой эмодзи. Или выбери ниже:</div>
 
       <div className="emoji-grid">
         {EMOJIS.map((e) => (
