@@ -41,7 +41,6 @@ function AppMain() {
   const [todayView, setTodayView] = useState<"timeline" | "tasks">("timeline"); // вид внутри таба «Сегодня»
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
-  const [userName, setUserName] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerClosing, setDrawerClosing] = useState(false);
   const [openTaskId, setOpenTaskId] = useState<number | null>(null); // открытая TaskDetail (Волна 2)
@@ -103,7 +102,7 @@ function AppMain() {
   }, [reloadKey]);
 
   useEffect(() => {
-    getMe().then((m) => setUserName(m.first_name ?? "")).catch(() => {});
+    getMe().catch(() => {}); // валидация сессии (имя в шапке шторки убрано)
   }, []);
 
   function onTabChange(k: TabKey) {
@@ -207,7 +206,6 @@ function AppMain() {
       {drawerOpen && (
         <Drawer
           active={drawerActive}
-          name={userName}
           closing={drawerClosing}
           onSelect={selectFromDrawer}
           onClose={closeDrawer}

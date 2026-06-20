@@ -8,10 +8,9 @@ import type { ActiveList } from "../types";
  * табе «Списки» (variant="screen") — одна сущность, два входа.
  */
 export function Drawer({
-  active, name, closing, onSelect, onClose,
+  active, closing, onSelect, onClose,
 }: {
   active: ActiveList;
-  name: string;
   closing?: boolean;
   /** Выбор списка/проекта: меняет активный список (закрытие — через onAfterSelect). */
   onSelect: (a: ActiveList) => void;
@@ -39,10 +38,6 @@ export function Drawer({
           if (dx < -50 && Math.abs(dx) > dy * 1.5) onClose();
         }}
       >
-        <div className="drawer-head">
-          <div className="drawer-avatar">{(name || "A").slice(0, 1).toUpperCase()}</div>
-          <div className="drawer-label" style={{ fontWeight: 600, fontSize: 17 }}>{name || "Planner"}</div>
-        </div>
         <ProjectTreePanel
           active={active}
           onSelect={onSelect}
