@@ -323,7 +323,7 @@ function GanttProject({
       <ProjChip project={project} onClick={cyclePick} />
       {critPair && (
         <div className="g-critnote" data-testid="gantt-critnote">
-          <span className="sw" /> Критический путь: <b>{critPair}</b>
+          <span className="gsw" /> Критический путь: <b>{critPair}</b>
         </div>
       )}
       <PeriodRow range={range} zoom={zoom} setZoom={setZoom}
@@ -645,11 +645,11 @@ function MilestonePop({ pop, today, onClose }: { pop: { stage: Stage; x: number;
 function Legend() {
   return (
     <div className="gfoot" data-testid="gantt-legend">
-      <div className="it"><span className="sw" style={{ background: "var(--success)" }} />сделано</div>
-      <div className="it"><span className="sw" style={{ background: "var(--accent-soft)", border: "1px dashed var(--accent)" }} />текущий</div>
-      <div className="it"><span className="sw" style={{ background: "color-mix(in srgb, var(--text-muted) 16%, transparent)", border: "1px solid var(--border)" }} />впереди</div>
+      <div className="it"><span className="gsw" style={{ background: "var(--success)" }} />сделано</div>
+      <div className="it"><span className="gsw" style={{ background: "var(--accent-soft)", border: "1px dashed var(--accent)" }} />текущий</div>
+      <div className="it"><span className="gsw" style={{ background: "color-mix(in srgb, var(--text-muted) 16%, transparent)", border: "1px solid var(--border)" }} />впереди</div>
       <div className="it"><span className="dia" />веха</div>
-      <div className="it" style={{ color: "var(--danger)" }}><span className="sw" style={{ background: "color-mix(in srgb, var(--danger) 18%, transparent)", border: "1px solid var(--danger)" }} />отставание</div>
+      <div className="it" style={{ color: "var(--danger)" }}><span className="gsw" style={{ background: "color-mix(in srgb, var(--danger) 18%, transparent)", border: "1px solid var(--danger)" }} />отставание</div>
       <div className="it" style={{ color: "var(--accent)" }}>▏сегодня</div>
     </div>
   );
