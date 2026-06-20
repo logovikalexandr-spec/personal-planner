@@ -433,6 +433,9 @@ select.input { appearance: none; -webkit-appearance: none; }
   background: var(--surface-2); border-left: 3px solid var(--accent);
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   display: flex; align-items: flex-start; gap: 7px;
+  /* .cal-grid промотирован translate3d (GPU-скролл); без своего слоя угол блока
+     растеризуется с субпиксельным сдвигом → цветной тинт вылезал за радиус. */
+  transform: translateZ(0);
 }
 /* колонки наложений — ширина/смещение задаются инлайном (left/width), здесь только переходы */
 .cal-block { transition: left 120ms ease, width 120ms ease; }
@@ -1023,14 +1026,13 @@ body.inline-draft .fab { display: none; }
 /* ── свайп-строка (мокап B) ── */
 .task-swipe {
   position: relative; overflow: hidden; border-radius: var(--radius);
-  transform: translateZ(0);   /* GPU-клип углов */
 }
-/* Цветной тинт вылезал за угол, потому что will-change:transform промотировал .task-row
-   в отдельный композитный слой, а iOS не обрезает такой слой по border-radius родителя.
-   Фикс: НЕ держим постоянный композитный слой (will-change убран — transform свайпа всё
-   равно ставится инлайн из JS на время жеста) + потомок сам скругляет свой фон (border-radius)
-   → тинт клипается по border-box у самого .task-row, угол чистый без участия родителя. */
-.task-swipe .task-row { position: relative; z-index: 1; border-radius: var(--radius); }
+/* Цветной тинт вылезал за угол (iOS): скруглённый .task-row сидит внутри промотированного
+   предка → WebKit растеризует его угол с субпиксельным сдвигом, фон проступает за радиус.
+   Фикс: промотировать САМ .task-row в свой слой (translateZ(0)) — тогда он клипает свой
+   border-radius на собственном backing, угол чистый. (transform свайпа = translateX из JS
+   тоже промотирует, конфликта нет.) */
+.task-swipe .task-row { position: relative; z-index: 1; border-radius: var(--radius); transform: translateZ(0); }
 .swipe-actions {
   position: absolute; top: 0; bottom: 0; display: flex; align-items: stretch; z-index: 0;
 }
