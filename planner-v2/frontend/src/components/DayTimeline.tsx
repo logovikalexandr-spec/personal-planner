@@ -483,10 +483,10 @@ export const DayTimeline = memo(function DayTimeline({
         className="cal-grid"
         data-testid="cal-grid"
         ref={gridRef}
-        // при редактировании черновика добавляем нижний воздух (≈высота клавы): scrollHeight растёт →
-        // maxOff растёт → поздний черновик (напр. 19:00) можно поднять к верху клипа над клавой одним
-        // transform-скроллом. Без спейсера late-блок упирался в кламп и застревал у клавы.
-        style={{ height: HOURS.length * HOUR_H + (draft?.state === "editing" ? 360 : 0) }}
+        // Нижний воздух: (а) ~110px у Today, чтобы метку 24:00 (00:00) можно было проскроллить
+        // выше плавающих «Список»/FAB/таб-бара (иначе она прячется за ними у нижней границы);
+        // (б) при редактировании черновика +360 (≈высота клавы) — late-черновик поднимается над клавой.
+        style={{ height: HOURS.length * HOUR_H + (compact ? 0 : 110) + (draft?.state === "editing" ? 360 : 0) }}
         onPointerDown={onCreateDraft ? onHourDown : undefined}
         onPointerMove={onCreateDraft ? onHourMove : undefined}
         onPointerUp={onCreateDraft ? onHourUp : undefined}
