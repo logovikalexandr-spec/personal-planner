@@ -480,6 +480,8 @@ body.inline-draft .fab { display: none; }
   transition: background 140ms ease, border-color 140ms ease;
 }
 .cal-cb.done { background: var(--accent); border-color: var(--accent); }
+/* wont_do = «не буду делать»: приглушённый крестик (не оранжевая галочка done) */
+.cal-cb.wontdo { background: transparent; border-color: var(--text-muted); color: var(--text-muted); }
 .cal-cb svg { width: 11px; height: 11px; }
 .cal-block .bt { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-block .bm {
@@ -733,12 +735,11 @@ body.inline-draft .fab { display: none; }
   font-size: 13px; font-weight: 600; color: var(--text);
 }
 .section-subcount { color: var(--text-muted); font-size: 12px; }
-/* статический таймлайн в Today: без под-скролла, естественная высота.
-   Нижний клиренс под ПЛАВАЮЩИЙ FAB+пилюлю: .app резервирует только высоту таб-бара,
-   а FAB висит на ~(--fab + --s3) выше него → без этого паддинга нижние часы (день/вечер,
-   ниже now-линии) не выскролливаются выше FAB и long-press-создание там попадает в кнопку. */
+/* Today timeline = GPU-transform скролл: клип-вьюпорт фикс-высоты (высота ставится из JS),
+   контент .cal-grid двигается translate3d на композиторе. overflow:hidden обрезает. */
 .daytimeline--static .cal-scroll,
-.daytimeline--static.cal-scroll { overflow: visible; flex: none; padding-bottom: calc(var(--fab) + var(--s5)); }
+.daytimeline--static.cal-scroll { overflow: hidden; flex: none; position: relative; }
+.daytimeline--static .cal-grid { will-change: transform; }
 
 /* cal-block тактильное нажатие + транзишн часа (§6) */
 .cal-block { transition: transform 140ms ease; }
@@ -1470,6 +1471,8 @@ body.inline-draft .fab { display: none; }
 .cm-dp-hdr { display: flex; align-items: baseline; gap: 9px; margin: 0 2px 9px; }
 .cm-dp-hdr .d { font-size: 15px; font-weight: 700; color: var(--accent); }
 .cm-dp-hdr .cnt { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+/* карточки дня = общий TaskItem, тот же вертикальный ритм, что в списках (.list gap) */
+.cm-dp-item + .cm-dp-item { margin-top: var(--s2); }
 .cm-dp-task {
   display: flex; align-items: flex-start; gap: 11px; background: var(--surface); border: 1px solid var(--border);
   border-radius: 12px; padding: 10px 12px; margin-bottom: 7px; position: relative; overflow: hidden; cursor: pointer; width: 100%; text-align: left;
@@ -1522,8 +1525,8 @@ body.inline-draft .fab { display: none; }
 .ca-od-chev svg { width: 18px; height: 18px; }
 .ca-od-chev.open { transform: rotate(90deg); }
 .ca-od-rule { height: 1px; background: rgba(255, 92, 92, 0.25); margin: 0 2px 7px; }
-/* строка задачи в ленте = общий TaskItem, лёгкий вертикальный ритм между карточками */
-.ca-item + .ca-item { margin-top: 2px; }
+/* строка задачи в ленте = общий TaskItem, тот же вертикальный ритм, что в списках (.list gap) */
+.ca-item + .ca-item { margin-top: var(--s2); }
 /* веха-строка — рубеж проекта (без чекбокса) */
 .ca-veha { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border); border-radius: 13px; margin-bottom: 8px; }
 .ca-veha svg { width: 13px; height: 13px; flex: 0 0 auto; }
