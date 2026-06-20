@@ -70,7 +70,7 @@ export function TaskListBody({
       if (!b.project) return -1;
       return (rank.get(a.project.id) ?? 1e9) - (rank.get(b.project.id) ?? 1e9);
     });
-  }, [open, groupByProjectMap]);
+  }, [tasks, groupByProjectMap]);
 
   const selectedTasks = useMemo(() => tasks.filter((t) => selected.has(t.id)), [tasks, selected]);
 
