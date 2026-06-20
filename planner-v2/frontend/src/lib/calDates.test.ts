@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  addDays, fmtAgendaDay, fmtMonthYear, fmtWeekRange, isWeekend,
+  addDays, daysList, fmtAgendaDay, fmtMonthYear, fmtWeekRange, isWeekend,
   localISO, monthMatrix, parseISO, sameDay, startOfWeek, weekDays,
 } from "./calDates";
 
@@ -23,6 +23,22 @@ describe("calDates", () => {
     expect(w).toHaveLength(7);
     expect(localISO(w[0])).toBe("2026-06-08");
     expect(localISO(w[6])).toBe("2026-06-14");
+  });
+
+  it("daysList: count<7 = окно от anchor включительно", () => {
+    const d2 = daysList(new Date(2026, 5, 20), 2); // Сб 20
+    expect(d2.map(localISO)).toEqual(["2026-06-20", "2026-06-21"]);
+    const d3 = daysList(new Date(2026, 5, 20), 3);
+    expect(d3.map(localISO)).toEqual(["2026-06-20", "2026-06-21", "2026-06-22"]);
+    const d4 = daysList(new Date(2026, 5, 30), 4); // через стык месяца
+    expect(d4.map(localISO)).toEqual(["2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03"]);
+  });
+
+  it("daysList: count=7 = календарная неделя Пн–Вс (как weekDays)", () => {
+    const d7 = daysList(new Date(2026, 5, 20), 7); // Сб 20 → неделя 15–21
+    expect(d7).toHaveLength(7);
+    expect(localISO(d7[0])).toBe("2026-06-15");
+    expect(localISO(d7[6])).toBe("2026-06-21");
   });
 
   it("monthMatrix = 42 ячейки, начинается с Пн", () => {

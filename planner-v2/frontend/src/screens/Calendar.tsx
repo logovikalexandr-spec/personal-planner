@@ -1,24 +1,32 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getMilestones, getProjects, getTasks, getTasksRange, patchTask } from "../api";
-import { CalendarWeek } from "../components/CalendarWeek";
+import { CalendarDays } from "../components/CalendarDays";
 import { CalendarMonth } from "../components/CalendarMonth";
 import { CalendarAgenda } from "../components/CalendarAgenda";
 import { TaskComposer } from "../components/TaskComposer";
 import { TaskDetail } from "../components/TaskDetail";
 import {
-  addDays, fmtMonthYear, fmtWeekRange, localISO, monthMatrix, sameDay, weekDays,
+  addDays, daysList, fmtMonthYear, fmtWeekRange, localISO, monthMatrix, sameDay,
 } from "../lib/calDates";
 import { resolveColor } from "../lib/projectColor";
 import { tg } from "../telegram";
-import type { CalendarView, Milestone, Project, Task } from "../types";
+import type { CalendarView, DayCount, Milestone, Project, Task } from "../types";
 
 type Status = "loading" | "ready" | "error";
 
+const DAY_COUNTS: DayCount[] = [2, 3, 4, 7];
+const DAYCOUNT_KEY = "cal.dayCount";
+
+function loadDayCount(): DayCount {
+  const raw = Number(localStorage.getItem(DAYCOUNT_KEY));
+  return DAY_COUNTS.includes(raw as DayCount) ? (raw as DayCount) : 2;
+}
+
 /** Окно дат текущего вида: [from, to] ISO (включительно) для range-запроса. */
-function viewWindow(view: CalendarView, anchor: Date, today: Date): { from: string; to: string } {
-  if (view === "week") {
-    const d = weekDays(anchor);
-    return { from: localISO(d[0]), to: localISO(d[6]) };
+function viewWindow(view: CalendarView, anchor: Date, today: Date, dayCount: DayCount): { from: string; to: string } {
+  if (view === "days") {
+    const d = daysList(anchor, dayCount);
+    return { from: localISO(d[0]), to: localISO(d[d.length - 1]) };
   }
   if (view === "month") {
     const cells = monthMatrix(anchor.getFullYear(), anchor.getMonth());
@@ -27,8 +35,9 @@ function viewWindow(view: CalendarView, anchor: Date, today: Date): { from: stri
   return { from: localISO(today), to: localISO(addDays(today, 14)) };
 }
 
-export function Calendar() {
-  const [view, setView] = useState<CalendarView>("week");
+export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
+  const [view, setView] = useState<CalendarView>("days");
+  const [dayCount, setDayCount] = useState<DayCount>(loadDayCount);
   const [anchor, setAnchor] = useState<Date>(() => new Date());
   const [selected, setSelected] = useState<Date>(() => new Date());
   const [status, setStatus] = useState<Status>("loading");
@@ -43,7 +52,8 @@ export function Calendar() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const today = useMemo(() => new Date(), []);
-  const win = useMemo(() => viewWindow(view, anchor, today), [view, anchor, today]);
+  const win = useMemo(() => viewWindow(view, anchor, today, dayCount), [view, anchor, today, dayCount]);
+  const days = useMemo(() => daysList(anchor, dayCount), [anchor, dayCount]);
 
   const load = useCallback(async () => {
     setStatus("loading");
@@ -57,7 +67,7 @@ export function Calendar() {
       setTasks(ts);
       setMilestones(ms);
       setById(new Map(ps.map((p) => [p.id, p])));
-      if (view === "week") {
+      if (view === "days") {
         const all = await getTasks("all");
         setUndated(all.filter((t) => !t.due_date && t.status !== "done" && t.status !== "wont_do"));
       }
@@ -84,11 +94,25 @@ export function Calendar() {
     bump();
   }
 
+  // drag блока в колонке «Дни»: оптимистично меняем время → патч в фоне (как Today.resize).
+  const resize = useCallback((t: Task, patch: { due_time: string; end_time: string }) => {
+    tg()?.HapticFeedback?.impactOccurred?.("light");
+    setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, due_time: patch.due_time, end_time: patch.end_time } : x)));
+    patchTask(t.id, patch).catch(() => bump());
+  }, []);
+
   function shift(delta: number) {
     const d = new Date(anchor);
-    if (view === "week") d.setDate(d.getDate() + delta * 7);
+    if (view === "days") d.setDate(d.getDate() + delta * dayCount);
     else if (view === "month") d.setMonth(d.getMonth() + delta);
     setAnchor(d);
+  }
+
+  // смена кол-ва дней: запоминаем + переякориваем на сегодня (окно предсказуемо стартует с текущего дня)
+  function changeDayCount(n: DayCount) {
+    setDayCount(n);
+    localStorage.setItem(DAYCOUNT_KEY, String(n));
+    setAnchor(new Date());
   }
 
   function goToday() {
@@ -97,12 +121,12 @@ export function Calendar() {
   }
 
   const isCurrentPeriod =
-    view === "week" ? weekDays(anchor).some((d) => sameDay(d, today))
+    view === "days" ? days.some((d) => sameDay(d, today))
     : view === "month" ? anchor.getFullYear() === today.getFullYear() && anchor.getMonth() === today.getMonth()
     : true;
 
   const rangeLabel =
-    view === "week" ? fmtWeekRange(weekDays(anchor))
+    view === "days" ? fmtWeekRange(days)
     : view === "month" ? fmtMonthYear(anchor)
     : "Ближайшие 14 дней";
 
@@ -113,7 +137,7 @@ export function Calendar() {
       <div style={{ padding: "var(--s5) var(--s4) 0" }}>
         <h1>Календарь</h1>
         <div className="seg" role="tablist">
-          <button className={view === "week" ? "seg-on" : ""} data-testid="seg-week" onClick={() => setView("week")}>Неделя</button>
+          <button className={view === "days" ? "seg-on" : ""} data-testid="seg-days" onClick={() => setView("days")}>Дни</button>
           <button className={view === "month" ? "seg-on" : ""} data-testid="seg-month" onClick={() => setView("month")}>Месяц</button>
           <button className={view === "agenda" ? "seg-on" : ""} data-testid="seg-agenda" onClick={() => setView("agenda")}>Лента</button>
         </div>
@@ -122,6 +146,22 @@ export function Calendar() {
           <span className="rlbl" data-testid="cal-range">{rangeLabel}</span>
           {showNav && <button className="nav" data-testid="cal-next" aria-label="Вперёд" onClick={() => shift(1)}>›</button>}
           {!isCurrentPeriod && <button className="cal2-today" data-testid="cal-today" onClick={goToday}>Сегодня</button>}
+          {view === "days" && (
+            <div className="cal2-dstep" role="group" aria-label="Кол-во дней">
+              {DAY_COUNTS.map((n) => (
+                <button
+                  key={n}
+                  className={`${dayCount === n ? "on" : ""}${n === 7 ? " seven" : ""}`}
+                  data-testid={`dstep-${n}`}
+                  aria-label={n === 7 ? "Неделя" : `${n} дня`}
+                  aria-pressed={dayCount === n}
+                  onClick={() => changeDayCount(n)}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -136,15 +176,17 @@ export function Calendar() {
           <div className="cal-skel" data-testid="cal-loading">
             {Array.from({ length: 7 }, (_, i) => <div className="col skeleton" key={i} />)}
           </div>
-        ) : view === "week" ? (
-          <CalendarWeek
-            weekStart={weekDays(anchor)[0]}
+        ) : view === "days" ? (
+          <CalendarDays
+            days={days}
             tasks={tasks}
             milestones={milestones}
             byId={byId}
             today={today}
-            onTapBlock={(t) => setOpenedId(t.id)}
-            onTapSlot={(d, h) => setComposer({ date: localISO(d), time: `${`${Math.max(0, Math.min(23, h))}`.padStart(2, "0")}:00:00` })}
+            onOpenTask={(t) => setOpenedId(t.id)}
+            onOpenDay={(d) => onOpenDay(localISO(d))}
+            onToggle={toggle}
+            onResize={resize}
           />
         ) : view === "month" ? (
           <CalendarMonth
@@ -172,7 +214,7 @@ export function Calendar() {
       </div>
 
       {/* ЛОТОК «Без даты» (A8) — шелф над таб-баром, СИБЛИНГ скролла (не клипается overflow). */}
-      {view === "week" && status === "ready" && (
+      {view === "days" && status === "ready" && (
         <div className="cw-tray" data-testid="cw-tray" data-open={trayOpen ? "1" : "0"}>
           <button className="cw-th" onClick={() => setTrayOpen((v) => !v)} aria-expanded={trayOpen}>
             <span className="cw-grab" />

@@ -44,6 +44,8 @@ function AppMain() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerClosing, setDrawerClosing] = useState(false);
   const [openTaskId, setOpenTaskId] = useState<number | null>(null); // открытая TaskDetail (Волна 2)
+  // тап дня в Календаре («Дни») → перейти на таб «Задачи» с этой датой. nonce = повторный тап той же даты.
+  const [gotoDay, setGotoDay] = useState<{ iso: string; n: number } | null>(null);
 
   function bump() { setReloadKey((k) => k + 1); }
 
@@ -89,6 +91,14 @@ function AppMain() {
   const openTask = useCallback((t: Task) => setOpenTaskId(t.id), []);
   const openTaskById = useCallback((id: number) => setOpenTaskId(id), []);
   const openInbox = useCallback(() => setViewing({ kind: "smart", key: "inbox", title: "Входящие" }), []);
+  // Календарь «Дни»: тап дня → таб «Задачи» (timeline) на эту дату.
+  const openDayInTasks = useCallback((iso: string) => {
+    setGotoDay((p) => ({ iso, n: (p?.n ?? 0) + 1 }));
+    setTodayView("timeline");
+    setViewing(null);
+    setTab("today");
+    setMountedTabs((prev) => (prev.has("today") ? prev : new Set(prev).add("today")));
+  }, []);
 
   function openDrawer() { setDrawerClosing(false); setDrawerOpen(true); }
   function closeDrawer() {
@@ -175,11 +185,12 @@ function AppMain() {
             onQuickAdd={quickAdd}
             inboxCount={inboxCount}
             onOpenDrawer={openDrawer}
+            gotoDay={gotoDay}
           />
         )}
       </div>
       <div className="screen-host" hidden={tabHidden("calendar")}>
-        {mountedTabs.has("calendar") && <Calendar />}
+        {mountedTabs.has("calendar") && <Calendar onOpenDay={openDayInTasks} />}
       </div>
       <div className="screen-host" hidden={tabHidden("gantt")}>
         {mountedTabs.has("gantt") && <Gantt />}
@@ -232,7 +243,7 @@ function AppMain() {
           </div>
         </>
       )}
-      <BottomTabs active={tab} onChange={onTabChange} inboxCount={inboxCount} />
+      <BottomTabs active={tab} onChange={onTabChange} />
       {openTaskId != null && (
         <div className="detail-overlay">
           <TaskDetail

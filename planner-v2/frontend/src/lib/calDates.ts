@@ -42,6 +42,16 @@ export function weekDays(d: Date): Date[] {
 }
 
 /**
+ * Список дней для вида «Дни» (T2d). count 2/3/4 = окно [anchor .. anchor+count-1].
+ * count 7 = календарная неделя Пн–Вс, содержащая anchor (как старая «Неделя»).
+ */
+export function daysList(anchor: Date, count: number): Date[] {
+  if (count >= 7) return weekDays(anchor);
+  const base = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate());
+  return Array.from({ length: count }, (_, i) => addDays(base, i));
+}
+
+/**
  * Сетка месяца 6×7 = 42 ячейки, начиная с понедельника недели, в которой 1-е число.
  * Дни соседних месяцев попадают в начало/хвост (out-ячейки).
  */

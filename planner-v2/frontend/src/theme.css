@@ -9,6 +9,7 @@
   --accent-soft: rgba(238, 138, 60, 0.16);
   --danger: #ff5c5c;
   --warning: #ffb02e;
+  --blue: #4c8dff;          /* приоритет «низкий» (по решению владельца, 2026-06-20) */
   --success: #3FB68B;       /* трекинг: «хорошо»/рекорд */
   --project-tag: #6FCF97;   /* чип привязки к проекту */
   --ring-track: #2c2d31;    /* фон прогресс-кольца */
@@ -199,8 +200,8 @@ input, textarea, [contenteditable="true"] {
 }
 .checkbox.done { background: var(--accent); border-color: var(--accent); }
 .prio-high { box-shadow: inset 3px 0 0 var(--danger); }
-.prio-medium { box-shadow: inset 3px 0 0 var(--warning); }
-.prio-low { box-shadow: inset 3px 0 0 var(--accent); }
+.prio-medium { box-shadow: inset 3px 0 0 var(--accent); }  /* Средний = оранжевый (ember) */
+.prio-low { box-shadow: inset 3px 0 0 var(--blue); }       /* Низкий = синий */
 .row { display: flex; align-items: center; gap: var(--s3); }
 .grow { flex: 1 1 auto; min-width: 0; }
 .title-done { text-decoration: line-through; color: var(--text-muted); }
@@ -903,8 +904,10 @@ body.inline-draft .fab { display: none; }
 .detail-title-input.title-done { color: var(--text-muted); text-decoration: line-through; }
 .detail-notes {
   width: 100%; background: none; border: none; outline: none; resize: none;
-  color: var(--text-muted); font-size: 15px; line-height: 1.5; font-family: var(--font);
+  color: var(--text); font-size: 15px; line-height: 1.5; font-family: var(--font);
   padding: 2px 0 var(--s4); min-height: 24px;
+  /* длинная заметка: поле растёт до ~6 строк, дальше — скролл внутри (а не обрезка) */
+  max-height: 156px; overflow-y: auto;
 }
 .detail-notes::placeholder { color: var(--text-muted); opacity: 0.7; }
 .detail-row {
@@ -943,6 +946,35 @@ body.inline-draft .fab { display: none; }
 }
 .detail-sub-input:focus { outline: none; border-color: var(--accent); }
 
+/* Вариант A (утв. владельцем 2026-06-20): рейка — подзадачи связаны с задачей
+   вертикальной линией-деревом + локоть к каждой строке. */
+.detail-sub-rail { position: relative; margin-left: 10px; padding-left: 18px; }
+.detail-sub-rail::before {
+  content: ""; position: absolute; left: 0; top: -4px; bottom: 18px;
+  width: 2px; background: var(--border);
+}
+.sub-rail-row { position: relative; margin-top: var(--s2); }
+.sub-rail-row::before {
+  content: ""; position: absolute; left: -18px; top: 50%;
+  width: 14px; height: 2px; background: var(--border);
+}
+.detail-sub-rail .task-row { margin-bottom: 0; }  /* спейсинг даёт .sub-rail-row, не двойной */
+
+/* строка добавления с кнопкой ✓ (подзадача + пункт чеклиста) */
+.add-confirm-row { display: flex; align-items: center; gap: var(--s3); margin: var(--s1) 0 var(--s2); }
+.add-confirm-input {
+  flex: 1; background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 12px; font-size: 15px; color: var(--text); font-family: inherit;
+}
+.add-confirm-input:focus { outline: none; border-color: var(--accent); }
+.add-confirm-btn {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; border: none;
+  background: var(--accent); color: var(--accent-contrast);
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.add-confirm-btn svg { width: 18px; height: 18px; }
+.add-confirm-btn:disabled { background: var(--surface-2); color: var(--text-muted); cursor: default; }
+
 /* overflow-бар (Сабтаск / Won't Do / Удалить) */
 /* ⋯ меню шапки детали (действия Подзадача/Не буду делать/Удалить — по мокапу DETAIL-task) */
 .detail-menu-wrap { position: relative; }
@@ -980,6 +1012,7 @@ body.inline-draft .fab { display: none; }
   font-size: 11px; font-family: var(--font);
 }
 .swipe-btn svg { width: 18px; height: 18px; }
+.swipe-btn.edit { background: var(--blue); }
 .swipe-btn.date { background: #3a6ea5; }
 .swipe-btn.move { background: var(--surface-2); color: var(--text); }
 .swipe-btn.del { background: var(--danger); }
@@ -1312,6 +1345,54 @@ body.inline-draft .fab { display: none; }
 .cw-ucard::before { content: ""; position: absolute; left: 7px; top: 9px; bottom: 9px; width: 2.5px; border-radius: 2px; background: var(--c, var(--accent)); }
 .cw-ucard .nm { font-size: 12px; font-weight: 500; line-height: 1.3; padding-left: 9px; }
 .cw-ucard .pr { font-size: 9px; color: var(--text-muted); font-family: var(--font-mono); padding-left: 9px; margin-top: 4px; }
+
+/* ── ДНИ (T2d) — N колонок 2/3/4/7, тело каждой = DayTimeline compact ── */
+.cd-adrow { display: flex; gap: 5px; margin-bottom: var(--s2); }
+.cd-slot { flex: 1; min-width: 0; }
+.cd-pill {
+  display: block; width: 100%; text-align: left; font-family: inherit;
+  font-size: 9.5px; font-weight: 600; line-height: 1.2; border-radius: 5px; padding: 4px 6px;
+  border: 0; border-left: 2px solid var(--c, var(--accent)); background: var(--surface-2); color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.cd-cols { display: flex; gap: 5px; align-items: flex-start; }
+.cd-col { flex: 1; min-width: 0; position: relative; }
+.cd-dh {
+  width: 100%; background: none; border: 0; font-family: inherit; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 2px 0 4px;
+}
+.cd-dh .dn { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+.cd-dh .dd {
+  font-size: 15px; font-weight: 600; color: var(--text);
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+}
+.cd-dh.today .dd { color: var(--accent); }
+.cd-pen { width: 8px; height: 9px; flex: 0 0 auto; }
+
+/* compact DayTimeline: блоки во всю ширину колонки, часы мелким оверлеем слева */
+.dt-compact .cal-grid {
+  margin-top: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+}
+.dt-compact .cal-hour { padding-left: 0; }
+.dt-compact .cal-hourlabel { left: 3px; top: -7px; width: auto; text-align: left; font-size: 8px; }
+.dt-compact .cal-block { padding: 4px 5px; gap: 0; box-shadow: none; border-radius: 7px; }
+.dt-compact .cal-block .bt { font-size: 10px; }
+.dt-compact .cal-block .bm { font-size: 8px; gap: 3px; }
+.dt-compact .cal-block .bm svg { width: 9px; height: 9px; }
+/* чекбокс в узкой колонке съедает ширину → прячем (done-тоггл через TaskDetail по тапу; как в мокапе T2d) */
+.dt-compact .cal-cb { display: none; }
+
+/* степпер 2/3/4/7 — компактный сегментед справа от диапазона (виден только в «Дни») */
+.cal2-dstep {
+  display: flex; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 9px; padding: 2px; flex: 0 0 auto;
+}
+.cal2-dstep button {
+  position: relative; border: 0; background: none; color: var(--text-muted);
+  font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+  min-width: 26px; height: 24px; border-radius: 7px; cursor: pointer;
+}
+.cal2-dstep button.on { background: var(--surface-2); color: var(--accent); }
 
 /* ── МЕСЯЦ ── */
 .cm-dow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 7px; }

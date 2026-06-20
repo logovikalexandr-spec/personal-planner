@@ -42,7 +42,7 @@ type Draft = { startMin: number; endMin: number; title: string; state: "editing"
 
 export const DayTimeline = memo(function DayTimeline({
   tasks, byId, isToday, onTapHour, onToggle, onOpen, onResize, autoScroll = true, nowAnchorId,
-  gridRef: gridRefProp, onCreateDraft,
+  gridRef: gridRefProp, onCreateDraft, compact = false, startHourOverride,
   draft, onDraftChange, onDraftCommit, onDraftCancel, onDraftRetry, onDraftResize,
 }: {
   tasks: Task[];
@@ -61,6 +61,10 @@ export const DayTimeline = memo(function DayTimeline({
   gridRef?: React.RefObject<HTMLDivElement>;
   /** Жест создания на пустой сетке: тап=1ч / протяжка=диапазон. Если не передан — создание выключено. */
   onCreateDraft?: (range: { startMin: number; endMin: number }) => void;
+  /** Компактный режим колонки «Дни» (T2d): узкий lane (блоки во всю ширину), часы оверлеем. Default — полный Today-вид. */
+  compact?: boolean;
+  /** Фикс. час начала сетки (общий для N колонок «Дни»). Без него — динамический от earliest задачи. */
+  startHourOverride?: number;
   /** Черновик создаваемой задачи (state живёт в родителе — Today). */
   draft?: Draft | null;
   onDraftChange?: (title: string) => void;
@@ -76,14 +80,16 @@ export const DayTimeline = memo(function DayTimeline({
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
 
   // Начало сетки: 05:00, но растягиваем раньше, если есть задача до 05:00 (edge — задача не теряется).
+  // startHourOverride: общий старт для N колонок «Дни» (иначе разный earliest рассинхронит высоты).
   const startHour = useMemo(() => {
+    if (startHourOverride != null) return startHourOverride;
     let min = START_HOUR;
     for (const t of timed) {
       const m = parseMin(t.due_time);
       if (m != null) min = Math.min(min, Math.floor(m / 60));
     }
     return min;
-  }, [timed]);
+  }, [timed, startHourOverride]);
   const HOURS = useMemo(
     () => Array.from({ length: 24 - startHour }, (_, i) => startHour + i),
     [startHour],
@@ -102,8 +108,9 @@ export const DayTimeline = memo(function DayTimeline({
     return layoutColumns(blocks);
   }, [timed, draft]);
   const GUTTER = 4; // px между колонками
-  const LANE_LEFT = 56;
-  const LANE_RIGHT = 8;
+  // compact (колонка «Дни»): узкий lane — блоки почти во всю ширину, часы оверлеем.
+  const LANE_LEFT = compact ? 6 : 56;
+  const LANE_RIGHT = compact ? 4 : 8;
   function laneStyle(colIndex: number, colCount: number): React.CSSProperties {
     return {
       left: `calc(${LANE_LEFT}px + (100% - ${LANE_LEFT + LANE_RIGHT}px) * ${colIndex / colCount} + ${colIndex ? GUTTER : 0}px)`,
@@ -357,7 +364,7 @@ export const DayTimeline = memo(function DayTimeline({
   }
 
   return (
-    <div className={`cal-scroll ${autoScroll ? "" : "daytimeline--static"}`} ref={scrollRef} style={{ flex: autoScroll ? 1 : "none" }}>
+    <div className={`cal-scroll ${autoScroll ? "" : "daytimeline--static"} ${compact ? "dt-compact" : ""}`} ref={scrollRef} style={{ flex: autoScroll ? 1 : "none" }}>
       <div
         className="cal-grid"
         data-testid="cal-grid"

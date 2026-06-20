@@ -110,7 +110,7 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
 function Harness() {
   return (
     <div style={{ width: 390, height: 844, background: "var(--bg)", overflow: "hidden", display: "flex", flexDirection: "column", position: "relative" }}>
-      <Calendar />
+      <Calendar onOpenDay={(iso) => console.log("openDay", iso)} />
     </div>
   );
 }

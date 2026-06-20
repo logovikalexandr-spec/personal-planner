@@ -97,7 +97,7 @@ export interface Project {
 }
 export interface Counts { all: number; today: number; tomorrow: number; next7: number; inbox: number; }
 
-export type SmartKey = "all" | "today" | "tomorrow" | "next7" | "week" | "inbox";
+export type SmartKey = "all" | "today" | "tomorrow" | "next7" | "inbox";
 export type ActiveList =
   | { kind: "smart"; key: SmartKey; title: string }
   | { kind: "project"; id: number; title: string };
@@ -113,8 +113,10 @@ export interface Milestone {
   status: string;
 }
 
-// Форк B: три ракурса одного таба «Календарь».
-export type CalendarView = "week" | "month" | "agenda";
+// T2d: ракурсы таба «Календарь». «week» поглощён видом «days» (степпер 7 = неделя Пн–Вс).
+export type CalendarView = "days" | "month" | "agenda";
+// Кол-во колонок вида «Дни»: 2/3/4 = окно от якоря, 7 = неделя.
+export type DayCount = 2 | 3 | 4 | 7;
 
 // ── Форк E: привычки + метрики (зеркало HabitOut/MetricOut бэка) ──
 export interface HabitOut {

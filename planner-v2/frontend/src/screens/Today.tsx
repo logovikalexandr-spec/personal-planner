@@ -33,7 +33,7 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
 type LoadState = "loading" | "error" | "ready";
 
 export function Today({
-  reloadKey, hidden = false, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount, onOpenDrawer,
+  reloadKey, hidden = false, onOpenTask, view, onViewChange, onOpenInbox, onQuickAdd, inboxCount, onOpenDrawer, gotoDay,
 }: {
   reloadKey: number;
   /** Экран скрыт (keep-alive: App рендерит через .screen-host[hidden]). Сигнал для авто-коммита черновика (E9). */
@@ -46,9 +46,15 @@ export function Today({
   inboxCount: number;
   /** Открыть навигацию-шторку (бургер ☰). Drawer живёт в App. */
   onOpenDrawer: () => void;
+  /** Внешний переход на дату (тап дня в Календаре «Дни»). nonce = повторный тап той же даты. */
+  gotoDay?: { iso: string; n: number } | null;
 }) {
   // Выбранный день таба «Задачи» (T1): по умолчанию сегодня; свайп/датапикер двигают.
   const [selectedISO, setSelectedISO] = useState(localToday);
+  // Внешний переход с даты из Календаря: ставим выбранный день (nonce — чтобы повторный тап той же даты сработал).
+  useEffect(() => {
+    if (gotoDay) setSelectedISO(gotoDay.iso);
+  }, [gotoDay?.n]); // eslint-disable-line react-hooks/exhaustive-deps
   const iso = selectedISO;
   const isToday = selectedISO === localToday();
   const [pickerOpen, setPickerOpen] = useState(false);
