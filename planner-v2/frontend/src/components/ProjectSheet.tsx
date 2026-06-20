@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { Project } from "../types";
 import { Sheet } from "./Sheet";
+import { HuePicker } from "./HuePicker";
 import { canHaveChild } from "../lib/projectTree";
 
 // Берём последний эмодзи-графём из ввода (нативная клава может прислать строку).
@@ -14,10 +15,6 @@ function lastEmoji(v: string): string | null {
   const last = parts[parts.length - 1]?.trim();
   return last || null;
 }
-
-// hex-allowlist: палитра выбора цвета проекта = данные (хранятся per-project в БД), не токены хрома. Не заменять на var().
-const COLORS = ["#EE8A3C", "#E5564B", "#E0B341", "#4FB477", "#3C8EEE", "#9B6BE0", "#7C8794"];
-const EMOJIS = ["🎯", "💚", "💪", "🏋️", "🧘", "💰", "🧊", "🏛️", "🕉️", "🧠", "🎭", "📚", "⭐", "📦", "🔥", "📌", "🚀", "🏠", "💡", "📅"];
 
 export interface ProjectFormValue {
   name: string;
@@ -74,17 +71,21 @@ export function ProjectSheet({
     }
   }
 
+  const title = mode === "edit" ? "Изменить проект" : parentId != null ? "Новый подсписок" : "Новый проект";
+
   return (
     <Sheet onClose={onClose}>
+      <h2 className="sheet-title">{title}</h2>
+
       <div className="row" style={{ gap: "var(--s2)", alignItems: "center", position: "relative" }}>
-        {/* Тап по иконке → нативная клавиатура (переключаешь на эмодзи) → любой символ */}
+        {/* Тап по иконке → нативная Apple эмодзи-клава → любой символ (пресетов нет) */}
         <button
           type="button"
           className="proj-icon-btn"
           aria-label="Выбрать эмодзи"
           onClick={() => iconInputRef.current?.focus()}
         >
-          {icon ?? "🗂️"}
+          {icon ?? "📁"}
         </button>
         <input
           ref={iconInputRef}
@@ -96,38 +97,17 @@ export function ProjectSheet({
         <input
           className="input"
           autoFocus
-          placeholder="Название проекта..."
+          placeholder={mode === "edit" ? "Название проекта…" : parentId != null ? "Название подсписка…" : "Название проекта…"}
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && submit()}
           style={{ flex: 1 }}
         />
       </div>
-      <div className="muted" style={{ fontSize: 12 }}>Тапни иконку слева — любой эмодзи. Или выбери ниже:</div>
+      <div className="muted" style={{ fontSize: 12, marginTop: -4 }}>Тапни иконку — откроется Apple эмодзи-клава, выбери любой</div>
 
-      <div className="emoji-grid">
-        {EMOJIS.map((e) => (
-          <button
-            key={e}
-            className={`emoji-chip ${icon === e ? "active" : ""}`}
-            onClick={() => setIcon(icon === e ? null : e)}
-          >
-            {e}
-          </button>
-        ))}
-      </div>
-
-      <div className="row" style={{ flexWrap: "wrap", gap: "var(--s2)" }}>
-        {COLORS.map((c) => (
-          <button
-            key={c}
-            className="color-chip"
-            aria-label={c}
-            onClick={() => setColor(color === c ? null : c)}
-            style={{ background: c, outline: color === c ? "2px solid var(--text)" : "none", outlineOffset: 2 }}
-          />
-        ))}
-      </div>
+      <div className="lbl">Цвет проекта — тащи по спектру</div>
+      <HuePicker value={color} onChange={setColor} />
 
       <select
         className="input"
@@ -144,6 +124,7 @@ export function ProjectSheet({
       <button className="btn btn-block" onClick={submit} disabled={saving}>
         {saving ? "Сохраняю…" : mode === "edit" ? "Сохранить" : "Создать"}
       </button>
+      <button className="btn btn-ghost" onClick={onClose} disabled={saving}>Отмена</button>
     </Sheet>
   );
 }

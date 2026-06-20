@@ -71,6 +71,24 @@ input, textarea, [contenteditable="true"] {
 .card { background: var(--surface); border-radius: var(--radius); padding: var(--s4); }
 .list { display: flex; flex-direction: column; gap: var(--s2); }
 
+/* Группировка списка по проектам (смарт-списки) — заголовок группы */
+.proj-group + .proj-group { margin-top: 2px; }
+.group-head {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  background: none; border: 0; cursor: pointer; color: inherit;
+  padding: 16px 6px 8px; font-family: var(--font);
+}
+.group-head .gh-emo { font-size: 16px; line-height: 1; flex: 0 0 auto; }
+.group-head .gh-name {
+  font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.group-head .gh-dot { width: 8px; height: 8px; border-radius: 3px; flex: 0 0 auto; }
+.group-head .gh-cnt { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+.group-head .gh-chev { color: var(--text-muted); width: 15px; height: 15px; display: flex; transition: transform 0.15s; }
+.group-head .gh-chev svg { width: 15px; height: 15px; display: block; }
+.group-head .gh-chev.open { transform: rotate(90deg); }
+
 /* full-width tappable entry (Inbox, navigation rows) */
 .entry-card {
   display: flex; align-items: center; gap: var(--s3);
@@ -269,6 +287,22 @@ select.input { appearance: none; -webkit-appearance: none; }
   position: absolute; left: 0; top: 0; width: 40px; height: 40px;
   opacity: 0; border: 0; padding: 0; background: none; pointer-events: none;
 }
+
+/* Свободный цвет-селектор проекта (HuePicker) — спектр по мокапу V3 T1-drawer */
+.lbl { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 4px 0 9px; }
+.picker { margin-bottom: 4px; }
+.hue {
+  height: 26px; border-radius: 8px; position: relative; cursor: pointer; touch-action: none;
+  background: linear-gradient(to right, #ff4d4d, #ffb02e, #ffe14d, #4fb477, #3fb6b6, #3c8eee, #9b6be0, #c76fa8, #ff4d4d);
+}
+.hue .knob {
+  position: absolute; top: 50%; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #fff;
+  transform: translate(-50%, -50%); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); pointer-events: none;
+}
+.pk-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.pk-cur { width: 30px; height: 30px; border-radius: 8px; flex: 0 0 auto; }
+.pk-hex { font-size: 14px; color: var(--text); }
+.pk-note { font-size: 11px; color: var(--text-muted); margin-left: auto; }
 
 .menu-head {
   display: flex; align-items: center; gap: var(--s3);

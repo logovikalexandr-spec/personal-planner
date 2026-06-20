@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { TaskItem } from "./TaskItem";
 import { BatchBar } from "./BatchBar";
 import { IcoChevron } from "./icons";
-import type { Task } from "../types";
+import { groupByProject } from "../lib/groupByProject";
+import type { Project, Task } from "../types";
 
 // Волна 2 F2 — общий рендер списка задач: свайпы + long-press multi-select + batch-панель
 // + свёрнутая секция «Выполнено и Won't Do». ОДНО поведение везде (PATTERNS):
@@ -22,18 +23,28 @@ export interface TaskListBodyProps {
   onMove?: (tasks: Task[]) => void;
   onDelete?: (tasks: Task[]) => void;
   onPriority?: (tasks: Task[]) => void;
+  // Группировка по проектам (смарт-списки: Все/Сегодня/Завтра/7дней). Внутри проекта не нужна.
+  groupByProjectMap?: Map<number, Project>;
 }
 
 export function TaskListBody({
   tasks, colorOf, onOpen, onToggle,
-  onComplete, onDate, onMove, onDelete, onPriority,
+  onComplete, onDate, onMove, onDelete, onPriority, groupByProjectMap,
 }: TaskListBodyProps) {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [closedOpen, setClosedOpen] = useState(false); // секция «Выполнено и Won't Do»
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<number | "none">>(new Set());
 
   const open = useMemo(() => tasks.filter((t) => t.status !== "done" && t.status !== "wont_do"), [tasks]);
   const closed = useMemo(() => tasks.filter((t) => t.status === "done" || t.status === "wont_do"), [tasks]);
+
+  // группы открытых задач по проектам (закреплённые проекты выше); null-проект последней группой
+  const groups = useMemo(() => {
+    if (!groupByProjectMap) return null;
+    const gs = groupByProject(open, groupByProjectMap);
+    return gs.sort((a, b) => Number(b.project?.pinned ?? false) - Number(a.project?.pinned ?? false));
+  }, [open, groupByProjectMap]);
 
   const selectedTasks = useMemo(() => tasks.filter((t) => selected.has(t.id)), [tasks, selected]);
 
@@ -57,6 +68,31 @@ export function TaskListBody({
   const swipeDate = useCallback((t: Task) => onDate?.([t]), [onDate]);
   const swipeMove = useCallback((t: Task) => onMove?.([t]), [onMove]);
   const swipeDelete = useCallback((t: Task) => onDelete?.([t]), [onDelete]);
+  const toggleGroup = useCallback((key: number | "none") => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }, []);
+  // единый рендер строки задачи (и в плоском списке, и в группах)
+  const renderTask = (t: Task) => (
+    <TaskItem
+      key={t.id}
+      task={t}
+      onToggle={onToggle}
+      onOpen={onOpen}
+      color={colorOf?.(t)}
+      selectMode={selectMode}
+      selected={selected.has(t.id)}
+      onLongPress={enterSelect}
+      onSelectToggle={toggleSelect}
+      onSwipeComplete={onComplete ? swipeComplete : undefined}
+      onSwipeDate={onDate ? swipeDate : undefined}
+      onSwipeMove={onMove ? swipeMove : undefined}
+      onSwipeDelete={onDelete ? swipeDelete : undefined}
+    />
+  );
   function selectAll() {
     setSelected(new Set(open.map((t) => t.id)));
   }
@@ -78,25 +114,26 @@ export function TaskListBody({
         </div>
       )}
 
-      <div className="list">
-        {open.map((t) => (
-          <TaskItem
-            key={t.id}
-            task={t}
-            onToggle={onToggle}
-            onOpen={onOpen}
-            color={colorOf?.(t)}
-            selectMode={selectMode}
-            selected={selected.has(t.id)}
-            onLongPress={enterSelect}
-            onSelectToggle={toggleSelect}
-            onSwipeComplete={onComplete ? swipeComplete : undefined}
-            onSwipeDate={onDate ? swipeDate : undefined}
-            onSwipeMove={onMove ? swipeMove : undefined}
-            onSwipeDelete={onDelete ? swipeDelete : undefined}
-          />
-        ))}
-      </div>
+      {groups ? (
+        groups.map((g) => {
+          const key: number | "none" = g.project?.id ?? "none";
+          const collapsed = collapsedGroups.has(key);
+          return (
+            <div key={key} className="proj-group">
+              <button className="group-head" onClick={() => toggleGroup(key)}>
+                {g.project?.icon && <span className="gh-emo">{g.project.icon}</span>}
+                <span className="gh-name">{g.project?.name ?? "Без проекта"}</span>
+                {g.project?.color && <span className="gh-dot" style={{ background: g.project.color }} />}
+                <span className="gh-cnt mono">{g.tasks.length}</span>
+                <span className={`gh-chev ${collapsed ? "" : "open"}`}><IcoChevron /></span>
+              </button>
+              {!collapsed && <div className="list">{g.tasks.map(renderTask)}</div>}
+            </div>
+          );
+        })
+      ) : (
+        <div className="list">{open.map(renderTask)}</div>
+      )}
 
       {closed.length > 0 && (
         <div className="closed-section">

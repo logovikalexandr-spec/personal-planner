@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V3 — Список задач, группировка по проектам</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16);
+    --danger:#FF5C5C; --warning:#FFB02E; --success:#4FB477;
+    --hairline:rgba(255,255,255,0.07);
+    --p-zima:#3FB68B; --p-health:#5B8DEF; --p-fin:#C9A24B; --p-spirit:#C77DA8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;color:var(--bone);font-family:Geist, sans-serif;-webkit-font-smoothing:antialiased;padding:28px 0 60px}
+  .cap{max-width:880px;margin:0 auto 18px;font-family:"Geist Mono",monospace;font-size:12.5px;color:var(--steel);padding:0 14px;line-height:1.6}
+  .cap b{color:var(--accent)}
+  .row-frames{display:flex;gap:34px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .frame-cap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin:0 0 10px}
+  .frame-cap b{color:var(--accent)}
+  .phone{width:390px;background:var(--onyx);border:1px solid var(--hairline);border-radius:28px;overflow:hidden;position:relative;height:820px;display:flex;flex-direction:column}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-family:"Geist Mono",monospace;font-size:13px;color:var(--bone);flex:0 0 auto}
+  .status .dots{display:flex;gap:4px}.status .dots i{width:5px;height:5px;border-radius:50%;background:var(--steel);display:block}
+  .head{display:flex;align-items:center;gap:14px;padding:8px 18px 14px}
+  .head .burger{width:26px;height:26px;color:var(--bone)}.head .burger svg{width:26px;height:26px}
+  .head h1{font-size:26px;font-weight:700}
+  .scroll{flex:1;overflow-y:auto;padding:0 14px 16px}
+  /* заголовок группы-проекта */
+  .ghead{display:flex;align-items:center;gap:9px;padding:16px 6px 8px;cursor:pointer}
+  .ghead .emo{font-size:16px}
+  .ghead .dot{width:8px;height:8px;border-radius:3px;flex:0 0 auto}
+  .ghead .nm{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--steel)}
+  .ghead .cnt{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin-left:auto}
+  .ghead .chev{color:var(--steel);width:15px;height:15px;transition:.15s}.ghead .chev svg{width:15px;height:15px;display:block}
+  .ghead .chev.open{transform:rotate(90deg)}
+  /* строка задачи (как в app) */
+  .task{display:flex;align-items:flex-start;gap:12px;background:var(--smoke);border-radius:14px;padding:14px 14px;min-height:58px;margin-bottom:8px;position:relative}
+  .task.p-high{box-shadow:inset 3px 0 0 var(--danger)}
+  .task.p-med{box-shadow:inset 3px 0 0 var(--warning)}
+  .task.p-none{}
+  .cb{width:22px;height:22px;border-radius:50%;border:2px solid var(--steel);flex:0 0 auto;margin-top:1px}
+  .task .body{flex:1;min-width:0}
+  .task .t{font-size:15.5px;line-height:1.3}
+  .task .meta{display:flex;align-items:center;gap:8px;margin-top:5px;font-family:"Geist Mono",monospace;font-size:12.5px;color:var(--steel)}
+  .task .meta .over{color:var(--danger)}
+  .task .meta .stg{color:var(--accent)}
+  /* лёгкий тинт фона = цвет проекта (как в app) */
+  .task.tz{background:color-mix(in srgb, var(--p-zima) 12%, var(--smoke))}
+  .task.th{background:color-mix(in srgb, var(--p-health) 12%, var(--smoke))}
+  .task.tf{background:color-mix(in srgb, var(--p-fin) 12%, var(--smoke))}
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+</style>
+</head>
+<body>
+  <div class="cap"><b>V3 · Список задач — группировка по проектам.</b> В смарт-списках (Все/Сегодня/7 дней) задачи сгруппированы под заголовком проекта: <b>эмодзи + имя + цвет-точка + счётчик + сворачивание</b>. Видно к чему относится задача. Задачи без проекта → группа «Без проекта» (внизу). Внутри группы — сортировка по дате/времени. Тинт строки = цвет проекта (как сейчас). Закреплённые проекты — выше.</div>
+
+  <div class="row-frames">
+    <!-- A: сгруппировано -->
+    <div class="col">
+      <div class="frame-cap"><b>A</b> · «Все» сгруппировано по проектам</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="head"><span class="burger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><h1>Все</h1></div>
+        <div class="scroll">
+
+          <div class="ghead"><span class="emo">🧊</span><span class="nm">ZIMA</span><span class="dot" style="background:var(--p-zima)"></span><span class="cnt">3</span><span class="chev open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span><span class="ecode">A1</span></div>
+          <div class="task tz p-med"><span class="cb"></span><div class="body"><div class="t">Созвон с командой</div><div class="meta"><span>сегодня · 09:00</span><span class="stg">◎ этап 3</span></div></div></div>
+          <div class="task tz p-high"><span class="cb"></span><div class="body"><div class="t">Подписать договор аренды</div><div class="meta"><span class="over">просрочено · 4 июн</span></div></div></div>
+          <div class="task tz p-none"><span class="cb"></span><div class="body"><div class="t">Обновить прайс мастеров</div></div></div>
+
+          <div class="ghead"><span class="emo">💚</span><span class="nm">Здоровье</span><span class="dot" style="background:var(--p-health)"></span><span class="cnt">2</span><span class="chev open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span><span class="ecode">A2</span></div>
+          <div class="task th p-high"><span class="cb"></span><div class="body"><div class="t">Записаться на анализы — расширенная панель</div><div class="meta"><span class="over">просрочено · 4 июн</span></div></div></div>
+          <div class="task th p-none"><span class="cb"></span><div class="body"><div class="t">Пауза биотина — СТОП за 5 дней до сдачи</div><div class="meta"><span>10 июн</span></div></div></div>
+
+          <div class="ghead"><span class="emo">💰</span><span class="nm">Финансы</span><span class="dot" style="background:var(--p-fin)"></span><span class="cnt">1</span><span class="chev open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+          <div class="task tf p-med"><span class="cb"></span><div class="body"><div class="t">Оплатить налог Q2</div><div class="meta"><span>15 июн</span></div></div></div>
+
+          <div class="ghead"><span class="nm" style="color:var(--steel)">Без проекта</span><span class="cnt">2</span><span class="chev open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span><span class="ecode">A3</span></div>
+          <div class="task p-none"><span class="cb"></span><div class="body"><div class="t">Позвонить</div><div class="meta"><span>9 июн · 16:00</span></div></div></div>
+          <div class="task p-none"><span class="cb"></span><div class="body"><div class="t">Окно толерантности к хорошему</div><div class="meta"><span>10 июн · 21:30</span></div></div></div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- B: группа свёрнута -->
+    <div class="col">
+      <div class="frame-cap"><b>B</b> · тап по заголовку → группа свёрнута</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="head"><span class="burger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><h1>Все</h1></div>
+        <div class="scroll">
+          <div class="ghead"><span class="emo">🧊</span><span class="nm">ZIMA</span><span class="dot" style="background:var(--p-zima)"></span><span class="cnt">3</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span><span class="ecode">B1</span></div>
+          <div class="ghead"><span class="emo">💚</span><span class="nm">Здоровье</span><span class="dot" style="background:var(--p-health)"></span><span class="cnt">2</span><span class="chev open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+          <div class="task th p-high"><span class="cb"></span><div class="body"><div class="t">Записаться на анализы — расширенная панель</div><div class="meta"><span class="over">просрочено · 4 июн</span></div></div></div>
+          <div class="task th p-none"><span class="cb"></span><div class="body"><div class="t">Пауза биотина — СТОП за 5 дней до сдачи</div><div class="meta"><span>10 июн</span></div></div></div>
+          <div class="ghead"><span class="emo">💰</span><span class="nm">Финансы</span><span class="dot" style="background:var(--p-fin)"></span><span class="cnt">1</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+          <div class="ghead"><span class="nm" style="color:var(--steel)">Без проекта</span><span class="cnt">2</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

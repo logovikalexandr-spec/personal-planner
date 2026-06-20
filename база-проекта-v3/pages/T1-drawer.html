@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V3 — Шторка (Drawer) навигация + управление проектом</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --onyx:#0F0F11; --smoke:#1A1B1F; --slate:#242529;
+    --bone:#F4F4F5; --steel:#8A8B91; --accent:#EE8A3C;
+    --accent-soft:rgba(238,138,60,0.16);
+    --danger:#FF5C5C; --warning:#FFB02E;
+    --hairline:rgba(255,255,255,0.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#2a2a2e;color:var(--bone);font-family:Geist, sans-serif;-webkit-font-smoothing:antialiased;padding:28px 0 60px}
+  .cap{max-width:880px;margin:0 auto 18px;font-family:"Geist Mono",monospace;font-size:12.5px;color:var(--steel);padding:0 14px;line-height:1.6}
+  .cap b{color:var(--accent)}
+  .row-frames{display:flex;gap:34px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .frame-cap{font-family:"Geist Mono",monospace;font-size:12px;color:var(--steel);margin:0 0 10px}
+  .frame-cap b{color:var(--accent)}
+  .phone{width:390px;background:var(--onyx);border:1px solid var(--hairline);border-radius:28px;overflow:hidden;position:relative;height:760px;display:flex;flex-direction:column}
+  .status{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-family:"Geist Mono",monospace;font-size:13px;color:var(--bone);flex:0 0 auto}
+  .status .dots{display:flex;gap:4px}.status .dots i{width:5px;height:5px;border-radius:50%;background:var(--steel);display:block}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:1}
+  .drawer{position:absolute;z-index:2;top:0;bottom:0;left:0;width:84%;display:flex;flex-direction:column;background:var(--onyx);overflow:hidden;box-shadow:8px 0 30px rgba(0,0,0,.5)}
+  .scroll{flex:1;overflow-y:auto;padding:16px 0 0}
+  .sec{font-size:12px;font-weight:600;color:var(--steel);letter-spacing:.06em;text-transform:uppercase;padding:12px 16px 6px}
+  .item{display:flex;align-items:center;gap:13px;padding:12px 16px;position:relative;cursor:pointer}
+  .item .li{width:24px;height:24px;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+  .item .li svg{width:22px;height:22px;color:var(--steel)}
+  .item.active .li svg{color:var(--accent)}
+  .item .emo{width:26px;flex:0 0 auto;text-align:center;font-size:19px;line-height:1}
+  .item .nm{flex:1;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .cnt{font-family:"Geist Mono",monospace;font-size:14px;color:var(--steel);margin-left:auto}
+  .item .chev{color:var(--steel);margin-left:10px}.item .chev svg{width:16px;height:16px;display:block}
+  .item .menu{color:var(--steel);margin-left:12px;letter-spacing:1px;font-size:18px;line-height:1;cursor:pointer;flex:0 0 auto}
+  .item.active{background:var(--accent-soft);border-radius:12px;margin:0 8px;padding:12px 12px}
+  .item.active .nm{color:var(--accent)}
+  .item.sub{padding-left:34px}
+  .item.sub .emo{font-size:17px}
+  .foot{display:flex;align-items:center;gap:10px;padding:14px 16px 22px;border-top:1px solid var(--hairline)}
+  .foot .add{display:flex;align-items:center;gap:10px;color:var(--bone);font-size:16px;font-weight:500;cursor:pointer}
+  .foot .add svg{width:22px;height:22px;color:var(--accent)}
+  /* ⋯-меню проекта (bottom-sheet) */
+  .sheet-wrap{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;justify-content:flex-end}
+  .sheet{background:var(--smoke);border-radius:20px 20px 0 0;padding:8px 16px 24px;border-top:1px solid var(--hairline)}
+  .grab{width:38px;height:4px;border-radius:2px;background:var(--slate);margin:6px auto 14px}
+  .menu-head{display:flex;align-items:center;gap:10px;padding:4px 2px 12px;border-bottom:1px solid var(--hairline);margin-bottom:6px}
+  .menu-head .e{font-size:20px}.menu-head .n{font-weight:600;font-size:16px}
+  .mi{display:block;width:100%;text-align:left;background:none;border:0;color:var(--bone);font-size:16px;padding:14px 2px;cursor:pointer;font-family:Geist}
+  .mi.danger{color:var(--danger)}
+  /* лист «Изменить/Создать проект» */
+  .sheet h2{font-size:18px;font-weight:600;margin-bottom:14px}
+  .field{display:flex;align-items:center;gap:12px;background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:11px 14px;margin-bottom:10px}
+  .field .emo{font-size:24px;width:46px;height:46px;text-align:center;flex:0 0 auto;border:1.5px solid var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--accent-soft)}
+  .field input{background:none;border:0;color:var(--bone);font-size:16px;flex:1;outline:none;font-family:Geist}
+  .field .clr{color:var(--steel);cursor:pointer}.field .clr svg{width:18px;height:18px;display:block}
+  .hint{font-size:12px;color:var(--steel);margin:0 2px 18px}
+  .lbl{font-size:12px;color:var(--steel);text-transform:uppercase;letter-spacing:.05em;margin:2px 0 9px}
+  .picker{margin-bottom:18px}
+  .hue{height:26px;border-radius:8px;position:relative;
+       background:linear-gradient(to right,#ff4d4d,#ffb02e,#ffe14d,#4fb477,#3fb6b6,#3c8eee,#9b6be0,#c76fa8,#ff4d4d)}
+  .knob{position:absolute;top:50%;width:24px;height:24px;border-radius:50%;border:3px solid #fff;
+        transform:translate(-50%,-50%);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+  .pk-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .pk-cur{width:30px;height:30px;border-radius:8px;flex:0 0 auto}
+  .pk-hex{font-family:"Geist Mono",monospace;font-size:14px;color:var(--bone)}
+  .pk-note{font-family:"Geist Mono",monospace;font-size:11px;color:var(--steel);margin-left:auto}
+  .selrow{display:flex;align-items:center;justify-content:space-between;background:var(--slate);border:1px solid var(--hairline);border-radius:10px;padding:13px 14px;margin-bottom:18px;color:var(--steel);font-size:15px;cursor:pointer}
+  .selrow b{color:var(--bone);font-weight:500}
+  .btn{display:block;width:100%;background:var(--accent);color:#1a1209;border:0;border-radius:10px;padding:14px;font-size:15px;font-weight:600;font-family:Geist;cursor:pointer}
+  .btn.ghost{background:none;color:var(--steel);margin-top:8px}
+  .dlg-wrap{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.4)}
+  .dlg{background:var(--smoke);border:1px solid var(--hairline);border-radius:16px;padding:22px 20px;width:100%;text-align:center}
+  .dlg h3{font-size:18px;font-weight:600;margin-bottom:8px}
+  .dlg p{color:var(--steel);font-size:14px;line-height:1.5;margin-bottom:20px}
+  .dlg .acts2{display:flex;gap:10px}
+  .dlg button{flex:1;border:1px solid var(--hairline);background:var(--slate);color:var(--bone);border-radius:10px;padding:12px;font-size:15px;font-weight:600;font-family:Geist;cursor:pointer}
+  .dlg button.danger{background:var(--danger);border-color:transparent;color:var(--bone)}
+  .empty-sec{display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 28px 24px;gap:12px}
+  .empty-sec .ic{width:48px;height:48px;border-radius:14px;background:var(--smoke);display:flex;align-items:center;justify-content:center;color:var(--steel)}
+  .empty-sec .ic svg{width:26px;height:26px}
+  .empty-sec .t{font-size:15px;font-weight:600;color:var(--bone)}
+  .empty-sec .d{font-size:13px;color:var(--steel);line-height:1.5;max-width:240px}
+  .empty-sec .pbtn{display:inline-flex;align-items:center;gap:8px;margin-top:4px;background:var(--accent);color:#1a1209;border:0;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:600;font-family:Geist;cursor:pointer}
+  .empty-sec .pbtn svg{width:18px;height:18px}
+  .ecode{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:15px;padding:0 4px;background:var(--accent);color:#1a1209;font:700 9px/1 "Geist Mono",monospace;border-radius:4px;vertical-align:middle;margin-left:6px}
+</style>
+</head>
+<body>
+  <div class="cap"><b>V3 · Шторка (Drawer)</b> — чистая навигация без профиля/колокола/шестерёнки. Смарт-списки (вкл. «План на неделю») + проекты <b>в текущем дизайне</b> (эмодзи + имя + счётчик + шеврон + ⋯). Проекты <b>свёрнуты по умолчанию</b>. ⋯ → меню (Создать подсписок / Редактировать / Закрепить / Удалить). «Изменить»/«Добавить» → лист: <b>эмодзи только нативной Apple-клавой</b> (тап по иконке — без пресетов) + <b>свободный цвет</b> (спектр+hex). Удаление → задачи во «Входящие». Закрытие шторки: тап по тёмной зоне справа или свайп влево.</div>
+
+  <div class="row-frames">
+    <!-- A: навигация -->
+    <div class="col">
+      <div class="frame-cap"><b>A</b> · навигация (проекты свёрнуты)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="scrim"></div>
+        <div class="drawer">
+          <div class="scroll">
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><span class="nm">Все<span class="ecode">A1</span></span><span class="cnt">42</span></div>
+            <div class="item active"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span><span class="nm">Сегодня<span class="ecode">A2</span></span><span class="cnt">7</span></div>
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 00-10 0"/><path d="M12 2v7M5 9l1.5 1.5M19 9l-1.5 1.5M2 18h20"/></svg></span><span class="nm">Завтра<span class="ecode">A3</span></span><span class="cnt">4</span></div>
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span><span class="nm">Следующие 7 дней<span class="ecode">A4</span></span><span class="cnt">18</span></div>
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.5A2 2 0 0016.7 4H7.3a2 2 0 00-1.8 1.5z"/></svg></span><span class="nm">Входящие<span class="ecode">A5</span></span><span class="cnt">3</span></div>
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h11M8 12h11M8 18h11M3 6h.01M3 12h.01M3 18h.01"/></svg></span><span class="nm">План на неделю<span class="ecode">A6</span></span></div>
+
+            <div class="sec">Проекты</div>
+            <div class="item"><span class="emo">💚</span><span class="nm">Здоровье</span><span class="cnt">5</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span><span class="menu">⋯<span class="ecode">A8</span></span></div>
+            <div class="item"><span class="emo">🧊</span><span class="nm">ZIMA</span><span class="cnt">14</span><span class="menu">⋯</span></div>
+            <div class="item"><span class="emo">🧠</span><span class="nm">Интеллект<span class="ecode">A7</span></span><span class="menu">⋯</span></div>
+            <div class="item"><span class="emo">🕉️</span><span class="nm">Духовность</span><span class="cnt">9</span><span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span><span class="menu">⋯</span></div>
+            <div class="item"><span class="emo">🎯</span><span class="nm">Глобальные цели</span><span class="cnt">12</span><span class="menu">⋯</span></div>
+            <div class="item"><span class="emo">🏛️</span><span class="nm">Недвижимость</span><span class="cnt">4</span><span class="menu">⋯</span></div>
+            <div class="item"><span class="emo">💰</span><span class="nm">Финансы</span><span class="cnt">3</span><span class="menu">⋯</span></div>
+          </div>
+          <div class="foot">
+            <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Добавить проект<span class="ecode">A9</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A·exp: раскрытый проект -->
+    <div class="col">
+      <div class="frame-cap"><b>A·exp</b> · проект раскрыт (тап по шеврону)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="scrim"></div>
+        <div class="drawer">
+          <div class="scroll">
+            <div class="sec">Проекты</div>
+            <div class="item"><span class="emo">🕉️</span><span class="nm">Духовность<span class="ecode">X1</span></span><span class="cnt">9</span><span class="chev" style="transform:rotate(90deg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span><span class="menu">⋯</span></div>
+            <div class="item sub"><span class="emo">🧩</span><span class="nm">Внутренняя работа<span class="ecode">X2</span></span><span class="cnt">8</span><span class="menu">⋯</span></div>
+            <div class="item sub"><span class="emo">📚</span><span class="nm">Курсы</span><span class="cnt">1</span><span class="menu">⋯</span></div>
+            <div class="item"><span class="emo">🧊</span><span class="nm">ZIMA</span><span class="cnt">14</span><span class="menu">⋯</span></div>
+          </div>
+          <div class="foot">
+            <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Добавить проект</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: ⋯-меню -->
+    <div class="col">
+      <div class="frame-cap"><b>B</b> · ⋯ → меню проекта</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="scrim"></div>
+        <div class="sheet-wrap">
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="menu-head"><span class="e">💰</span><span class="n">Финансы</span></div>
+            <button class="mi">Создать подсписок<span class="ecode">B1</span></button>
+            <button class="mi">Редактировать<span class="ecode">B2</span></button>
+            <button class="mi">Закрепить<span class="ecode">B3</span></button>
+            <button class="mi danger">Удалить<span class="ecode">B4</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Изменить/Создать -->
+    <div class="col">
+      <div class="frame-cap"><b>C</b> · Изменить/Создать · эмодзи нативно + свободный цвет</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="scrim"></div>
+        <div class="sheet-wrap">
+          <div class="sheet">
+            <div class="grab"></div>
+            <h2>Изменить проект</h2>
+            <div class="field"><span class="emo">💰<span class="ecode">C1</span></span><input value="Финансы"><span class="clr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span></div>
+            <div class="hint">Тапни иконку — откроется Apple эмодзи-клава, выбери любой</div>
+            <div class="lbl">Цвет проекта — тащи по спектру<span class="ecode">C3</span></div>
+            <div class="picker">
+              <div class="hue"><div class="knob" style="left:24%;background:#C9A24B"></div></div>
+              <div class="pk-row"><span class="pk-cur" style="background:#C9A24B"></span><span class="pk-hex">#C9A24B<span class="ecode">C4</span></span><span class="pk-note">= цвет задач проекта</span></div>
+            </div>
+            <div class="selrow">Родитель <b>Без родителя ›</b><span class="ecode">C5</span></div>
+            <button class="btn">Сохранить<span class="ecode">C6</span></button>
+            <button class="btn ghost">Отмена<span class="ecode">C7</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C·new: Создать проект -->
+    <div class="col">
+      <div class="frame-cap"><b>C·new</b> · «Добавить проект» (пустой)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="scrim"></div>
+        <div class="sheet-wrap">
+          <div class="sheet">
+            <div class="grab"></div>
+            <h2>Новый проект</h2>
+            <div class="field"><span class="emo" style="border-color:var(--hairline);background:var(--slate)">📁<span class="ecode">N1</span></span><input placeholder="Название проекта…" style="color:var(--steel)"><span class="clr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span></div>
+            <div class="hint">Тапни иконку — откроется Apple эмодзи-клава, выбери любой</div>
+            <div class="lbl">Цвет проекта — тащи по спектру<span class="ecode">N2</span></div>
+            <div class="picker">
+              <div class="hue"><div class="knob" style="left:8%;background:#EE8A3C"></div></div>
+              <div class="pk-row"><span class="pk-cur" style="background:#EE8A3C"></span><span class="pk-hex">#EE8A3C<span class="ecode">N3</span></span><span class="pk-note">= цвет задач проекта</span></div>
+            </div>
+            <div class="selrow">Родитель <b>Без родителя ›</b><span class="ecode">N4</span></div>
+            <button class="btn">Создать<span class="ecode">N5</span></button>
+            <button class="btn ghost">Отмена<span class="ecode">N6</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C·sub: Создать подсписок (родитель предзаполнен) -->
+    <div class="col">
+      <div class="frame-cap"><b>C·sub</b> · «Создать подсписок» (родитель задан)</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="scrim"></div>
+        <div class="sheet-wrap">
+          <div class="sheet">
+            <div class="grab"></div>
+            <h2>Новый подсписок</h2>
+            <div class="field"><span class="emo" style="border-color:var(--hairline);background:var(--slate)">📁<span class="ecode">S1</span></span><input placeholder="Название подсписка…" style="color:var(--steel)"><span class="clr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg></span></div>
+            <div class="hint">Тапни иконку — откроется Apple эмодзи-клава, выбери любой</div>
+            <div class="lbl">Цвет проекта — тащи по спектру</div>
+            <div class="picker">
+              <div class="hue"><div class="knob" style="left:60%;background:#3C8EEE"></div></div>
+              <div class="pk-row"><span class="pk-cur" style="background:#3C8EEE"></span><span class="pk-hex">#3C8EEE</span><span class="pk-note">= цвет задач проекта</span></div>
+            </div>
+            <div class="selrow">Родитель <b>🕉️ Духовность ›</b><span class="ecode">S2</span></div>
+            <button class="btn">Создать<span class="ecode">S3</span></button>
+            <button class="btn ghost">Отмена</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D: удаление -->
+    <div class="col">
+      <div class="frame-cap"><b>D</b> · «Удалить» → подтверждение</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="scrim"></div>
+        <div class="dlg-wrap">
+          <div class="dlg">
+            <h3>Удалить «Финансы»?</h3>
+            <p>3 задачи переедут во «Входящие». Подпроекты тоже. Действие необратимо.</p>
+            <div class="acts2">
+              <button>Отмена<span class="ecode">D1</span></button>
+              <button class="danger">Удалить<span class="ecode">D2</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- E: empty -->
+    <div class="col">
+      <div class="frame-cap"><b>E</b> · пусто — нет проектов</div>
+      <div class="phone">
+        <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+        <div class="scrim"></div>
+        <div class="drawer">
+          <div class="scroll">
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></span><span class="nm">Сегодня</span><span class="cnt">2</span></div>
+            <div class="item"><span class="li"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.5L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.5A2 2 0 0016.7 4H7.3a2 2 0 00-1.8 1.5z"/></svg></span><span class="nm">Входящие</span><span class="cnt">2</span></div>
+            <div class="sec">Проекты</div>
+            <div class="empty-sec">
+              <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div>
+              <div class="t">Проектов пока нет</div>
+              <div class="d">Сгруппируй задачи по проектам — финансы, дело, цели. Каждый со своим цветом.</div>
+              <button class="pbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Создать проект<span class="ecode">E1</span></button>
+            </div>
+          </div>
+          <div class="foot">
+            <div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Добавить проект</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

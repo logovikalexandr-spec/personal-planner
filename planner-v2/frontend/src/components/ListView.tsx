@@ -125,6 +125,7 @@ export function ListView({
         <TaskListBody
           tasks={tasks}
           colorOf={(t) => resolveColor(t.project_id, byId)}
+          groupByProjectMap={active.kind === "smart" ? byId : undefined}
           onOpen={onOpenTask}
           onToggle={toggle}
           onComplete={doComplete}
