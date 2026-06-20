@@ -322,6 +322,7 @@ export const DayTimeline = memo(function DayTimeline({
       setOff(((nowMinRef.current - offsetMin) / 60) * HOUR_H - 70);
     };
     scrollDraftRef.current = () => {                          // черновик к верху клипа (над клавой), один раз
+      recalcMax();                                            // грид только что вырос на спейсер-клавы → пересчитать предел
       setOff(((draftStartRef.current - offsetMin) / 60) * HOUR_H - 80);
     };
 
@@ -491,7 +492,10 @@ export const DayTimeline = memo(function DayTimeline({
         className="cal-grid"
         data-testid="cal-grid"
         ref={gridRef}
-        style={{ height: HOURS.length * HOUR_H }}
+        // при редактировании черновика добавляем нижний воздух (≈высота клавы): scrollHeight растёт →
+        // maxOff растёт → поздний черновик (напр. 19:00) можно поднять к верху клипа над клавой одним
+        // transform-скроллом. Без спейсера late-блок упирался в кламп и застревал у клавы.
+        style={{ height: HOURS.length * HOUR_H + (draft?.state === "editing" ? 360 : 0) }}
         onPointerDown={onCreateDraft ? onHourDown : undefined}
         onPointerMove={onCreateDraft ? onHourMove : undefined}
         onPointerUp={onCreateDraft ? onHourUp : undefined}

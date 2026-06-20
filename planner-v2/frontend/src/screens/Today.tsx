@@ -175,27 +175,10 @@ export function Today({
   const editing = draft?.state === "editing";
   useBottomAnchor(accessoryRef, editing);
 
-  // Черновик у нижнего края подъезжает под бар «Готово» (оба над клавой) → доскроллить
-  // документ так, чтобы блок встал ВЫШЕ бара. Запуск после анимации клавиатуры.
-  useEffect(() => {
-    if (!editing) return;
-    const adjust = () => {
-      const draftEl = document.querySelector<HTMLElement>(".cal-draft");
-      if (!draftEl) return;
-      const vv = window.visualViewport;
-      const vpBottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
-      const barH = accessoryRef.current?.offsetHeight ?? 60;
-      const overlap = draftEl.getBoundingClientRect().bottom - (vpBottom - barH - 8);
-      if (overlap > 0) {
-        const sc = document.scrollingElement ?? document.documentElement;
-        sc.scrollTop += overlap;
-      }
-    };
-    const raf = requestAnimationFrame(adjust);
-    const t1 = window.setTimeout(adjust, 320);
-    const t2 = window.setTimeout(adjust, 520);
-    return () => { cancelAnimationFrame(raf); window.clearTimeout(t1); window.clearTimeout(t2); };
-  }, [editing]);
+  // ПОЗИЦИОНИРОВАНИЕ черновика над клавой — ОДИН механизм: внутренний transform-скролл
+  // DayTimeline (scrollDraftRef, поднимает блок к верху клипа). Прежний документ-скролл здесь
+  // дрался с ним (двойной скролл → дёрганье 2-3 раза + overlap «Готово») — удалён. Грид-спейсер
+  // в DayTimeline даёт late-блоку доехать вверх без клампа.
 
   // E9: смена таба с открытым черновиком (Today не размонтируется — keep-alive в App).
   // Скрыли экран → непустой draft авто-коммитим (как тап-вне), пустой отбрасываем.
