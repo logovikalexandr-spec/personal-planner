@@ -1020,8 +1020,13 @@ body.inline-draft .fab { display: none; }
 /* ── свайп-строка (мокап B) ── */
 .task-swipe {
   position: relative; overflow: hidden; border-radius: var(--radius);
+  /* GPU-растеризуем скруглённый клип: иначе iOS не обрезает по углам КОМПОЗИТНЫЙ
+     потомок (.task-row has will-change:transform) → цветной тинт вылезал за угол. */
+  transform: translateZ(0);
 }
-.task-swipe .task-row { position: relative; z-index: 1; will-change: transform; }
+/* клип-радиус держит ТОЛЬКО родитель (.task-swipe); у потомка radius:0 — иначе два
+   скруглённых слоя рассинхронятся на субпиксель и дают цветной серп за углом. */
+.task-swipe .task-row { position: relative; z-index: 1; will-change: transform; border-radius: 0; }
 .swipe-actions {
   position: absolute; top: 0; bottom: 0; display: flex; align-items: stretch; z-index: 0;
 }
