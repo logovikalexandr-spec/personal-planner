@@ -44,6 +44,7 @@ type Draft = { startMin: number; endMin: number; title: string; state: "editing"
 export const DayTimeline = memo(function DayTimeline({
   tasks, byId, isToday, onTapHour, onToggle, onOpen, onResize, autoScroll = true, nowAnchorId,
   gridRef: gridRefProp, onCreateDraft, compact = false, startHourOverride, scrollToNowKey = 0,
+  scrollToHour, scrollToHourKey = 0,
   draft, onDraftChange, onDraftCommit, onDraftCancel, onDraftRetry, onDraftResize,
 }: {
   tasks: Task[];
@@ -68,6 +69,9 @@ export const DayTimeline = memo(function DayTimeline({
   startHourOverride?: number;
   /** Сигнал «прыгнуть к now-линии» (Today бампает при показе таба / кнопке «Сейчас»). */
   scrollToNowKey?: number;
+  /** Час, к которому скроллить по scrollToHourKey (для не-сегодня — открывать на 05:00). */
+  scrollToHour?: number;
+  scrollToHourKey?: number;
   /** Черновик создаваемой задачи (state живёт в родителе — Today). */
   draft?: Draft | null;
   onDraftChange?: (title: string) => void;
@@ -83,8 +87,11 @@ export const DayTimeline = memo(function DayTimeline({
   // GPU-transform скролл (Today timeline): смещение контента + ref-API «прыжок к now» + актуальный nowMin
   const offsetRef = useRef(0);
   const scrollNowRef = useRef<() => void>(() => {});
+  const scrollHourRef = useRef<() => void>(() => {});    // скролл к фикс. часу (не-сегодня → 05:00)
   const scrollDraftRef = useRef<() => void>(() => {});   // подскролл черновика над клавой
   const nowMinRef = useRef(0);
+  const scrollHourValRef = useRef(5);
+  scrollHourValRef.current = scrollToHour ?? 5;
   const draftActiveRef = useRef(false);                  // редактируется черновик → заморозить refit/скролл
   const draftStartRef = useRef(0);
   const timed = useMemo(() => tasks.filter((t) => t.due_time), [tasks]);
@@ -312,6 +319,10 @@ export const DayTimeline = memo(function DayTimeline({
       fitHeight();
       setOff(((nowMinRef.current - offsetMin) / 60) * HOUR_H - 70);
     };
+    scrollHourRef.current = () => {                           // не-сегодня: открыть на фикс. часе (05:00) у верха
+      fitHeight();
+      setOff(((scrollHourValRef.current * 60 - offsetMin) / 60) * HOUR_H - 8);
+    };
     scrollDraftRef.current = () => {                          // черновик к верху клипа (над клавой), один раз
       recalcMax();                                            // грид только что вырос на спейсер-клавы → пересчитать предел
       setOff(((draftStartRef.current - offsetMin) / 60) * HOUR_H - 80);
@@ -367,6 +378,9 @@ export const DayTimeline = memo(function DayTimeline({
 
   // Прыжок к now-линии (по сигналу от Today: показ таба / кнопка «Сейчас»). После main-эффекта.
   useEffect(() => { scrollNowRef.current(); }, [scrollToNowKey]);
+
+  // Скролл к фикс. часу (не-сегодня → 05:00). key=0 = не трогать (сегодня идёт через now-key).
+  useEffect(() => { if (scrollToHourKey) scrollHourRef.current(); }, [scrollToHourKey]);
 
   // Вход в редактирование черновика → подскроллить его к верху (над клавой), один раз.
   useEffect(() => {
