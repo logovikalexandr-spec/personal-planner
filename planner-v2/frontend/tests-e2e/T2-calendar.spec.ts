@@ -33,18 +33,20 @@ test("сегмент переключает три вида (A1)", async ({ page
 });
 
 // ── ДНИ ──
-test("дни: дефолт = 2 колонки, степпер меняет число (A9)", async ({ page }) => {
+test("дни: дефолт = 2 колонки (CalendarDays), степпер 7 = недельный вид (A9)", async ({ page }) => {
   await page.goto(VIEW);
   await expect(page.locator('[data-testid="cal-days"] .cd-col')).toHaveCount(2);
   await page.getByTestId("dstep-3").click();
   await expect(page.locator('[data-testid="cal-days"] .cd-col')).toHaveCount(3);
+  // «7» = старый недельный вид CalendarWeek (cw-col), не compact-колонки
   await page.getByTestId("dstep-7").click();
-  await expect(page.locator('[data-testid="cal-days"] .cd-col')).toHaveCount(7);
+  await expect(page.locator('[data-testid="cal-week"] .cw-col')).toHaveCount(7);
 });
 
-test("дни=7: неделя Пн–Вс + диапазон + навигация (A2)", async ({ page }) => {
+// ── «7» = старый недельный вид (CalendarWeek) ──
+test("дни=7: неделя 7 колонок + диапазон + навигация (A2)", async ({ page }) => {
   await openDays(page, 7);
-  await expect(page.locator('[data-testid="cal-days"] .cd-col')).toHaveCount(7);
+  await expect(page.locator('[data-testid="cal-week"] .cw-col')).toHaveCount(7);
   const before = await page.getByTestId("cal-range").textContent();
   await page.getByTestId("cal-next").click();
   await expect(page.getByTestId("cal-range")).not.toHaveText(before ?? "");
@@ -55,33 +57,32 @@ test("дни=7: неделя Пн–Вс + диапазон + навигация
 
 test("дни=7: полоска «весь день» с пилюлей (A3)", async ({ page }) => {
   await openDays(page, 7);
-  await expect(page.locator('[data-testid="cal-days"] .cd-adrow .cd-pill').first()).toContainText("Договор");
+  await expect(page.locator('[data-testid="cal-week"] .cw-adrow .cw-pill').first()).toContainText("Договор");
 });
 
 test("дни=7: сегодня-колонка выделена + линия сейчас (A4)", async ({ page }) => {
   await page.clock.install({ time: NOON });
   await openDays(page, 7);
-  await expect(page.locator('[data-testid="cal-days"] .cd-dh.today')).toHaveCount(1);
-  // now-line рендерится только в колонке сегодня при валидном времени (1.5px-строка → проверяем наличие, не px-visible)
-  await expect(page.getByTestId("now-line")).toHaveCount(1);
+  await expect(page.locator('[data-testid="cal-week"] .cw-dh.today')).toHaveCount(1);
+  await expect(page.getByTestId("cw-now")).toBeVisible();
 });
 
 test("дни=7: веха-флажок на числе (A5)", async ({ page }) => {
   await openDays(page, 7);
-  await expect(page.locator('[data-testid="cal-days"] .cd-pen').first()).toBeVisible();
+  await expect(page.locator('[data-testid="cal-week"] .cw-pen').first()).toBeVisible();
 });
 
-test("дни=7: таймблоки + оба наложенных блока видны (A6)", async ({ page }) => {
+test("дни=7: таймблоки + каскад наложений (A6, G2)", async ({ page }) => {
   await openDays(page, 7);
-  await expect(page.getByTestId("task-1")).toContainText("Звонок покупателю");
-  await expect(page.getByTestId("task-5")).toBeVisible();
-  await expect(page.getByTestId("task-6")).toBeVisible();
+  await expect(page.getByTestId("cw-blk-1")).toContainText("Звонок покупателю");
+  await expect(page.getByTestId("cw-blk-5")).toHaveClass(/c1/);
+  await expect(page.getByTestId("cw-blk-6")).toHaveClass(/c2/);
 });
 
-test("дни=7: тап числа → переход в таб «Задачи» (onOpenDay)", async ({ page }) => {
+test("дни=3: тап числа → переход в таб «Задачи» (onOpenDay, CalendarDays)", async ({ page }) => {
   const logs: string[] = [];
   page.on("console", (m) => { if (m.text().startsWith("openDay")) logs.push(m.text()); });
-  await openDays(page, 7);
+  await openDays(page, 3);
   await page.locator('[data-testid="cal-days"] .cd-dh').first().click();
   await expect.poll(() => logs.length).toBeGreaterThan(0);
 });
@@ -166,13 +167,13 @@ test("ошибка: сообщение + Повторить (состояние 
 // ── ТОКЕН-СМОУК (var() → цвет DESIGN.md) ──
 test("кант высокого приоритета = Signal Red (#FF5C5C)", async ({ page }) => {
   await openDays(page, 7);
-  await expect(page.getByTestId("task-1")).toHaveCSS("border-left-color", "rgb(255, 92, 92)");
+  await expect(page.getByTestId("cw-blk-1")).toHaveCSS("border-left-color", "rgb(255, 92, 92)");
 });
 
 test("линия сейчас = Ember (#EE8A3C)", async ({ page }) => {
   await page.clock.install({ time: NOON });
   await openDays(page, 7);
-  await expect(page.getByTestId("now-line")).toHaveCSS("background-color", "rgb(238, 138, 60)");
+  await expect(page.getByTestId("cw-now")).toHaveCSS("background-color", "rgb(238, 138, 60)");
 });
 
 // ── ВИЗУАЛ-BASELINE (chromium; эталон утверждает ЧЕЛОВЕК) ──
@@ -187,9 +188,9 @@ test.describe("визуал-baseline", () => {
     await expect(page.getByTestId("cal-days")).toBeVisible();
     await expect(page.getByTestId("screen-calendar")).toHaveScreenshot("T2-days2-happy.png");
   });
-  test("Дни=7 · happy", async ({ page }) => {
+  test("Дни=7 (недельный вид) · happy", async ({ page }) => {
     await openDays(page, 7);
-    await expect(page.getByTestId("cal-days")).toBeVisible();
+    await expect(page.getByTestId("cal-week")).toBeVisible();
     await expect(page.getByTestId("screen-calendar")).toHaveScreenshot("T2-days7-happy.png");
   });
   test("Месяц · happy", async ({ page }) => {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getMilestones, getProjects, getTasks, getTasksRange, patchTask } from "../api";
 import { CalendarDays } from "../components/CalendarDays";
+import { CalendarWeek } from "../components/CalendarWeek";
 import { CalendarMonth } from "../components/CalendarMonth";
 import { CalendarAgenda } from "../components/CalendarAgenda";
 import { TaskComposer } from "../components/TaskComposer";
@@ -176,6 +177,17 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
           <div className="cal-skel" data-testid="cal-loading">
             {Array.from({ length: 7 }, (_, i) => <div className="col skeleton" key={i} />)}
           </div>
+        ) : view === "days" && dayCount === 7 ? (
+          // «7» = точно старый недельный вид (CalendarWeek), как просил владелец
+          <CalendarWeek
+            weekStart={days[0]}
+            tasks={tasks}
+            milestones={milestones}
+            byId={byId}
+            today={today}
+            onTapBlock={(t) => setOpenedId(t.id)}
+            onTapSlot={(d, h) => setComposer({ date: localISO(d), time: `${`${Math.max(0, Math.min(23, h))}`.padStart(2, "0")}:00:00` })}
+          />
         ) : view === "days" ? (
           <CalendarDays
             days={days}

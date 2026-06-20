@@ -164,15 +164,6 @@ export function CalendarWeek({
           );
         })}
       </div>
-
-      <div className="cw-legend" data-testid="cw-legend">
-        {[...byId.values()].filter((p) => !p.is_inbox && p.color).slice(0, 4).map((p) => (
-          <span className="cw-lk" key={p.id}><i style={{ background: p.color! }} />{p.name}</span>
-        ))}
-        <span className="cw-lk"><i className="bar" style={{ background: "var(--danger)" }} />high</span>
-        <span className="cw-lk"><i className="bar" style={{ background: "var(--warning)" }} />med</span>
-        <span className="cw-lk"><i className="bar" style={{ background: "var(--accent)" }} />low</span>
-      </div>
     </div>
   );
 }
