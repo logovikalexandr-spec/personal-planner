@@ -3,8 +3,9 @@ import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { tg } from "../telegram";
 import {
-  addHabit, backfillHabit, completeTask, createHabit, createMetric, deleteHabit, deleteMetric,
-  getHabits, getMetrics, getRetro, measureMetric, toggleHabit, type RetroOut,
+  backfillHabit, completeTask, createHabit, createMetric, deleteHabit, deleteMetric, deleteMetricEntry,
+  getHabits, getHabitHistory, getMetrics, getRetro, measureMetric, patchHabit, patchMetric, toggleHabit,
+  type HabitHistoryOut, type RetroOut,
 } from "../api";
 import type { HabitOut, MetricOut, Task } from "../types";
 
@@ -57,37 +58,50 @@ function StreakRing({ pct, num, color }: { pct: number; num: number; color: stri
   );
 }
 
-function HabitCard({ h, onToggle, onAdd, onDelete }: {
-  h: HabitOut; onToggle: (h: HabitOut) => void; onAdd: (h: HabitOut) => void; onDelete: (h: HabitOut) => void;
+function HabitCard({ h, onToggle, onCount, onOpen, onMenu }: {
+  h: HabitOut; onToggle: (h: HabitOut) => void; onCount: (h: HabitOut) => void;
+  onOpen: (h: HabitOut) => void; onMenu: (h: HabitOut) => void;
 }) {
   const weekDone = h.week.filter(Boolean).length;
   const isGoal = h.goal_total != null && h.goal_total > 0;
   const isCount = h.mark_type === "count";
-  const pct = isGoal ? h.streak / (h.goal_total as number) : weekDone / 7;
-  const press = useRef<number | null>(null);
-  const longStart = () => { press.current = window.setTimeout(() => onDelete(h), 550); };
-  const longEnd = () => { if (press.current) { clearTimeout(press.current); press.current = null; } };
+  // edge #11: стрик прерван (был рекорд) / цель-дата достигнута
+  const broken = !isCount && h.streak === 0 && h.record_streak > 0 && !h.done_today;
+  const reached = isGoal && h.goal_total != null && h.streak >= h.goal_total;
+  const pct = reached ? 1 : isGoal ? h.streak / (h.goal_total as number) : weekDone / 7;
+  const ringColor = broken ? "var(--text-muted)" : h.color;
+
+  // long-press → контекст-меню; тап → деталь (подавляем клик после long-press)
+  const lp = useRef<number | null>(null);
+  const fired = useRef(false);
+  const down = () => { fired.current = false; lp.current = window.setTimeout(() => { fired.current = true; onMenu(h); }, 500); };
+  const cancel = () => { if (lp.current) { clearTimeout(lp.current); lp.current = null; } };
+  const click = () => { if (fired.current) { fired.current = false; return; } onOpen(h); };
 
   return (
-    <div className="hcard" style={{ ["--c" as string]: h.color }}
-      onPointerDown={longStart} onPointerUp={longEnd} onPointerLeave={longEnd}>
+    <div className="hcard" style={{ ["--c" as string]: h.color, cursor: "pointer" }}
+      onClick={click} onPointerDown={down} onPointerUp={cancel} onPointerLeave={cancel} onPointerCancel={cancel}>
       <div className="hc-row">
-        <StreakRing pct={pct} num={h.streak} color={h.color} />
+        <StreakRing pct={pct} num={h.streak} color={ringColor} />
         <div className="hc-body">
           <div className="hc-name">{h.name}</div>
-          <div className="hc-streak">
-            <Flame />
-            <span><b>{h.streak} {h.streak === 1 ? "день" : "дней"}</b>{" "}
-              {isGoal ? `· цель ${h.goal_total}` : h.done_today ? "подряд" : "· сегодня ещё нет"}
+          <div className="hc-streak" style={broken ? { color: "var(--danger)" } : reached ? { color: h.color } : undefined}>
+            {!broken && <Flame />}
+            <span>
+              {broken ? <>стрик прерван · рекорд был {h.record_streak}</>
+                : reached ? <>цель достигнута · {h.goal_total}/{h.goal_total} ✓</>
+                : <><b>{h.streak} {h.streak === 1 ? "день" : "дней"}</b>{" "}{isGoal ? `· цель ${h.goal_total}` : h.done_today ? "подряд" : "· сегодня ещё нет"}</>}
             </span>
           </div>
         </div>
         {isCount ? (
-          <button className="hchk" style={{ ["--c" as string]: h.color }} onClick={() => onAdd(h)}
+          <button className="hchk" style={{ ["--c" as string]: h.color }}
+            onClick={(e) => { e.stopPropagation(); onCount(h); }}
             aria-label="Добавить замер">+</button>
         ) : (
           <button className={"hchk" + (h.done_today ? " done" : "")} style={{ ["--c" as string]: h.color }}
-            onClick={() => onToggle(h)} aria-label={h.done_today ? "Снять отметку" : "Отметить выполнено"}>
+            onClick={(e) => { e.stopPropagation(); onToggle(h); }}
+            aria-label={h.done_today ? "Снять отметку" : "Отметить выполнено"}>
             {h.done_today && <Check />}
           </button>
         )}
@@ -113,21 +127,35 @@ function HabitCard({ h, onToggle, onAdd, onDelete }: {
   );
 }
 
-function HabitsView({ habits, onToggle, onAdd, onDelete, onNew }: {
-  habits: HabitOut[]; onToggle: (h: HabitOut) => void; onAdd: (h: HabitOut) => void;
-  onDelete: (h: HabitOut) => void; onNew: () => void;
+// 7 ISO-дат текущей недели Пн..Вс + индекс сегодня (Пн=0)
+function weekDates(): { dates: string[]; todayIdx: number } {
+  const d = new Date();
+  const todayIdx = (d.getDay() + 6) % 7;
+  const mon = new Date(d); mon.setDate(d.getDate() - todayIdx);
+  const dates = Array.from({ length: 7 }, (_, i) => {
+    const x = new Date(mon); x.setDate(mon.getDate() + i);
+    return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+  });
+  return { dates, todayIdx };
+}
+
+function HabitsView({ habits, onToggle, onCount, onOpen, onMenu, onBackfill, onNew }: {
+  habits: HabitOut[]; onToggle: (h: HabitOut) => void; onCount: (h: HabitOut) => void;
+  onOpen: (h: HabitOut) => void; onMenu: (h: HabitOut) => void;
+  onBackfill: (h: HabitOut, iso: string) => void; onNew: () => void;
 }) {
   if (habits.length === 0) {
     return <Empty text="Пока нет привычек. Заведи первую рутину — стрик начнётся с сегодня."
       action={<button className="btn-primary" onClick={onNew}>Новая привычка</button>} />;
   }
+  const { dates, todayIdx } = weekDates();
   return (
     <>
       <div className="trk-seclbl" style={{ display: "flex", justifyContent: "space-between" }}>
         <span>Сегодня</span><button className="lnk" onClick={onNew}>+ Привычка</button>
       </div>
       {habits.map((h) => (
-        <HabitCard key={h.id} h={h} onToggle={onToggle} onAdd={onAdd} onDelete={onDelete} />
+        <HabitCard key={h.id} h={h} onToggle={onToggle} onCount={onCount} onOpen={onOpen} onMenu={onMenu} />
       ))}
 
       <div className="trk-seclbl">Тепловая карта</div>
@@ -136,28 +164,41 @@ function HabitsView({ habits, onToggle, onAdd, onDelete, onNew }: {
           <div className="hd" />
           {WD.map((d) => <div className="hd" key={d}>{d}</div>)}
           {habits.map((h) => (
-            <HeatRow key={h.id} name={h.name} levels={h.heat7} />
+            <HeatRow key={h.id} habit={h} dates={dates} todayIdx={todayIdx} onBackfill={onBackfill} />
           ))}
         </div>
         <div className="hleg">
           меньше <span className="lv0" /><span className="lv1" /><span className="lv2" /><span className="lv3" /><span className="lv4" /> больше
         </div>
+        <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 7 }}>Тап по прошлой пустой ячейке — отметить задним числом.</div>
       </div>
     </>
   );
 }
 
-function HeatRow({ name, levels }: { name: string; levels: number[] }) {
+function HeatRow({ habit, dates, todayIdx, onBackfill }: {
+  habit: HabitOut; dates: string[]; todayIdx: number; onBackfill: (h: HabitOut, iso: string) => void;
+}) {
+  const levels = habit.heat7 ?? [];
   return (
     <>
-      <div className="rn">{name}</div>
-      {(levels ?? []).map((lv, i) => <div key={i} className={`cell lv${lv}`} />)}
+      <div className="rn">{habit.name}</div>
+      {dates.map((iso, i) => {
+        const lv = levels[i] ?? 0;
+        const isFuture = i > todayIdx;
+        const canBackfill = i < todayIdx && lv === 0; // прошлый пустой день
+        return (
+          <div key={i} className={`cell lv${lv}`}
+            onClick={canBackfill ? () => onBackfill(habit, iso) : undefined}
+            style={{ opacity: isFuture ? 0.3 : 1, cursor: canBackfill ? "pointer" : "default" }} />
+        );
+      })}
     </>
   );
 }
 
-function MetricsView({ metrics, onMeasure, onDelete, onNew }: {
-  metrics: MetricOut[]; onMeasure: (m: MetricOut) => void; onDelete: (m: MetricOut) => void; onNew: () => void;
+function MetricsView({ metrics, onOpen, onNew }: {
+  metrics: MetricOut[]; onOpen: (m: MetricOut) => void; onNew: () => void;
 }) {
   if (metrics.length === 0) {
     return <Empty text="Нет метрик. Следи за любым числом — вес, сон, настроение."
@@ -172,11 +213,8 @@ function MetricsView({ metrics, onMeasure, onDelete, onNew }: {
         {metrics.map((m) => {
           const pts = sparkPoints(m.entries.map((e) => e.value).reverse());
           const dir = m.delta == null ? null : (m.good_direction === "down" ? m.delta < 0 : m.delta > 0) ? "up" : "down";
-          const press = { id: m.id };
           return (
-            <div key={m.id} className="mcard" onClick={() => onMeasure(m)}
-              onContextMenu={(e) => { e.preventDefault(); onDelete(m); }}
-              data-id={press.id}>
+            <div key={m.id} className="mcard" onClick={() => onOpen(m)}>
               <div className="m-lbl">{m.name}</div>
               <div className="m-val">
                 {m.latest ?? "—"}<small> {m.unit}</small>
@@ -365,6 +403,12 @@ export function Tracking() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [sheet, setSheet] = useState<null | "habit" | "metric">(null);
+  const [measure, setMeasure] = useState<MetricOut | null>(null);
+  const [detail, setDetail] = useState<HabitOut | null>(null);
+  const [editHabit, setEditHabit] = useState<HabitOut | null>(null);
+  const [countSheet, setCountSheet] = useState<HabitOut | null>(null);
+  const [menu, setMenu] = useState<HabitOut | null>(null);
+  const [metricDetail, setMetricDetail] = useState<MetricOut | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -384,27 +428,26 @@ export function Tracking() {
     tg()?.HapticFeedback?.impactOccurred?.("light");
     try { replaceHabit(await toggleHabit(h.id, todayISO())); } catch { load(); }
   }
-  async function onAdd(h: HabitOut) {
+  async function onBackfillMain(h: HabitOut, iso: string) {
     tg()?.HapticFeedback?.impactOccurred?.("light");
-    try { replaceHabit(await addHabit(h.id, todayISO(), h.step ?? 1)); } catch { load(); }
+    try { replaceHabit(await backfillHabit(h.id, iso, h.target ?? 1)); } catch { load(); }
   }
-  function onDeleteHabit(h: HabitOut) {
-    tg()?.showConfirm?.(`Удалить «${h.name}»? Стрики и история сотрутся.`, async (ok: boolean) => {
+  function archiveHabit(h: HabitOut) {
+    tg()?.showConfirm?.(`Архивировать «${h.name}»? Скроется, история сохранится.`, async (ok: boolean) => {
       if (!ok) return;
-      try { await deleteHabit(h.id); setHabits((p) => p.filter((x) => x.id !== h.id)); } catch { load(); }
+      try { await patchHabit(h.id, { archived: true }); setHabits((p) => p.filter((x) => x.id !== h.id)); setDetail(null); setMenu(null); } catch { load(); }
     });
   }
-  function onMeasure(m: MetricOut) {
-    const raw = window.prompt(`Замер «${m.name}»${m.unit ? ` (${m.unit})` : ""}:`, m.latest != null ? String(m.latest) : "");
-    if (raw == null) return;
-    const v = parseFloat(raw.replace(",", "."));
-    if (Number.isNaN(v)) return;
-    measureMetric(m.id, todayISO(), v).then(replaceMetric).catch(load);
+  function removeHabit(h: HabitOut) {
+    tg()?.showConfirm?.(`Удалить «${h.name}»? Стрики и история сотрутся навсегда.`, async (ok: boolean) => {
+      if (!ok) return;
+      try { await deleteHabit(h.id); setHabits((p) => p.filter((x) => x.id !== h.id)); setDetail(null); setMenu(null); } catch { load(); }
+    });
   }
   function onDeleteMetric(m: MetricOut) {
     tg()?.showConfirm?.(`Удалить метрику «${m.name}»?`, async (ok: boolean) => {
       if (!ok) return;
-      try { await deleteMetric(m.id); setMetrics((p) => p.filter((x) => x.id !== m.id)); } catch { load(); }
+      try { await deleteMetric(m.id); setMetrics((p) => p.filter((x) => x.id !== m.id)); setMetricDetail(null); } catch { load(); }
     });
   }
   function onOverdueDone(t: Task) {
@@ -428,12 +471,89 @@ export function Tracking() {
         <button className={view === "retro" ? "seg-on" : ""} onClick={() => setView("retro")}>Ретро</button>
       </div>
 
-      {view === "habits" && <HabitsView habits={habits} onToggle={onToggle} onAdd={onAdd} onDelete={onDeleteHabit} onNew={() => setSheet("habit")} />}
-      {view === "metrics" && <MetricsView metrics={metrics} onMeasure={onMeasure} onDelete={onDeleteMetric} onNew={() => setSheet("metric")} />}
+      {view === "habits" && <HabitsView habits={habits} onToggle={onToggle} onCount={setCountSheet} onOpen={setDetail} onMenu={setMenu} onBackfill={onBackfillMain} onNew={() => setSheet("habit")} />}
+      {view === "metrics" && <MetricsView metrics={metrics} onOpen={setMetricDetail} onNew={() => setSheet("metric")} />}
       {view === "retro" && <RetroView retro={retro} metrics={metrics} onTaskToggle={onOverdueDone} />}
 
       {sheet === "habit" && <NewHabitSheet onClose={() => setSheet(null)} onCreated={(h) => { setHabits((p) => [...p, h]); setSheet(null); }} />}
       {sheet === "metric" && <NewMetricSheet onClose={() => setSheet(null)} onCreated={(m) => { setMetrics((p) => [...p, m]); setSheet(null); }} />}
+      {measure && <MeasureSheet metric={measure} onClose={() => setMeasure(null)} onSaved={(m) => { replaceMetric(m); setMeasure(null); }} />}
+
+      {detail && (
+        <HabitDetail
+          habit={detail}
+          onClose={() => setDetail(null)}
+          onChange={(h) => { replaceHabit(h); setDetail(h); }}
+          onEdit={(h) => setEditHabit(h)}
+          onArchive={archiveHabit}
+          onDelete={removeHabit}
+        />
+      )}
+      {countSheet && (
+        <CountStepSheet habit={countSheet} onClose={() => setCountSheet(null)}
+          onSaved={(h) => { replaceHabit(h); setDetail((d) => (d && d.id === h.id ? h : d)); setCountSheet(null); }} />
+      )}
+      {menu && (
+        <HabitMenuSheet habit={menu} onClose={() => setMenu(null)}
+          onEdit={(h) => { setMenu(null); setEditHabit(h); }}
+          onArchive={archiveHabit} onDelete={removeHabit} />
+      )}
+      {metricDetail && (
+        <MetricDetail metric={metricDetail} onClose={() => setMetricDetail(null)}
+          onChange={(m) => { replaceMetric(m); setMetricDetail(m); }}
+          onDelete={onDeleteMetric} />
+      )}
+      {editHabit && (
+        <EditHabitSheet
+          habit={editHabit}
+          onClose={() => setEditHabit(null)}
+          onSaved={(h) => { replaceHabit(h); setDetail((d) => (d && d.id === h.id ? h : d)); setEditHabit(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// #1 — шит замера метрики (замена window.prompt; в Telegram WebView нативный prompt = no-op).
+// По T5-flows #4/#8: степпер «− значение ед +» + прямой ввод числа.
+function MeasureSheet({ metric, onClose, onSaved }: { metric: MetricOut; onClose: () => void; onSaved: (m: MetricOut) => void }) {
+  const [val, setVal] = useState<string>(metric.latest != null ? String(metric.latest) : "");
+  const [saving, setSaving] = useState(false);
+  const num = parseFloat(val.replace(",", "."));
+  const bump = (d: number) => {
+    const base = Number.isNaN(num) ? (metric.latest ?? 0) : num;
+    setVal(String(Math.round((base + d) * 100) / 100));
+  };
+  const save = async () => {
+    if (Number.isNaN(num) || saving) return;
+    setSaving(true);
+    try { onSaved(await measureMetric(metric.id, todayISO(), num)); }
+    catch { setSaving(false); }
+  };
+  return (
+    <div className="sheet-scrim" style={{ zIndex: 80 }} onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-title">{metric.name} · сегодня</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0 6px" }}>
+          <button className="hchk" style={{ ["--c" as string]: metric.color }} onClick={() => bump(-0.1)} aria-label="Минус 0.1">−</button>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <input className="input" inputMode="decimal" value={val} autoFocus
+              onChange={(e) => setVal(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") save(); }}
+              style={{ textAlign: "center", fontSize: 26, fontWeight: 700, fontFamily: "var(--font-mono)" }} />
+            {metric.unit && <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 4 }}>{metric.unit}</div>}
+          </div>
+          <button className="hchk" style={{ ["--c" as string]: metric.color }} onClick={() => bump(0.1)} aria-label="Плюс 0.1">+</button>
+        </div>
+        {metric.latest != null && (
+          <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 12, marginBottom: 12 }}>
+            прошлый: {metric.latest}{metric.unit ? ` ${metric.unit}` : ""}
+          </div>
+        )}
+        <button className="btn-primary" style={{ width: "100%" }} disabled={Number.isNaN(num) || saving} onClick={save}>
+          {saving ? "Сохраняю…" : "Сохранить замер"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -474,13 +594,231 @@ function NewHabitSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
   );
 }
 
+// ── #2 Деталь привычки: hero-кольцо, stats, месяц-календарь+бэкфилл, действия (T5-flows #2/#9) ──
+const MONTHS_NOM = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+const HABIT_PALETTE = ["#EE8A3C", "#5B8DEF", "#3FB68B", "#E0B341", "#9B6BE0", "#E0556E"];
+
+function mixColor(hex: string, level: number): string {
+  const a = [0.32, 0.5, 0.72, 1][Math.max(1, Math.min(4, level)) - 1];
+  return hex + Math.round(a * 255).toString(16).padStart(2, "0");
+}
+
+function BigRing({ pct, num, color }: { pct: number; num: number; color: string }) {
+  const r = 33, circ = 2 * Math.PI * r;
+  const off = circ * (1 - Math.max(0, Math.min(1, pct)));
+  return (
+    <div style={{ position: "relative", width: 78, height: 78, flex: "0 0 auto" }}>
+      <svg width="78" height="78" viewBox="0 0 78 78" style={{ transform: "rotate(-90deg)" }}>
+        <circle cx="39" cy="39" r={r} fill="none" stroke="var(--ring-track)" strokeWidth="6" />
+        <circle cx="39" cy="39" r={r} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={off} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <b style={{ color, fontSize: 22, lineHeight: 1 }}>{num}</b>
+        <span style={{ color: "var(--text-muted)", fontSize: 10 }}>дней</span>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ v, l }: { v: string; l: string }) {
+  return (
+    <div style={{ flex: 1, background: "var(--surface-2)", borderRadius: 10, padding: "10px 6px", textAlign: "center" }}>
+      <div style={{ fontSize: 18, fontWeight: 700 }}>{v}</div>
+      <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 2 }}>{l}</div>
+    </div>
+  );
+}
+
+function HabitDetail({ habit, onClose, onChange, onEdit, onArchive, onDelete }: {
+  habit: HabitOut; onClose: () => void; onChange: (h: HabitOut) => void;
+  onEdit: (h: HabitOut) => void; onArchive: (h: HabitOut) => void; onDelete: (h: HabitOut) => void;
+}) {
+  const now = new Date();
+  const year = now.getFullYear(), month0 = now.getMonth();
+  const monthStr = `${year}-${String(month0 + 1).padStart(2, "0")}`;
+  const [hist, setHist] = useState<HabitHistoryOut | null>(null);
+  const [rev, setRev] = useState(0);
+  useEffect(() => {
+    let live = true;
+    getHabitHistory(habit.id, monthStr).then((h) => { if (live) setHist(h); }).catch(() => {});
+    return () => { live = false; };
+  }, [habit.id, monthStr, rev]);
+
+  const isCount = habit.mark_type === "count";
+  const isGoal = habit.goal_total != null && habit.goal_total > 0;
+  const weekDone = habit.week.filter(Boolean).length;
+  const pct = isGoal ? habit.streak / (habit.goal_total as number) : weekDone / 7;
+  const pct30 = hist ? Math.round(hist.pct30 * 100) : null;
+  const sub = isGoal ? `до рубежа ${habit.goal_total}` :
+    isCount ? (habit.target ? `норма ${habit.target}${habit.unit ? ` ${habit.unit}` : ""}/день` : "счётчик") : "ежедневно";
+
+  const levelMap = new Map((hist?.days ?? []).map((d) => [d.date, d.level]));
+  const daysCount = new Date(year, month0 + 1, 0).getDate();
+  const firstWd = (new Date(year, month0, 1).getDay() + 6) % 7; // Пн=0
+  const todayDate = now.getDate();
+
+  const backfill = async (iso: string) => {
+    try { onChange(await backfillHabit(habit.id, iso, habit.target ?? 1)); setRev((r) => r + 1); } catch { /* ignore */ }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 12px 10px", borderBottom: "1px solid var(--border)" }}>
+        <button onClick={onClose} aria-label="Назад" style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 28, lineHeight: 1, cursor: "pointer", width: 36 }}>‹</button>
+        <span style={{ fontWeight: 600 }}>Привычка</span>
+        <button onClick={() => onEdit(habit)} aria-label="Изменить" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", width: 36, fontSize: 22 }}>⋯</button>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 14px 28px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
+          <BigRing pct={pct} num={habit.streak} color={habit.color} />
+          <div>
+            <h3 style={{ margin: 0, fontSize: 20 }}>{habit.name}</h3>
+            <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 3 }}>{sub}</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+          <Stat v={String(habit.streak)} l="стрик" />
+          <Stat v={String(habit.record_streak)} l="рекорд" />
+          <Stat v={pct30 != null ? `${pct30}%` : "—"} l="за 30 дн" />
+        </div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 8 }}>{MONTHS_NOM[month0]}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 8 }}>
+          {WD.map((d) => <div key={d} style={{ textAlign: "center", fontSize: 10, color: "var(--text-muted)" }}>{d[0]}</div>)}
+          {Array.from({ length: firstWd }).map((_, i) => <div key={"b" + i} />)}
+          {Array.from({ length: daysCount }).map((_, i) => {
+            const day = i + 1;
+            const iso = `${year}-${String(month0 + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const level = levelMap.get(iso) ?? 0;
+            const isToday = day === todayDate;
+            const isFuture = day > todayDate;
+            const canBackfill = !isFuture && !isToday && level === 0;
+            return (
+              <div key={day} onClick={canBackfill ? () => backfill(iso) : undefined}
+                style={{
+                  aspectRatio: "1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 12, fontFamily: "var(--font-mono)",
+                  background: level > 0 ? mixColor(habit.color, level) : "var(--surface-2)",
+                  color: level > 0 ? "#fff" : "var(--text-muted)",
+                  opacity: isFuture ? 0.3 : 1,
+                  border: isToday ? `1.5px solid ${habit.color}` : "1.5px solid transparent",
+                  cursor: canBackfill ? "pointer" : "default",
+                }}>{day}</div>
+            );
+          })}
+        </div>
+        <div style={{ color: "var(--text-muted)", fontSize: 11, marginBottom: 22 }}>Тап по прошлому пустому дню — отметить задним числом.</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+          <button className="hcard" onClick={() => onEdit(habit)} style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--border)", fontSize: 14 }}>Изменить</button>
+          <button className="hcard" onClick={() => onArchive(habit)} style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--border)", fontSize: 14 }}>Архивировать</button>
+          <button className="hcard" onClick={() => onDelete(habit)} style={{ textAlign: "left", cursor: "pointer", color: "var(--danger)", border: "1px solid rgba(255,92,92,.4)", fontSize: 14 }}>Удалить привычку</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditHabitSheet({ habit, onClose, onSaved }: { habit: HabitOut; onClose: () => void; onSaved: (h: HabitOut) => void }) {
+  const [name, setName] = useState(habit.name);
+  const [color, setColor] = useState(habit.color);
+  const [target, setTarget] = useState(habit.target != null ? String(habit.target) : "");
+  const [unit, setUnit] = useState(habit.unit ?? "");
+  const isCount = habit.mark_type === "count";
+  const save = async () => {
+    if (!name.trim()) return;
+    const patch: Parameters<typeof patchHabit>[1] = { name: name.trim(), color };
+    if (isCount) { patch.target = parseFloat(target.replace(",", ".")) || null; patch.unit = unit.trim() || null; }
+    onSaved(await patchHabit(habit.id, patch));
+  };
+  return (
+    <div className="sheet-scrim" style={{ zIndex: 80 }} onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-title">Изменить привычку</div>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        {isCount && (
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <input className="input" placeholder="Норма" value={target} onChange={(e) => setTarget(e.target.value)} inputMode="decimal" />
+            <input className="input" placeholder="Ед." value={unit} onChange={(e) => setUnit(e.target.value)} />
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          {HABIT_PALETTE.map((c) => (
+            <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
+              style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
+          ))}
+        </div>
+        <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={save}>Сохранить</button>
+      </div>
+    </div>
+  );
+}
+
+// #4 — count-степпер-шит: −/+ по шагу + чипы-пресеты, сохраняет дневной итог (backfill upsert).
+function CountStepSheet({ habit, onClose, onSaved }: { habit: HabitOut; onClose: () => void; onSaved: (h: HabitOut) => void }) {
+  const step = habit.step ?? 1;
+  const unit = habit.unit ? ` ${habit.unit}` : "";
+  const round = (n: number) => Math.max(0, Math.round(n * 100) / 100);
+  const [val, setVal] = useState<number>(round(habit.today_value ?? 0));
+  const [saving, setSaving] = useState(false);
+  const presets = [step, step * 2, habit.target ?? step * 4].filter((v, i, a) => v > 0 && a.indexOf(v) === i);
+  const save = async () => {
+    if (saving) return; setSaving(true);
+    try { onSaved(await backfillHabit(habit.id, todayISO(), val)); } catch { setSaving(false); }
+  };
+  return (
+    <div className="sheet-scrim" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-title">{habit.name} · сегодня</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "18px 0 10px" }}>
+          <button className="hchk" style={{ ["--c" as string]: habit.color }} onClick={() => setVal((v) => round(v - step))} aria-label="Минус">−</button>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <span style={{ fontSize: 28, fontWeight: 700, fontFamily: "var(--font-mono)" }}>{val}</span>
+            <small style={{ color: "var(--text-muted)", fontSize: 14 }}>{habit.target ? ` / ${habit.target}${unit}` : unit}</small>
+          </div>
+          <button className="hchk done" style={{ ["--c" as string]: habit.color }} onClick={() => setVal((v) => round(v + step))} aria-label="Плюс">+</button>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+          {presets.map((p) => (
+            <button key={p} onClick={() => setVal((v) => round(v + p))}
+              style={{ flex: "1 1 0", minWidth: 70, padding: "9px 6px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--text)", cursor: "pointer", fontSize: 13 }}>
+              + {p}{unit}
+            </button>
+          ))}
+        </div>
+        <button className="btn-primary" style={{ width: "100%" }} disabled={saving} onClick={save}>{saving ? "Сохраняю…" : "Сохранить"}</button>
+      </div>
+    </div>
+  );
+}
+
+// #5 — контекст-меню привычки (long-press): Изменить / Архивировать / Удалить.
+function HabitMenuSheet({ habit, onClose, onEdit, onArchive, onDelete }: {
+  habit: HabitOut; onClose: () => void; onEdit: (h: HabitOut) => void; onArchive: (h: HabitOut) => void; onDelete: (h: HabitOut) => void;
+}) {
+  const Item = ({ label, fn, danger }: { label: string; fn: () => void; danger?: boolean }) => (
+    <button onClick={fn} style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--border)", borderRadius: 10, padding: "13px 14px", background: "var(--surface-2)", fontSize: 14, color: danger ? "var(--danger)" : "var(--text)" }}>{label}</button>
+  );
+  return (
+    <div className="sheet-scrim" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-title">{habit.name}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 8 }}>
+          <Item label="Изменить" fn={() => onEdit(habit)} />
+          <Item label="Архивировать" fn={() => onArchive(habit)} />
+          <Item label="Удалить" fn={() => onDelete(habit)} danger />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated: (m: MetricOut) => void }) {
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
   const [dir, setDir] = useState<"up" | "down">("up");
+  const [color, setColor] = useState(HABIT_PALETTE[1]); // #7 — цвет линии графика
   const submit = async () => {
     if (!name.trim()) return;
-    onCreated(await createMetric({ name: name.trim(), unit: unit.trim() || null, good_direction: dir }));
+    onCreated(await createMetric({ name: name.trim(), unit: unit.trim() || null, good_direction: dir, color }));
   };
   return (
     <div className="sheet-scrim" onClick={onClose}>
@@ -494,7 +832,130 @@ function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated
             <button className={dir === "up" ? "seg-on" : ""} onClick={() => setDir("up")}>↑ больше</button>
           </div>
         </div>
-        <button className="btn-primary" style={{ marginTop: 14, width: "100%" }} onClick={submit}>Создать метрику</button>
+        <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "14px 0 6px" }}>Цвет линии</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {HABIT_PALETTE.map((c) => (
+            <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
+              style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
+          ))}
+        </div>
+        <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={submit}>Создать метрику</button>
+      </div>
+    </div>
+  );
+}
+
+// #8 — деталь метрики: график + период (7/30/Год) + лог замеров (свайп-удалить) + замер + edit/delete.
+function MetricDetail({ metric, onClose, onChange, onDelete }: {
+  metric: MetricOut; onClose: () => void; onChange: (m: MetricOut) => void; onDelete: (m: MetricOut) => void;
+}) {
+  const [period, setPeriod] = useState<7 | 30 | 365>(30);
+  const [measuring, setMeasuring] = useState(false);
+  const [edit, setEdit] = useState(false);
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - period);
+  const inRange = metric.entries.filter((e) => new Date(e.entry_date + "T00:00:00") >= cutoff);
+  const chrono = [...inRange].reverse(); // старые→новые для графика
+  const pts = sparkPoints(chrono.map((e) => e.value));
+  const good = metric.delta == null ? null : (metric.good_direction === "down" ? metric.delta < 0 : metric.delta > 0);
+
+  const delEntry = (date: string) => {
+    tg()?.showConfirm?.(`Удалить замер за ${date}?`, async (ok: boolean) => {
+      if (!ok) return;
+      try { onChange(await deleteMetricEntry(metric.id, date)); } catch { /* ignore */ }
+    });
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 12px 10px", borderBottom: "1px solid var(--border)" }}>
+        <button onClick={onClose} aria-label="Назад" style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 28, lineHeight: 1, cursor: "pointer", width: 36 }}>‹</button>
+        <span style={{ fontWeight: 600 }}>Метрика</span>
+        <button onClick={() => setEdit(true)} aria-label="Изменить" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", width: 36, fontSize: 22 }}>⋯</button>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 14px 28px" }}>
+        <div style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontSize: 20 }}>{metric.name}</h3>
+          <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 3 }}>
+            {metric.latest ?? "—"} {metric.unit}
+            {metric.delta != null && (
+              <span style={{ color: good ? "var(--success)" : "var(--text-muted)", marginLeft: 8 }}>
+                {metric.delta < 0 ? "▼" : "▲"}{Math.abs(metric.delta).toFixed(1)} за период
+              </span>
+            )}
+          </div>
+        </div>
+        <svg width="100%" height="80" viewBox="0 0 120 30" preserveAspectRatio="none" style={{ marginBottom: 8 }}>
+          {pts ? <polyline points={pts} fill="none" stroke={metric.color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            : <text x="60" y="16" textAnchor="middle" fontSize="6" fill="var(--text-muted)">нет данных</text>}
+        </svg>
+        <div className="seg" style={{ marginBottom: 16 }}>
+          <button className={period === 7 ? "seg-on" : ""} onClick={() => setPeriod(7)}>7д</button>
+          <button className={period === 30 ? "seg-on" : ""} onClick={() => setPeriod(30)}>30д</button>
+          <button className={period === 365 ? "seg-on" : ""} onClick={() => setPeriod(365)}>Год</button>
+        </div>
+        <button className="btn-primary" style={{ width: "100%", marginBottom: 18 }} onClick={() => setMeasuring(true)}>+ Замер</button>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 8 }}>Лог замеров</div>
+        {inRange.length === 0 ? (
+          <div style={{ color: "var(--text-muted)", fontSize: 13 }}>Нет замеров за период.</div>
+        ) : inRange.map((e) => (
+          <div key={e.entry_date} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 2px", borderBottom: "1px solid var(--border)", fontSize: 14 }}>
+            <span style={{ color: "var(--text-muted)" }}>{fmtEntryDate(e.entry_date)}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <b>{e.value} {metric.unit}</b>
+              <button onClick={() => delEntry(e.entry_date)} aria-label="Удалить замер"
+                style={{ background: "none", border: "none", color: "var(--danger)", cursor: "pointer", fontSize: 16, opacity: 0.7 }}>✕</button>
+            </span>
+          </div>
+        ))}
+        <div style={{ marginTop: 22 }}>
+          <button className="hcard" onClick={() => onDelete(metric)} style={{ textAlign: "left", cursor: "pointer", color: "var(--danger)", border: "1px solid rgba(255,92,92,.4)", fontSize: 14, width: "100%" }}>Удалить метрику</button>
+        </div>
+      </div>
+      {measuring && <MeasureSheet metric={metric} onClose={() => setMeasuring(false)} onSaved={(m) => { onChange(m); setMeasuring(false); }} />}
+      {edit && <EditMetricSheet metric={metric} onClose={() => setEdit(false)} onSaved={(m) => { onChange(m); setEdit(false); }} />}
+    </div>
+  );
+}
+
+const ENTRY_MONTHS = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+function fmtEntryDate(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const diff = Math.round((t.getTime() - d.getTime()) / 86400000);
+  if (diff === 0) return "сегодня";
+  if (diff === 1) return "вчера";
+  return `${d.getDate()} ${ENTRY_MONTHS[d.getMonth()]}`;
+}
+
+function EditMetricSheet({ metric, onClose, onSaved }: { metric: MetricOut; onClose: () => void; onSaved: (m: MetricOut) => void }) {
+  const [name, setName] = useState(metric.name);
+  const [unit, setUnit] = useState(metric.unit ?? "");
+  const [dir, setDir] = useState<"up" | "down">(metric.good_direction === "down" ? "down" : "up");
+  const [color, setColor] = useState(metric.color);
+  const save = async () => {
+    if (!name.trim()) return;
+    onSaved(await patchMetric(metric.id, { name: name.trim(), unit: unit.trim() || null, good_direction: dir, color }));
+  };
+  return (
+    <div className="sheet-scrim" style={{ zIndex: 80 }} onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-title">Изменить метрику</div>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+          <input className="input" placeholder="Ед." value={unit} onChange={(e) => setUnit(e.target.value)} />
+          <div className="seg" style={{ flex: 1 }}>
+            <button className={dir === "down" ? "seg-on" : ""} onClick={() => setDir("down")}>↓ меньше</button>
+            <button className={dir === "up" ? "seg-on" : ""} onClick={() => setDir("up")}>↑ больше</button>
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "14px 0 6px" }}>Цвет линии</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {HABIT_PALETTE.map((c) => (
+            <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
+              style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
+          ))}
+        </div>
+        <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={save}>Сохранить</button>
       </div>
     </div>
   );

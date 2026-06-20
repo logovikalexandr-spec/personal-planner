@@ -352,10 +352,30 @@ class MetricCreate(BaseModel):
     color: str = "#3FB68B"
 
 
+class MetricPatch(BaseModel):
+    name: str | None = None
+    unit: str | None = None
+    good_direction: str | None = None
+    color: str | None = None
+    archived: bool | None = None
+    order_index: int | None = None
+
+
 class MetricEntryOut(BaseModel):
     entry_date: date
     value: float
     model_config = {"from_attributes": True}
+
+
+class HabitDayLevel(BaseModel):
+    date: date
+    level: int
+
+
+class HabitHistoryOut(BaseModel):
+    month: str
+    pct30: float
+    days: list[HabitDayLevel] = []
 
 
 class MetricOut(BaseModel):

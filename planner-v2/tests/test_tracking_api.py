@@ -117,3 +117,37 @@ def test_retro_tasks_overdue_and_projects(client):
     assert tasks["top_task"]["title"] == "Созвон"
     titles = [o["title"] for o in tasks["overdue"]]
     assert "Оплатить аренду" in titles
+
+
+def test_habit_history(client):
+    r = client.post("/api/habits", json={"name": "Бег", "mark_type": "check"}, headers=HDR)
+    hid = r.json()["id"]
+    # бэкфилл двух дней в июне 2026
+    client.post(f"/api/habits/{hid}/backfill", json={"date": "2026-06-03", "value": 1}, headers=HDR)
+    client.post(f"/api/habits/{hid}/backfill", json={"date": "2026-06-05", "value": 1}, headers=HDR)
+    h = client.get(f"/api/habits/{hid}/history?month=2026-06", headers=HDR)
+    assert h.status_code == 200, h.text
+    body = h.json()
+    assert body["month"] == "2026-06"
+    dates = {d["date"] for d in body["days"]}
+    assert "2026-06-03" in dates and "2026-06-05" in dates
+    assert all(d["level"] >= 1 for d in body["days"])
+    assert 0.0 <= body["pct30"] <= 1.0
+
+
+def test_metric_patch_and_delete_entry(client):
+    r = client.post("/api/metrics", json={"name": "Вес", "unit": "кг", "good_direction": "down", "color": "#5B8DEF"}, headers=HDR)
+    assert r.status_code == 201, r.text
+    mid = r.json()["id"]
+    assert r.json()["color"] == "#5B8DEF"   # #7 цвет принят
+
+    p = client.patch(f"/api/metrics/{mid}", json={"name": "Масса", "color": "#EE8A3C"}, headers=HDR)
+    assert p.status_code == 200, p.text
+    assert p.json()["name"] == "Масса" and p.json()["color"] == "#EE8A3C"
+
+    client.post(f"/api/metrics/{mid}/measure", json={"date": "2026-06-10", "value": 78.0}, headers=HDR)
+    client.post(f"/api/metrics/{mid}/measure", json={"date": "2026-06-11", "value": 77.5}, headers=HDR)
+    d = client.request("DELETE", f"/api/metrics/{mid}/entries?date=2026-06-11", headers=HDR)
+    assert d.status_code == 200, d.text
+    left = {e["entry_date"] for e in d.json()["entries"]}
+    assert "2026-06-11" not in left and "2026-06-10" in left

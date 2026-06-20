@@ -63,7 +63,24 @@ const orig = window.fetch;
 window.fetch = ((input: RequestInfo | URL) => {
   const url = String(typeof input === "string" ? input : (input as Request).url ?? input);
   const json = (data: unknown) => Promise.resolve(new Response(JSON.stringify(data), { headers: { "Content-Type": "application/json" } }));
+  const histMatch = url.match(/\/api\/habits\/(\d+)\/history\?month=(\d{4})-(\d{2})/);
+  if (histMatch) {
+    const year = +histMatch[2], mon = +histMatch[3];
+    const now = new Date();
+    const isCur = now.getFullYear() === year && now.getMonth() + 1 === mon;
+    const last = isCur ? now.getDate() : new Date(year, mon, 0).getDate();
+    const days: { date: string; level: number }[] = [];
+    for (let d = 1; d <= last; d++) {
+      if (d % 7 === 3) continue; // дырки в стрике для наглядности
+      days.push({ date: `${year}-${String(mon).padStart(2, "0")}-${String(d).padStart(2, "0")}`, level: ((d * 3) % 4) + 1 });
+    }
+    return json({ month: `${year}-${String(mon).padStart(2, "0")}`, pct30: 0.72, days });
+  }
+  const habitOp = url.match(/\/api\/habits\/(\d+)(\/(toggle|add|backfill))?(\?|$)/);
+  if (habitOp) { const h = HABITS.find((x) => x.id === +habitOp[1]); if (h) return json(h); }
   if (url.includes("/api/habits")) return json(HABITS);
+  const metricOp = url.match(/\/api\/metrics\/(\d+)(\/measure|\/entries)?/);
+  if (metricOp) { const m = METRICS.find((x) => x.id === +metricOp[1]); if (m) return json(m); }
   if (url.includes("/api/metrics")) return json(METRICS);
   if (url.includes("/api/tracking/retro")) return json(RETRO);
   return orig(input as RequestInfo);

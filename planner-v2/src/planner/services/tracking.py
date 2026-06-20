@@ -198,6 +198,17 @@ async def list_metrics(session, include_archived: bool = False) -> list[Metric]:
     return list((await session.execute(q)).scalars().all())
 
 
+async def update_metric(session, metric_id: int, data: dict) -> Metric | None:
+    m = await session.get(Metric, metric_id)
+    if m is None:
+        return None
+    for k, v in data.items():
+        if k in _METRIC_FIELDS:
+            setattr(m, k, v)
+    await session.flush()
+    return m
+
+
 async def delete_metric(session, metric_id: int) -> bool:
     m = await session.get(Metric, metric_id)
     if m is None:

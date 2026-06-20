@@ -132,6 +132,8 @@ export const getHabits = (on?: string) =>
 export const createHabit = (data: HabitInput) =>
   req<HabitOut>("/api/habits", { method: "POST", body: JSON.stringify(data) });
 export const deleteHabit = (id: number) => reqVoid(`/api/habits/${id}`, { method: "DELETE" });
+export const patchHabit = (id: number, patch: Partial<HabitInput> & { color?: string; archived?: boolean }) =>
+  req<HabitOut>(`/api/habits/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
 export const toggleHabit = (id: number, date: string) =>
   req<HabitOut>(`/api/habits/${id}/toggle`, { method: "POST", body: JSON.stringify({ date }) });
 export const addHabit = (id: number, date: string, delta: number) =>
@@ -139,12 +141,25 @@ export const addHabit = (id: number, date: string, delta: number) =>
 export const backfillHabit = (id: number, date: string, value: number) =>
   req<HabitOut>(`/api/habits/${id}/backfill`, { method: "POST", body: JSON.stringify({ date, value }) });
 
+// История привычки для деталь-экрана: % за 30 дней + дни месяца с уровнем зачёта (0-4).
+export interface HabitHistoryOut {
+  month: string;                                   // YYYY-MM
+  pct30: number;                                   // 0..1 — доля зачётов за 30 дней
+  days: { date: string; level: number }[];         // дни месяца с зачётом (level 1-4)
+}
+export const getHabitHistory = (id: number, month: string) =>
+  req<HabitHistoryOut>(`/api/habits/${id}/history?month=${month}`);
+
 export const getMetrics = () => req<MetricOut[]>("/api/metrics");
 export const createMetric = (data: MetricInput) =>
   req<MetricOut>("/api/metrics", { method: "POST", body: JSON.stringify(data) });
 export const deleteMetric = (id: number) => reqVoid(`/api/metrics/${id}`, { method: "DELETE" });
 export const measureMetric = (id: number, date: string, value: number) =>
   req<MetricOut>(`/api/metrics/${id}/measure`, { method: "POST", body: JSON.stringify({ date, value }) });
+export const patchMetric = (id: number, patch: Partial<MetricInput>) =>
+  req<MetricOut>(`/api/metrics/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+export const deleteMetricEntry = (id: number, date: string) =>
+  req<MetricOut>(`/api/metrics/${id}/entries?date=${date}`, { method: "DELETE" });
 
 export interface RetroProjectRow { project_id: number | null; name: string; color: string; done: number; total: number; }
 export type RetroOverdue = Task & { project: string | null; color: string | null; days_late: number; };

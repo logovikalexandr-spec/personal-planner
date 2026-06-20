@@ -1,3 +1,4 @@
+import calendar
 from datetime import date as date_cls
 from datetime import timedelta
 from typing import Annotated
@@ -9,13 +10,16 @@ from planner.api.auth import TelegramUser, require_owner
 from planner.api.deps import get_db
 from planner.api.schemas import (
     HabitCreate,
+    HabitDayLevel,
     HabitEntryIn,
+    HabitHistoryOut,
     HabitOut,
     HabitPatch,
     MetricCreate,
     MetricEntryOut,
     MetricMeasureIn,
     MetricOut,
+    MetricPatch,
 )
 from planner.services import tracking as svc
 
@@ -105,6 +109,27 @@ async def backfill_habit(habit_id: int, payload: HabitEntryIn, _: Owner, db: Db)
     return await _habit_out(db, h, payload.date)
 
 
+@router.get("/habits/{habit_id}/history", response_model=HabitHistoryOut)
+async def habit_history(habit_id: int, _: Owner, db: Db, month: str = Query(...)):
+    """История привычки: дни месяца с уровнем зачёта (0-4) + % зачётов за 30 дней."""
+    h = await svc.get_habit(db, habit_id)
+    if h is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "habit not found")
+    year, mon = int(month[:4]), int(month[5:7])
+    first = date_cls(year, mon, 1)
+    last = date_cls(year, mon, calendar.monthrange(year, mon)[1])
+    mp = await svc.entries_map(db, habit_id, first, last)
+    days = [
+        HabitDayLevel(date=d, level=lv)
+        for d, v in sorted(mp.items())
+        if (lv := svc.habit_heat_level(h.mark_type, v, h.target)) > 0
+    ]
+    today = date_cls.today()
+    win = await svc.entries_map(db, habit_id, today - timedelta(days=29), today)
+    done = sum(1 for v in win.values() if svc.habit_is_done(h.mark_type, v, h.target))
+    return HabitHistoryOut(month=month, pct30=done / 30, days=days)
+
+
 # ── метрики ───────────────────────────────────────────────────────────────── #
 async def _metric_out(db: AsyncSession, m) -> MetricOut:
     entries = await svc.list_metric_entries(db, m.id, limit=30)  # desc по дате
@@ -136,12 +161,32 @@ async def delete_metric(metric_id: int, _: Owner, db: Db):
     await db.commit()
 
 
+@router.patch("/metrics/{metric_id}", response_model=MetricOut)
+async def patch_metric(metric_id: int, payload: MetricPatch, _: Owner, db: Db):
+    m = await svc.update_metric(db, metric_id, payload.model_dump(exclude_unset=True))
+    if m is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "metric not found")
+    await db.commit()
+    return await _metric_out(db, m)
+
+
 @router.post("/metrics/{metric_id}/measure", response_model=MetricOut)
 async def measure_metric(metric_id: int, payload: MetricMeasureIn, _: Owner, db: Db):
     m = await db.get(svc.Metric, metric_id)
     if m is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "metric not found")
     await svc.set_metric_value(db, metric_id, payload.date, payload.value)
+    await db.commit()
+    await db.refresh(m)
+    return await _metric_out(db, m)
+
+
+@router.delete("/metrics/{metric_id}/entries", response_model=MetricOut)
+async def delete_metric_entry(metric_id: int, _: Owner, db: Db, date: date_cls = Query(...)):
+    m = await db.get(svc.Metric, metric_id)
+    if m is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "metric not found")
+    await svc.delete_metric_entry(db, metric_id, date)
     await db.commit()
     await db.refresh(m)
     return await _metric_out(db, m)
