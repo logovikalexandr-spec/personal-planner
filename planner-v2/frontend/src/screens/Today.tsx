@@ -214,6 +214,28 @@ export function Today({
     return () => cancelAnimationFrame(id);
   }, [hidden, view, selectedISO, state]);
 
+  // НЕ сегодня (любой другой выбранный день) → открывать таймлайн на 05:00 (а не на 00:00).
+  const [scrollHourKey, setScrollHourKey] = useState(0);
+  useEffect(() => {
+    if (hidden || view !== "timeline" || state !== "ready" || selectedISO === localToday()) return;
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setScrollHourKey((k) => k + 1)));
+    return () => cancelAnimationFrame(id);
+  }, [hidden, view, selectedISO, state]);
+
+  // Перескок через полночь: если реальная дата сменилась и мы были на «сегодня» —
+  // перевести выбранный день на новые сутки (now-линия сама прыгнет вверх нового дня).
+  const lastTodayRef = useRef(localToday());
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const t = localToday();
+      if (t !== lastTodayRef.current) {
+        if (selectedISO === lastTodayRef.current) setSelectedISO(t);
+        lastTodayRef.current = t;
+      }
+    }, 30000);
+    return () => window.clearInterval(id);
+  }, [selectedISO]);
+
   // «Сегодня» в шапке: не на сегодня → прыжок на сегодня; уже сегодня → скролл к now.
   const goToday = useCallback(() => {
     if (selectedISO !== localToday()) setSelectedISO(localToday());
@@ -320,6 +342,8 @@ export function Today({
               autoScroll={false}
               gridRef={gridRef}
               scrollToNowKey={scrollNowKey}
+              scrollToHour={5}
+              scrollToHourKey={scrollHourKey}
               onCreateDraft={openDraft}
               draft={draft}
               onDraftChange={(title) => setDraft((d) => (d ? { ...d, title } : d))}
