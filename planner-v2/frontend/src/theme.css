@@ -1375,7 +1375,13 @@ body.inline-draft .fab { display: none; }
 }
 .dt-compact .cal-hour { padding-left: 0; }
 .dt-compact .cal-hourlabel { left: 3px; top: -7px; width: auto; text-align: left; font-size: 8px; }
-.dt-compact .cal-block { padding: 4px 5px; gap: 0; box-shadow: none; border-radius: 7px; }
+/* блок над лейблами часов; ::before = непрозрачная подложка под полупрозрачный тинт
+   (иначе лейбл «16:00» просвечивает сквозь карточку — грабли «тинт поверх прозрачного») */
+.dt-compact .cal-block { padding: 4px 5px; gap: 0; box-shadow: none; border-radius: 7px; z-index: 3; }
+.dt-compact .cal-block::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--surface-2); border-radius: inherit;
+}
 .dt-compact .cal-block .bt { font-size: 10px; }
 .dt-compact .cal-block .bm { font-size: 8px; gap: 3px; }
 .dt-compact .cal-block .bm svg { width: 9px; height: 9px; }
