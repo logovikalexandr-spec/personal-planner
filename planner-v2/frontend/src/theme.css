@@ -388,6 +388,7 @@ select.input { appearance: none; -webkit-appearance: none; }
   border: 1px solid transparent; border-left: 3px solid var(--accent);
   border-radius: 8px; padding: 8px 11px; cursor: pointer;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  clip-path: inset(0 round 8px);   /* border-left не вылезал за скруглённый угол на transform-слое (iOS) */
 }
 .cal-chip.done { opacity: 0.5; text-decoration: line-through; }
 /* A1: «+N ещё» — разворот скрытых all-day чипов (пунктир, приглушённый) */
@@ -433,9 +434,9 @@ select.input { appearance: none; -webkit-appearance: none; }
   background: var(--surface-2); border-left: 3px solid var(--accent);
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   display: flex; align-items: flex-start; gap: 7px;
-  /* .cal-grid промотирован translate3d (GPU-скролл); без своего слоя угол блока
-     растеризуется с субпиксельным сдвигом → цветной тинт вылезал за радиус. */
-  transform: translateZ(0);
+  /* .cal-grid промотирован translate3d (GPU-скролл) + дробный сдвиг инерции → overflow:hidden
+     не клипает скруглённый угол идеально (тинт/бордюр вылезали дугой). clip-path клипает точно. */
+  clip-path: inset(0 round 10px);
 }
 /* колонки наложений — ширина/смещение задаются инлайном (left/width), здесь только переходы */
 .cal-block { transition: left 120ms ease, width 120ms ease; }
@@ -534,7 +535,11 @@ body.inline-draft .fab { display: none; }
 
 /* now-линия чисто декоративна → НЕ перехватывает указатель (иначе крадёт клик/long-press
    у блока, в который попадает текущее время; «Тоо» 10:00–12:45 ловила линию в центре). */
-.cal-now { position: absolute; left: 50px; right: 0; height: 2px; background: var(--accent); z-index: 3; pointer-events: none;
+.cal-now { position: absolute; left: 50px; right: 0; height: 2px; background: var(--accent); z-index: 6; pointer-events: none;
+  /* iOS WebKit: .cal-block промотирован translateZ(0) → свой композиторный слой,
+     который на устройстве рисуется ПОВЕРХ непромотированной now-линии независимо от z-index.
+     Промотируем и саму линию → z-index между композ-слоями снова авторитетен. Десктоп так не репродит. */
+  transform: translateZ(0);
   /* авто-скролл block:start ставит линию ВВЕРХУ: отступ = липкая шапка + ~час прошлого над линией */
   scroll-margin-top: 188px; }
 .cal-now::before {
@@ -1026,13 +1031,12 @@ body.inline-draft .fab { display: none; }
 /* ── свайп-строка (мокап B) ── */
 .task-swipe {
   position: relative; overflow: hidden; border-radius: var(--radius);
+  /* Красный слот свайпа (за строкой) проступал тонкой дугой в скруглённых углах: на iOS
+     overflow:hidden+border-radius НЕ обрезает идеально, когда контейнер на дробно-сдвинутом
+     transform-слое (инерция скролла). clip-path клипает точно (GPU-аккуратно) → угол чистый. */
+  clip-path: inset(0 round var(--radius));
 }
-/* Цветной тинт вылезал за угол (iOS): скруглённый .task-row сидит внутри промотированного
-   предка → WebKit растеризует его угол с субпиксельным сдвигом, фон проступает за радиус.
-   Фикс: промотировать САМ .task-row в свой слой (translateZ(0)) — тогда он клипает свой
-   border-radius на собственном backing, угол чистый. (transform свайпа = translateX из JS
-   тоже промотирует, конфликта нет.) */
-.task-swipe .task-row { position: relative; z-index: 1; border-radius: var(--radius); transform: translateZ(0); }
+.task-swipe .task-row { position: relative; z-index: 1; border-radius: var(--radius); }
 .swipe-actions {
   position: absolute; top: 0; bottom: 0; display: flex; align-items: stretch; z-index: 0;
 }

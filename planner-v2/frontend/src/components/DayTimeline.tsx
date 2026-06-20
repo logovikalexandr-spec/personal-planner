@@ -513,10 +513,6 @@ export const DayTimeline = memo(function DayTimeline({
           </div>
         ))}
 
-        {isToday && nowMin >= offsetMin && (
-          <div id={nowAnchorId} className="cal-now" data-testid="now-line" style={{ top: ((nowMin - offsetMin) / 60) * HOUR_H }} />
-        )}
-
         {timed.map((t) => {
           const baseStart = parseMin(t.due_time)!;
           const endRaw = parseMin(t.end_time);
@@ -611,6 +607,12 @@ export const DayTimeline = memo(function DayTimeline({
             </div>
           );
         })}
+
+        {/* now-линия — рендерится ПОСЛЕ блоков (DOM-last) + z-index:6 + translateZ(0):
+            на iOS промотированные блоки иначе перекрывают линию (см. theme.css .cal-now) */}
+        {isToday && nowMin >= offsetMin && (
+          <div id={nowAnchorId} className="cal-now" data-testid="now-line" style={{ top: ((nowMin - offsetMin) / 60) * HOUR_H }} />
+        )}
 
         {/* live-превью протяжки-создания (до отпускания; draft-проп ещё не поднят в Today) */}
         {!draft && drag && drag.id === DRAFT_ID && (
