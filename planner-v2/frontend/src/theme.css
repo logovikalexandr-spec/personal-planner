@@ -199,6 +199,9 @@ input, textarea, [contenteditable="true"] {
   flex: 0 0 auto; color: #fff; font-size: 14px; transition: background 140ms ease, border-color 140ms ease;
 }
 .checkbox.done { background: var(--accent); border-color: var(--accent); }
+/* wont_do чекбокс (деталь/строки): серая заливка + СВЕТЛЫЙ крест (как done, но серый и крестик) */
+.checkbox.wontdo { background: var(--surface-2); border-color: var(--text-muted); color: var(--text); }
+.checkbox.wontdo svg { stroke-width: 2.6; }
 .prio-high { box-shadow: inset 3px 0 0 var(--danger); }
 .prio-medium { box-shadow: inset 3px 0 0 var(--accent); }  /* Средний = оранжевый (ember) */
 .prio-low { box-shadow: inset 3px 0 0 var(--blue); }       /* Низкий = синий */
@@ -480,8 +483,9 @@ body.inline-draft .fab { display: none; }
   transition: background 140ms ease, border-color 140ms ease;
 }
 .cal-cb.done { background: var(--accent); border-color: var(--accent); }
-/* wont_do = «не буду делать»: приглушённый крестик (не оранжевая галочка done) */
-.cal-cb.wontdo { background: transparent; border-color: var(--text-muted); color: var(--text-muted); }
+/* wont_do = «не буду делать»: серая заливка + светлый крест (как done, но серый и крестик) */
+.cal-cb.wontdo { background: var(--surface-2); border-color: var(--text-muted); color: var(--text); }
+.cal-cb.wontdo svg { stroke-width: 2.6; }
 .cal-cb svg { width: 11px; height: 11px; }
 .cal-block .bt { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-block .bm {
@@ -1038,8 +1042,8 @@ body.inline-draft .fab { display: none; }
 
 /* ── won't-do строка (мокап D) ── */
 .task-row.is-wontdo .title-done { color: var(--text-muted); }
-.checkbox.wontdo { border-color: #5a5b61; background: none; color: #5a5b61; }
-.cb-wontdo { display: inline-flex; color: #5a5b61; }
+/* (дубль .checkbox.wontdo убран — стиль выше у .checkbox.done/.wontdo: серая заливка + светлый крест) */
+.cb-wontdo { display: inline-flex; color: var(--text); }
 .cb-wontdo svg { width: 12px; height: 12px; }
 
 /* ── multi-select (мокап D) ── */
@@ -1491,10 +1495,17 @@ body.inline-draft .fab { display: none; }
 
 /* ── ЛЕНТА (Agenda) ── */
 .ca-day { margin-bottom: var(--s2); }
-.ca-hdr { display: flex; align-items: baseline; gap: 8px; margin: 18px 2px 11px; }
+/* заголовок дня — кнопка-тоггл (сворачивает задачи дня, как Просрочено) */
+.ca-hdr {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: 18px 2px 11px; padding: 0; background: none; border: 0; cursor: pointer; text-align: left;
+}
 .ca-hdr .d { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: -0.01em; }
 .ca-hdr .meta { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
 .ca-hdr.first { margin-top: 2px; }
+.ca-day-chev { margin-left: auto; color: var(--text-muted); display: flex; transition: transform 160ms ease; }
+.ca-day-chev svg { width: 16px; height: 16px; }
+.ca-day-chev.open { transform: rotate(90deg); }
 .ca-rule { height: 1px; background: var(--border); margin: 0 2px; }
 .ca-task {
   display: flex; align-items: flex-start; gap: 11px; padding: 11px 12px; background: var(--surface);

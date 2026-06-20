@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getMilestones, getProjects, getTasks, getTasksRange, patchTask } from "../api";
+import { deleteTask, getMilestones, getProjects, getTasks, getTasksRange, patchTask } from "../api";
 import { CalendarDays } from "../components/CalendarDays";
 import { CalendarWeek } from "../components/CalendarWeek";
 import { CalendarMonth } from "../components/CalendarMonth";
@@ -93,6 +93,14 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
     setOverdue((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: next } : x)));
     await patchTask(t.id, { status: next });
     bump();
+  }
+
+  // удаление задачи из ленты (свайп «Удалить») — подтверждение через TG, потом DELETE + рефетч
+  function removeTask(t: Task) {
+    const go = () => { deleteTask(t.id).then(bump).catch(() => {}); };
+    const w = tg();
+    if (w?.showConfirm) w.showConfirm(`Удалить «${t.title}»?`, (ok: boolean) => { if (ok) go(); });
+    else if (confirm(`Удалить «${t.title}»?`)) go();
   }
 
   // drag блока в колонке «Дни»: оптимистично меняем время → патч в фоне (как Today.resize).
@@ -224,6 +232,9 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
             today={today}
             onToggle={toggle}
             onOpen={(t) => setOpenedId(t.id)}
+            onSwipeComplete={toggle}
+            onSwipeEdit={(t) => setOpenedId(t.id)}
+            onSwipeDelete={removeTask}
           />
         )}
       </div>

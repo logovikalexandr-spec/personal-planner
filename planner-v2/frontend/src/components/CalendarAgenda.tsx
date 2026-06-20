@@ -9,12 +9,12 @@ const HORIZON = 14; // сколько дней вперёд показывает
 
 /**
  * Лента (Agenda) — вертикальный скан ближайших дней (Things-стиль Upcoming).
- * Просрочка закреплена сверху и СВОРАЧИВАЕТСЯ (тап по заголовку). Задачи —
- * общий компонент TaskItem (как в Today/Списках/везде). Вехи-рубежи — отдельной
- * строкой без чекбокса. Пустые дни — тонкая строка «свободно».
+ * Просрочка и КАЖДЫЙ ДЕНЬ сворачиваются (тап по заголовку). Задачи — общий
+ * компонент TaskItem со свайп-действиями (Готово/Изменить/Удалить, как в списках).
+ * Вехи-рубежи — отдельной строкой без чекбокса.
  */
 export function CalendarAgenda({
-  start, tasks, overdue, milestones, byId, today, onToggle, onOpen,
+  start, tasks, overdue, milestones, byId, today, onToggle, onOpen, onSwipeComplete, onSwipeEdit, onSwipeDelete,
 }: {
   start: Date;
   tasks: Task[];
@@ -24,8 +24,18 @@ export function CalendarAgenda({
   today: Date;
   onToggle: (t: Task) => void;
   onOpen: (t: Task) => void;
+  onSwipeComplete: (t: Task) => void;
+  onSwipeEdit: (t: Task) => void;
+  onSwipeDelete: (t: Task) => void;
 }) {
   const [overdueOpen, setOverdueOpen] = useState(true);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set()); // свёрнутые дни (по iso)
+  const toggleDay = (iso: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      next.has(iso) ? next.delete(iso) : next.add(iso);
+      return next;
+    });
 
   const byDay = useMemo(() => {
     const m = new Map<string, Task[]>();
@@ -54,7 +64,15 @@ export function CalendarAgenda({
 
   const renderTask = (t: Task) => (
     <div className="ca-item" key={t.id} data-testid={`ca-task-${t.id}`}>
-      <TaskItem task={t} onToggle={onToggle} onOpen={onOpen} color={resolveColor(t.project_id, byId)} />
+      <TaskItem
+        task={t}
+        onToggle={onToggle}
+        onOpen={onOpen}
+        color={resolveColor(t.project_id, byId)}
+        onSwipeComplete={onSwipeComplete}
+        onSwipeEdit={onSwipeEdit}
+        onSwipeDelete={onSwipeDelete}
+      />
     </div>
   );
 
@@ -85,32 +103,44 @@ export function CalendarAgenda({
         const items = byDay.get(iso) ?? [];
         const flags = msByDay.get(iso) ?? [];
         const { label, meta } = fmtAgendaDay(d, today);
+        const hasContent = items.length > 0 || flags.length > 0;
+        const isCollapsed = collapsed.has(iso);
         return (
           <div className="ca-day" key={iso}>
-            <div className={`ca-hdr${idx === 0 && overdue.length === 0 ? " first" : ""}`}>
+            <button
+              className={`ca-hdr${idx === 0 && overdue.length === 0 ? " first" : ""}`}
+              data-testid={`ca-day-toggle-${iso}`}
+              onClick={() => hasContent && toggleDay(iso)}
+              aria-expanded={hasContent ? !isCollapsed : undefined}
+            >
               <span className="d">{label}</span>
               {meta && <span className="meta">{meta}</span>}
-            </div>
+              {hasContent && <span className={`ca-day-chev${isCollapsed ? "" : " open"}`}><IcoChevron /></span>}
+            </button>
             <div className="ca-rule" />
-            {flags.map((f) => {
-              const c = resolveColor(f.project_id, byId) ?? "var(--text-muted)";
-              const proj = byId.get(f.project_id);
-              return (
-                <div className="ca-veha" key={`ms-${f.id}`} data-testid={`ca-veha-${f.id}`}>
-                  <svg viewBox="0 0 12 12" aria-hidden>
-                    <path d="M2 1v10" stroke={c} strokeWidth="1.4" fill="none" />
-                    <path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill={c} />
-                  </svg>
-                  <span className="vn">{f.name}</span>
-                  <span className="vtag">веха</span>
-                  {proj && <span className="vt">{proj.name}</span>}
-                </div>
-              );
-            })}
-            {items.length === 0 && flags.length === 0 ? (
-              <div className="ca-free">свободно</div>
-            ) : (
-              items.map(renderTask)
+            {!isCollapsed && (
+              <>
+                {flags.map((f) => {
+                  const c = resolveColor(f.project_id, byId) ?? "var(--text-muted)";
+                  const proj = byId.get(f.project_id);
+                  return (
+                    <div className="ca-veha" key={`ms-${f.id}`} data-testid={`ca-veha-${f.id}`}>
+                      <svg viewBox="0 0 12 12" aria-hidden>
+                        <path d="M2 1v10" stroke={c} strokeWidth="1.4" fill="none" />
+                        <path d="M2 1.5h6l-1.4 2L8 5.5H2z" fill={c} />
+                      </svg>
+                      <span className="vn">{f.name}</span>
+                      <span className="vtag">веха</span>
+                      {proj && <span className="vt">{proj.name}</span>}
+                    </div>
+                  );
+                })}
+                {items.length === 0 && flags.length === 0 ? (
+                  <div className="ca-free">свободно</div>
+                ) : (
+                  items.map(renderTask)
+                )}
+              </>
             )}
           </div>
         );
