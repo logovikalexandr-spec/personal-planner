@@ -1,23 +1,23 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-// текущая высота клавиатуры из visualViewport (0 если клавы нет / нет API)
-function kbHeight(): number {
+// Видимая зона = visualViewport (ИСКЛЮЧАЕТ клавиатуру на iOS). Бэкдроп/лист привязываем
+// к ней, иначе при клаве (≈40% экрана) лист высотой 85dvh уезжает верхом за экран.
+function vpRect(): { top: number; height: number } {
   const vv = window.visualViewport;
-  return vv ? Math.max(0, Math.round(window.innerHeight - (vv.offsetTop + vv.height))) : 0;
+  return vv ? { top: vv.offsetTop, height: vv.height } : { top: 0, height: window.innerHeight };
 }
 
 export function Sheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   const sx = useRef<number | null>(null);
   const sy = useRef<number | null>(null);
 
-  // padding-bottom считаем из visualViewport ДО первой отрисовки (инициализатор useState),
-  // чтобы шит сразу был на месте — CSS var(--kb-inset) на монтаже бывает «стейл» (шит мигал).
-  const [pad, setPad] = useState<number>(kbHeight);
+  // Считаем ДО первой отрисовки (инициализатор useState), чтобы лист сразу был на месте.
+  const [vp, setVp] = useState<{ top: number; height: number }>(vpRect);
   useLayoutEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const place = () => setPad(kbHeight());
+    const place = () => setVp(vpRect());
     place();
     vv.addEventListener("resize", place);
     vv.addEventListener("scroll", place);
@@ -31,9 +31,10 @@ export function Sheet({ onClose, children }: { onClose: () => void; children: Re
   // will-change → containing block для position:fixed), позиционируется относительно
   // шторки = «висит в воздухе», drag/backdrop ломаются. В body — fixed резолвится к вьюпорту.
   return createPortal(
-    <div className="sheet-backdrop" style={{ paddingBottom: pad }} onClick={onClose}>
+    <div className="sheet-backdrop" style={{ top: vp.top, height: vp.height }} onClick={onClose}>
       <div
         className="sheet"
+        style={{ maxHeight: vp.height - 8 }}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => {
           // only arm swipe-close when the gesture starts in the grip zone (top ~56px),

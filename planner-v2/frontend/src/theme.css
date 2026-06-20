@@ -152,18 +152,16 @@ input, textarea, [contenteditable="true"] {
 
 /* bottom sheet (add task) */
 .sheet-backdrop {
-  /* z-index выше quick-add-оверлея (61): пикеры дата/приоритет/тег открываются ИЗ него */
-  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 70;
-  display: flex; align-items: flex-end;
-  /* padding-bottom выставляет Sheet из JS (visualViewport) — var = fallback. Без transition:
-     иначе шит плавно «съезжает» из центра при стейл-инсете на монтаже. */
-  padding-bottom: var(--kb-inset, 0px); box-sizing: border-box;
+  /* z-index выше quick-add-оверлея (61): пикеры дата/приоритет/тег открываются ИЗ него.
+     top/height задаёт Sheet из visualViewport (видимая зона над клавиатурой). */
+  position: fixed; left: 0; width: 100%; background: rgba(0, 0, 0, 0.5); z-index: 70;
+  display: flex; align-items: flex-end; box-sizing: border-box;
 }
 .sheet {
   width: 100%; background: var(--surface); border-radius: 20px 20px 0 0;
   padding: var(--s5) var(--s4) calc(var(--s5) + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: var(--s3);
-  max-height: 85dvh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overflow-y: auto; -webkit-overflow-scrolling: touch; /* max-height = visualViewport (inline) */
 }
 .sheet-grip { width: 40px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto var(--s2); }
 
@@ -277,15 +275,17 @@ select.input { appearance: none; -webkit-appearance: none; }
 .emoji-chip.active { outline: 2px solid var(--accent); }
 
 /* Иконка-кнопка проекта (тап → нативная эмодзи-клава для ЛЮБОГО символа) */
+.proj-icon-wrap { position: relative; width: 46px; height: 46px; flex: 0 0 auto; }
 .proj-icon-btn {
-  font-size: 26px; width: 40px; height: 40px; flex: 0 0 auto; border-radius: 10px;
-  border: 1px solid var(--border); background: var(--surface-2); cursor: pointer;
+  font-size: 26px; width: 46px; height: 46px; border-radius: 10px;
+  border: 1.5px solid var(--accent); background: var(--accent-soft);
   display: flex; align-items: center; justify-content: center; padding: 0;
 }
-/* скрытый, но фокусируемый инпут — открывает клавиатуру (НЕ display:none) */
+/* реальный инпут ПОВЕРХ иконки: прозрачный, но кликабельный (pointer-events:auto) →
+   прямой тап = нативный фокус iOS = клавиатура. caret-color прозрачный (пусто всегда). */
 .proj-icon-input {
-  position: absolute; left: 0; top: 0; width: 40px; height: 40px;
-  opacity: 0; border: 0; padding: 0; background: none; pointer-events: none;
+  position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer;
+  opacity: 0; border: 0; padding: 0; background: none; color: transparent; caret-color: transparent;
 }
 
 /* Свободный цвет-селектор проекта (HuePicker) — спектр по мокапу V3 T1-drawer */

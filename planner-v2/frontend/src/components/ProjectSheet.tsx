@@ -77,26 +77,21 @@ export function ProjectSheet({
     <Sheet onClose={onClose}>
       <h2 className="sheet-title">{title}</h2>
 
-      <div className="row" style={{ gap: "var(--s2)", alignItems: "center", position: "relative" }}>
-        {/* Тап по иконке → нативная Apple эмодзи-клава → любой символ (пресетов нет) */}
-        <button
-          type="button"
-          className="proj-icon-btn"
-          aria-label="Выбрать эмодзи"
-          onClick={() => iconInputRef.current?.focus()}
-        >
-          {icon ?? "📁"}
-        </button>
-        <input
-          ref={iconInputRef}
-          className="proj-icon-input"
-          aria-label="Свой эмодзи"
-          value=""
-          onChange={(e) => { const em = lastEmoji(e.target.value); if (em) setIcon(em); e.target.value = ""; }}
-        />
+      <div className="row" style={{ gap: "var(--s2)", alignItems: "center" }}>
+        {/* Реальный input ПОВЕРХ иконки: прямой тап = нативный фокус iOS = клавиатура
+            (переключаешь на эмодзи). Программный focus() на opacity:0 iOS игнорил. */}
+        <div className="proj-icon-wrap">
+          <div className="proj-icon-btn" aria-hidden="true">{icon ?? "📁"}</div>
+          <input
+            ref={iconInputRef}
+            className="proj-icon-input"
+            aria-label="Выбрать эмодзи"
+            value=""
+            onChange={(e) => { const em = lastEmoji(e.target.value); if (em) setIcon(em); e.target.value = ""; }}
+          />
+        </div>
         <input
           className="input"
-          autoFocus
           placeholder={mode === "edit" ? "Название проекта…" : parentId != null ? "Название подсписка…" : "Название проекта…"}
           value={name}
           onChange={(e) => setName(e.target.value)}
