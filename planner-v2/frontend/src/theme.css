@@ -485,7 +485,12 @@ body.inline-draft .fab { display: none; }
   flex: 0 0 auto; margin-top: 1px; display: inline-flex; align-items: center;
   justify-content: center; color: #fff; cursor: pointer;
   transition: background 140ms ease, border-color 140ms ease;
+  /* визуальный кружок 18px, но зона тапа ~44px (::before) — иначе на телефоне легко
+     промахнуться и попасть по телу блока (откроется деталь вместо отметки). z-index
+     поднимает зону над .cal-block-main, чтобы тап ловил чекбокс. */
+  position: relative; z-index: 3; touch-action: manipulation;
 }
+.cal-cb::before { content: ""; position: absolute; inset: -13px; border-radius: 50%; }
 .cal-cb.done { background: var(--accent); border-color: var(--accent); }
 /* wont_do = «не буду делать»: серая заливка + светлый крест (как done, но серый и крестик) */
 .cal-cb.wontdo { background: var(--surface-2); border-color: var(--text-muted); color: var(--text); }
