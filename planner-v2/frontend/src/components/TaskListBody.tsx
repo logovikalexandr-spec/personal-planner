@@ -16,7 +16,8 @@ function cmpSmartTask(a: Task, b: Task): number {
   if (da !== db) return da < db ? -1 : 1;
   const ta = a.due_time ?? "99:99", tb = b.due_time ?? "99:99";
   if (ta !== tb) return ta < tb ? -1 : 1;
-  return 0;
+  return a.id - b.id;   // стабильный тайбрейк (id неизменен) → позиция детерминирована,
+                        // отметка «готово»/рефетч НЕ перетасовывают задачу — стоит там же
 }
 
 // Волна 2 F2 — общий рендер списка задач: свайпы + long-press multi-select + batch-панель
