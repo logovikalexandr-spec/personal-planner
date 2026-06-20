@@ -141,7 +141,7 @@ export function TaskDetail({
     if (!task) return;
     tg()?.HapticFeedback?.impactOccurred?.("light");
     const next = s.status === "done" ? "todo" : "done";
-    patchLocal({ subtasks: task.subtasks.map((x) => (x.id === s.id ? { ...x, status: next } : x)) });
+    patchLocal({ subtasks: (task.subtasks ?? []).map((x) => (x.id === s.id ? { ...x, status: next } : x)) });
     await patchTask(s.id, { status: next });
     onChanged();
   }
@@ -345,7 +345,7 @@ export function TaskDetail({
         <button className="detail-row" onClick={() => setPicker("date")}>
           <span className="detail-lab"><span className="detail-glyph"><IcoBell /></span>Напоминания</span>
           <span className="detail-val">
-            {task.reminders.length
+            {task.reminders?.length
               ? task.reminders.map((r, i) => <span key={r.id ?? i} className="pill">{reminderText(r)}</span>)
               : <span className="muted mono">Нет</span>}
           </span>
@@ -363,20 +363,20 @@ export function TaskDetail({
         {/* чеклист + кольцо прогресса */}
         <Checklist
           taskId={task.id}
-          items={task.checkitems}
+          items={task.checkitems ?? []}
           onChange={(items) => { patchLocal({ checkitems: items }); }}
         />
 
         {/* подзадачи (полные задачи, НЕ двигают кольцо) */}
         <div className="detail-sub-head">
           <span className="detail-sub-title">Подзадачи</span>
-          {task.subtasks.length > 0 && (
+          {(task.subtasks?.length ?? 0) > 0 && (
             <span className="detail-sub-count mono">
-              {task.subtasks.filter((s) => s.status === "done").length}/{task.subtasks.length}
+              {task.subtasks!.filter((s) => s.status === "done").length}/{task.subtasks!.length}
             </span>
           )}
         </div>
-        {task.subtasks.map((s) => (
+        {(task.subtasks ?? []).map((s) => (
           <TaskItem
             key={s.id}
             task={s}

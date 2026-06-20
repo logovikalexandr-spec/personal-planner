@@ -1141,6 +1141,13 @@ body.inline-draft .fab { display: none; }
 .lnk { background: none; border: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 0; }
 .hcard .hchk { font-size: 18px; line-height: 1; }
 
+/* ErrorBoundary — корневая плашка вместо белого экрана при крахе компонента */
+.err-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: var(--s5); z-index: 200; }
+.err-card { max-width: 320px; text-align: center; display: flex; flex-direction: column; gap: var(--s3); }
+.err-ttl { font-size: 18px; font-weight: 700; color: var(--text); }
+.err-sub { font-size: 14px; color: var(--text-muted); line-height: 1.4; }
+.err-card .btn-primary { margin-top: var(--s2); }
+
 /* ════════════════════════════════════════════════════════════════════
    T2 КАЛЕНДАРЬ — Неделя / Месяц / Лента (Форк B, конвейер T2)
    Контракт: база-проекта-v3/pages/T2a|b|c + T2-состояния + T2-flows.

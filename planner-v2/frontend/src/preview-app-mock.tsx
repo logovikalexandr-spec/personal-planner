@@ -79,6 +79,14 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   if (url.includes("/api/habits")) return json(HABITS);
   if (url.includes("/api/metrics")) return json(METRICS);
   if (url.includes("/api/tracking/retro")) return json(RETRO);
+  // detail: GET /api/tasks/{id} → один объект TaskDetailOut (вложенные массивы).
+  // КРИТИЧНО: ДО общего /api/tasks, иначе catch-all вернёт массив → DETAIL.map краш.
+  const detailMatch = url.match(/\/api\/tasks\/(\d+)(\?|$)/);
+  if (detailMatch && m === "GET") {
+    const id = Number(detailMatch[1]);
+    const base = [...DAY_TASKS, ...OVERDUE].find((t) => t.id === id) ?? DAY_TASKS[0];
+    return json({ ...base, checkitems: [], reminders: [], subtasks: [], tags: [] });
+  }
   if (url.includes("/api/tasks")) {
     if (url.includes("scope=overdue")) return json(OVERDUE);
     if (url.includes("on_date=") || url.includes("from=") || url.includes("scope=")) return json(DAY_TASKS);
