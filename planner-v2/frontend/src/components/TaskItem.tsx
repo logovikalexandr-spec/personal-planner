@@ -67,8 +67,12 @@ function TaskItemBase({
     : task.priority === "medium" ? "prio-medium"
     : task.priority === "low" ? "prio-low"
     : "";
-  // Фон строки = тинт цвета проекта (~13% alpha). Закрытые/wont_do приглушены, тинт не нужен.
-  const tintBg = color && !done && !wontDo ? `${color}22` : undefined;
+  // Фон строки = тинт цвета проекта (~13%) ПОВЕРХ непрозрачной surface — слой, не замена.
+  // КРИТИЧНО: строка лежит над слотами свайпа (.swipe-actions); полупрозрачный фон давал
+  // просвечивание кнопок Дата/В список/Удалить в покое. Композитим тинт над surface → opaque.
+  const tintBg = color && !done && !wontDo
+    ? `linear-gradient(0deg, ${color}22, ${color}22), var(--surface)`
+    : undefined;
 
   const swipeEnabled = !selectMode && (!!onSwipeComplete || !!onSwipeDate || !!onSwipeMove || !!onSwipeDelete);
 
