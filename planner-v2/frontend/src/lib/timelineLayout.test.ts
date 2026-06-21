@@ -60,8 +60,21 @@ describe("layoutColumns", () => {
     expect(r.get(2)!.colIndex).toBe(1);
     expect(r.get(3)!.colIndex).toBe(0);
   });
-  it("непересекающиеся → каждый 1 колонка", () => {
+  it("непересекающиеся (большой зазор) → каждый 1 колонка", () => {
     const r = layoutColumns([L(1, 540, 600), L(2, 660, 720)]);
+    expect(r.get(1)).toEqual({ colIndex: 0, colCount: 1 });
+    expect(r.get(2)).toEqual({ colIndex: 0, colCount: 1 });
+  });
+
+  // визуальная раскладка: короткие встык-задачи занимают min-height-полосу → разводятся по колонкам
+  it("короткие встык (5/10/15мин) → колонки, не наложение", () => {
+    // Подъём 06:30–06:35, Душ 06:35–06:45, Медитация 06:45–07:00 (как ставит planner)
+    const r = layoutColumns([L(1, 390, 395), L(2, 395, 405), L(3, 405, 420)]);
+    expect(r.get(1)!.colCount).toBeGreaterThan(1);   // не одна колонка во всю ширину
+    expect(r.get(1)!.colIndex).not.toBe(r.get(2)!.colIndex); // соседи в разных колонках
+  });
+  it("читаемые встык (30+30мин) НЕ дробятся на колонки", () => {
+    const r = layoutColumns([L(1, 540, 570), L(2, 570, 600)]);
     expect(r.get(1)).toEqual({ colIndex: 0, colCount: 1 });
     expect(r.get(2)).toEqual({ colIndex: 0, colCount: 1 });
   });

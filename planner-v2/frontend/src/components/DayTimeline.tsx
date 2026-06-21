@@ -5,7 +5,7 @@ import { shouldShowImpact } from "../lib/impact";
 import { stageColor } from "../lib/stage";
 import type { Priority, Project, Task } from "../types";
 import {
-  HOUR_H, STEP_MIN, PX_PER_MIN, DAY_END,
+  HOUR_H, STEP_MIN, PX_PER_MIN, DAY_END, MIN_BLOCK_PX,
   parseMin, hhmm, clamp, snap15, layoutColumns,
   pointerToMinutes, defaultRange, normalizeRange,
 } from "../lib/timelineLayout";
@@ -548,7 +548,7 @@ export const DayTimeline = memo(function DayTimeline({
           const proj = t.project_id != null ? byId.get(t.project_id) : undefined;
           const enabled = !!onResize && !closed;
           const lay = cols.get(t.id) ?? { colIndex: 0, colCount: 1 };
-          const heightPx = Math.max((dur / 60) * HOUR_H - 2, 22);
+          const heightPx = Math.max((dur / 60) * HOUR_H - 2, MIN_BLOCK_PX);
           const short = heightPx < 40; // короткий блок (≤~30мин): обе строки не влезают → центрируем заголовок
           return (
             <div
@@ -636,7 +636,7 @@ export const DayTimeline = memo(function DayTimeline({
             className="cal-draft"
             style={{
               top: ((snap15(drag.startMin) - offsetMin) / 60) * HOUR_H + 1,
-              height: Math.max(((snap15(drag.endMin) - snap15(drag.startMin)) / 60) * HOUR_H - 2, 22),
+              height: Math.max(((snap15(drag.endMin) - snap15(drag.startMin)) / 60) * HOUR_H - 2, MIN_BLOCK_PX),
               ...laneStyle(cols.get(DRAFT_ID)?.colIndex ?? 0, cols.get(DRAFT_ID)?.colCount ?? 1),
             }}
           >

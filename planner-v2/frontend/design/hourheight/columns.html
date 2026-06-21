@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Колонки коротких задач</title>
+<style>
+  :root{ --bg:#0F0F11; --s2:#19191d; --border:#27272c; --text:#f4f4f5; --muted:#8a8a92;
+         --accent:#EE8A3C; --danger:#E0556E; --warning:#E0B341; --health:#3FB68B; }
+  *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,Geist,Inter,system-ui,sans-serif;}
+  .phone{width:390px;margin:16px auto;}
+  .tl{position:relative;background:var(--bg);border:1px solid var(--border);border-radius:14px;}
+  .hour{position:relative;border-top:1px solid var(--border);}
+  .hour:first-child{border-top:none}
+  .hlabel{position:absolute;left:6px;top:2px;font-size:11px;color:var(--muted);font-family:Geist Mono,ui-monospace,monospace;}
+  .blk{position:absolute;border-radius:8px;overflow:hidden;background:var(--s2);
+       border-left:3px solid transparent;padding:2px 6px;display:flex;flex-direction:column;gap:1px;justify-content:center;}
+  .blk .bt{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;}
+  .blk .bm{font-size:10px;color:var(--muted);font-family:Geist Mono,monospace;white-space:nowrap;overflow:hidden;}
+  .cb{display:inline-block;width:15px;height:15px;border:2px solid var(--muted);border-radius:50%;flex:0 0 auto;margin-right:4px;vertical-align:middle;}
+  h3{font-size:13px;color:var(--accent);margin:0 0 8px 4px;}
+</style></head>
+<body>
+<div class="phone"><h3>96px/час + колонки коротких задач · 22 июня</h3><div class="tl" id="tl"></div></div>
+<script>
+const HOUR_H=96, PX=HOUR_H/60, MIN_BLOCK_PX=22, MIN_BLOCK_MIN=Math.ceil(MIN_BLOCK_PX/PX);
+const START=6, END=11;
+const LANE_LEFT=50, LANE_RIGHT=8, GUTTER=4;
+const T=[
+  {id:1,t:"🧘 Подъём",        s:390,e:395, c:"--health",p:"--warning"},
+  {id:2,t:"🚿 Душ",           s:395,e:405, c:"--health",p:"--warning"},
+  {id:3,t:"🕉 Медитация",     s:405,e:420, c:"--health",p:"--warning"},
+  {id:4,t:"🧘 Валик-протокол",s:420,e:440, c:"--health",p:"--danger"},
+  {id:5,t:"🧘 Завтрак",       s:450,e:470, c:"--health",p:"--warning"},
+  {id:6,t:"🏋 Зал",           s:480,e:570, c:"--health",p:"--danger"},
+];
+function hhmm(m){return String(Math.floor(m/60)).padStart(2,'0')+":"+String(m%60).padStart(2,'0');}
+// layoutColumns (порт)
+function layoutColumns(blocks){
+  const res=new Map();
+  const visEnd=b=>Math.max(b.e, b.s+MIN_BLOCK_MIN);
+  const sorted=[...blocks].sort((a,b)=>a.s-b.s||a.e-b.e);
+  let cluster=[],cEnd=-1;
+  const flush=g=>{const ends=[],of=new Map();
+    for(const b of g){let p=-1;for(let c=0;c<ends.length;c++){if(ends[c]<=b.s){ends[c]=visEnd(b);p=c;break;}}
+      if(p===-1){ends.push(visEnd(b));p=ends.length-1;}of.set(b.id,p);}
+    const n=ends.length;for(const b of g)res.set(b.id,{colIndex:of.get(b.id),colCount:n});};
+  for(const b of sorted){if(cluster.length&&b.s>=cEnd){flush(cluster);cluster=[];cEnd=-1;}cluster.push(b);cEnd=Math.max(cEnd,visEnd(b));}
+  if(cluster.length)flush(cluster);return res;
+}
+const tl=document.getElementById('tl'), top0=START*60;
+tl.style.height=((END-START)*60*PX)+'px';
+for(let h=START;h<END;h++){const hr=document.createElement('div');hr.className='hour';hr.style.height=(60*PX)+'px';
+  hr.innerHTML=`<span class="hlabel">${String(h).padStart(2,'0')}:00</span>`;tl.appendChild(hr);}
+const cols=layoutColumns(T);
+T.forEach(tk=>{
+  const lay=cols.get(tk.id), top=(tk.s-top0)*PX+1, h=Math.max((tk.e-tk.s)*PX-2,MIN_BLOCK_PX);
+  const b=document.createElement('div');b.className='blk';
+  b.style.top=top+'px';b.style.height=h+'px';
+  b.style.left=`calc(${LANE_LEFT}px + (100% - ${LANE_LEFT+LANE_RIGHT}px) * ${lay.colIndex/lay.colCount} + ${lay.colIndex?GUTTER:0}px)`;
+  b.style.width=`calc((100% - ${LANE_LEFT+LANE_RIGHT}px) * ${1/lay.colCount} - ${lay.colCount>1?GUTTER:0}px)`;
+  b.style.background=`color-mix(in srgb, var(${tk.c}) 13%, var(--bg))`;
+  b.style.borderLeftColor=`var(${tk.p})`;
+  const showTime=h>=34;
+  b.innerHTML=`<span class="bt"><span class="cb"></span>${tk.t}</span>`+(showTime?`<span class="bm">${hhmm(tk.s)}–${hhmm(tk.e)}</span>`:``);
+  tl.appendChild(b);
+});
+</script>
+</body></html>

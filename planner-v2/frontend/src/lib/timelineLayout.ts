@@ -6,6 +6,10 @@ export const HOUR_H = 96;   // высота часа в таймлайне. 96 (
 export const STEP_MIN = 15;
 export const PX_PER_MIN = HOUR_H / 60;
 export const DAY_END = 24 * 60;
+export const MIN_BLOCK_PX = 22;   // мин. высота блока (короткий блок не схлопывается ниже читаемой строки)
+/** Мин. высота в минутах: короткий блок ВИЗУАЛЬНО занимает столько, даже если реально короче.
+ *  Раскладка по колонкам использует это → близкие короткие задачи разводятся бок-о-бок (Apple-стиль). */
+export const MIN_BLOCK_MIN = Math.ceil(MIN_BLOCK_PX / PX_PER_MIN);
 
 export function snap15(min: number): number { return Math.round(min / STEP_MIN) * STEP_MIN; }
 export function clamp(v: number, lo: number, hi: number): number { return Math.max(lo, Math.min(hi, v)); }
@@ -48,18 +52,21 @@ export function layoutColumns(
   blocks: { id: number; startMin: number; endMin: number }[],
 ): Map<number, { colIndex: number; colCount: number }> {
   const res = new Map<number, { colIndex: number; colCount: number }>();
+  // визуальный конец блока: реальный конец ИЛИ старт+мин-высота (короткий блок занимает min-height-полосу).
+  // близкие короткие задачи по нему «пересекаются» → разводятся по колонкам, даже если по времени встык.
+  const visEnd = (b: { startMin: number; endMin: number }) => Math.max(b.endMin, b.startMin + MIN_BLOCK_MIN);
   const sorted = [...blocks].sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
   let cluster: typeof sorted = [];
   let clusterEnd = -1;
   const flush = (group: typeof sorted) => {
-    const colEnds: number[] = []; // индекс колонки → endMin последнего блока в ней
+    const colEnds: number[] = []; // индекс колонки → визуальный конец последнего блока в ней
     const colOf = new Map<number, number>();
     for (const b of group) {
       let placed = -1;
       for (let c = 0; c < colEnds.length; c++) {
-        if (colEnds[c] <= b.startMin) { colEnds[c] = b.endMin; placed = c; break; }
+        if (colEnds[c] <= b.startMin) { colEnds[c] = visEnd(b); placed = c; break; }
       }
-      if (placed === -1) { colEnds.push(b.endMin); placed = colEnds.length - 1; }
+      if (placed === -1) { colEnds.push(visEnd(b)); placed = colEnds.length - 1; }
       colOf.set(b.id, placed);
     }
     const colCount = colEnds.length;
@@ -68,7 +75,7 @@ export function layoutColumns(
   for (const b of sorted) {
     if (cluster.length && b.startMin >= clusterEnd) { flush(cluster); cluster = []; clusterEnd = -1; }
     cluster.push(b);
-    clusterEnd = Math.max(clusterEnd, b.endMin);
+    clusterEnd = Math.max(clusterEnd, visEnd(b));
   }
   if (cluster.length) flush(cluster);
   return res;
