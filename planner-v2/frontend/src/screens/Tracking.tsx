@@ -827,7 +827,7 @@ function HabitDetail({ habit, onClose, onChange, onMenu }: {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: "var(--bg)", display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 12px 10px", borderBottom: "1px solid var(--border)" }}>
         <button onClick={onClose} aria-label="Назад" style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 28, lineHeight: 1, cursor: "pointer", width: 36 }}>‹</button>
         <span style={{ fontWeight: 600 }}>Привычка</span>
@@ -1121,7 +1121,7 @@ function MetricDetail({ metric, onClose, onChange, onDelete }: {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, background: "var(--bg)", display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 12px 10px", borderBottom: "1px solid var(--border)" }}>
         <button onClick={onClose} aria-label="Назад" style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 28, lineHeight: 1, cursor: "pointer", width: 36 }}>‹</button>
         <span style={{ fontWeight: 600 }}>Метрика</span>
