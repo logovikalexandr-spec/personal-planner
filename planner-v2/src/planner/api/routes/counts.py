@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -15,5 +16,6 @@ router = APIRouter(prefix="/api/counts")
 async def get_counts(
     _: Annotated[TelegramUser, Depends(require_owner)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    today: date | None = None,   # дата клиента (его TZ) — счётчики совпадают со смарт-списками
 ):
-    return await smart_list_counts(db)
+    return await smart_list_counts(db, ref_date=today)

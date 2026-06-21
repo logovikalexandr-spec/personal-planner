@@ -82,7 +82,11 @@ async def list_tasks(
     from_date: date | None = None,
     to_date: date | None = None,
     parent_task_id: int | None = None,
+    ref_date: date | None = None,
 ) -> list[Task]:
+    # «сегодня» = дата КЛИЕНТА (ref_date), не сервера: сервер в UTC, клиент в своей TZ →
+    # иначе смарт-список «Сегодня» расходится с тем, что у пользователя на устройстве.
+    today = ref_date or date.today()
     stmt = select(Task).where(Task.status != "archived")
     if parent_task_id is not None:
         stmt = stmt.where(Task.parent_task_id == parent_task_id)
@@ -95,20 +99,20 @@ async def list_tasks(
         if to_date is not None:
             stmt = stmt.where(Task.due_date <= to_date)
     elif scope == "today":
-        stmt = stmt.where(Task.due_date == date.today(), Task.status != "done")
+        stmt = stmt.where(Task.due_date == today, Task.status != "done")
     elif scope == "week":
-        end = date.today() + timedelta(days=7)
+        end = today + timedelta(days=7)
         stmt = stmt.where(
-            Task.due_date >= date.today(), Task.due_date <= end, Task.status != "done"
+            Task.due_date >= today, Task.due_date <= end, Task.status != "done"
         )
     elif scope == "planned":
         stmt = stmt.where(
-            Task.due_date.is_not(None), Task.due_date >= date.today(), Task.status != "done"
+            Task.due_date.is_not(None), Task.due_date >= today, Task.status != "done"
         )
     elif scope == "overdue":
         stmt = stmt.where(
             Task.due_date.is_not(None),
-            Task.due_date < date.today(),
+            Task.due_date < today,
             Task.status.in_(("todo", "in_progress")),
         )
     elif scope == "inbox":
@@ -124,9 +128,10 @@ async def list_tasks(
     return list(rows.scalars().all())
 
 
-async def smart_list_counts(session) -> dict[str, int]:
-    """Counts of OPEN tasks for smart lists: all, today, tomorrow, next7, inbox."""
-    today = date.today()
+async def smart_list_counts(session, ref_date: date | None = None) -> dict[str, int]:
+    """Counts of OPEN tasks for smart lists: all, today, tomorrow, next7, inbox.
+    ref_date = дата клиента (его TZ); счётчики обязаны совпадать со смарт-списками."""
+    today = ref_date or date.today()
     tomorrow = today + timedelta(days=1)
     next7_end = today + timedelta(days=7)
     inbox_id = await _inbox_project_id(session)
