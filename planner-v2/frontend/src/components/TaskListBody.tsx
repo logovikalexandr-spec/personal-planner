@@ -35,15 +35,25 @@ export function TaskListBody({
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<number | "none">>(new Set());
+  const [doneOpen, setDoneOpen] = useState(false);        // секция «Выполнено» свёрнута по умолчанию
+  const [cancelledOpen, setCancelledOpen] = useState(false);
 
-  // ВСЕ задачи (вкл. done/wont_do) рендерятся в группах: выполненная остаётся на своём
-  // месте зачёркнутой (как на таймлайне), не уезжает в отдельную секцию. Клик по чекбоксу
-  // тогглит обратно. Отдельной секции «Выполнено» нет.
-  // Порядок групп = КАК В ШТОРКЕ (древо-порядок: pinned → order_index → name, родитель
-  // перед детьми); «без проекта» — в конец. Внутри группы: приоритет ↓, дата ↑, время ↑.
+  // Открытые → в группы/список; закрытые (done/wont_do, за 7 дней) → в секции внизу списка.
+  const openTasks = useMemo(() => tasks.filter((t) => t.status === "todo" || t.status === "in_progress"), [tasks]);
+  const doneTasks = useMemo(
+    () => tasks.filter((t) => t.status === "done").sort((a, b) => (b.done_at ?? "").localeCompare(a.done_at ?? "")),
+    [tasks],
+  );
+  const cancelledTasks = useMemo(
+    () => tasks.filter((t) => t.status === "wont_do").sort((a, b) => (b.done_at ?? "").localeCompare(a.done_at ?? "")),
+    [tasks],
+  );
+
+  // Группы ТОЛЬКО из открытых. Порядок групп = КАК В ШТОРКЕ (древо-порядок); «без проекта» — в конец.
+  // Внутри группы: приоритет ↓, дата ↑, время ↑.
   const groups = useMemo(() => {
     if (!groupByProjectMap) return null;
-    const gs = groupByProject(tasks, groupByProjectMap);
+    const gs = groupByProject(openTasks, groupByProjectMap);
     gs.forEach((g) => g.tasks.sort(cmpSmartTask));
     // ранг проекта по тому же обходу дерева, что рисует шторка (общий источник)
     const rank = projectRankMap(groupByProjectMap);
@@ -52,7 +62,7 @@ export function TaskListBody({
       if (!b.project) return -1;
       return (rank.get(a.project.id) ?? 1e9) - (rank.get(b.project.id) ?? 1e9);
     });
-  }, [tasks, groupByProjectMap]);
+  }, [openTasks, groupByProjectMap]);
 
   const selectedTasks = useMemo(() => tasks.filter((t) => selected.has(t.id)), [tasks, selected]);
 
@@ -140,7 +150,35 @@ export function TaskListBody({
           );
         })
       ) : (
-        <div className="list">{tasks.map(renderTask)}</div>
+        <div className="list">{openTasks.map(renderTask)}</div>
+      )}
+
+      {/* секции внизу: закрытые за 7 дней (done/wont_do), сворачиваемые */}
+      {doneTasks.length > 0 && (
+        <div className="closed-sec">
+          <button className={`closed-head ${doneOpen ? "open" : ""}`} onClick={() => setDoneOpen((v) => !v)}>
+            <span className="ch-chev"><IcoChevron /></span>
+            <span className="ch-name">Выполнено</span>
+            <span className="ch-cnt mono">{doneTasks.length}</span>
+          </button>
+          {doneOpen && (<>
+            <div className="closed-note">за последние 7 дней</div>
+            <div className="list">{doneTasks.map(renderTask)}</div>
+          </>)}
+        </div>
+      )}
+      {cancelledTasks.length > 0 && (
+        <div className="closed-sec">
+          <button className={`closed-head ${cancelledOpen ? "open" : ""}`} onClick={() => setCancelledOpen((v) => !v)}>
+            <span className="ch-chev"><IcoChevron /></span>
+            <span className="ch-name">Отменено</span>
+            <span className="ch-cnt mono">{cancelledTasks.length}</span>
+          </button>
+          {cancelledOpen && (<>
+            <div className="closed-note">за последние 7 дней</div>
+            <div className="list">{cancelledTasks.map(renderTask)}</div>
+          </>)}
+        </div>
       )}
 
       {selectMode && (

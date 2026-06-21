@@ -99,15 +99,16 @@ async def list_tasks(
         if to_date is not None:
             stmt = stmt.where(Task.due_date <= to_date)
     elif scope == "today":
-        stmt = stmt.where(Task.due_date == today, Task.status != "done")
+        # только ОТКРЫТЫЕ на сегодня (просрочка — отдельный список «overdue»; done — секция «done»)
+        stmt = stmt.where(Task.due_date == today, Task.status.in_(("todo", "in_progress")))
     elif scope == "week":
         end = today + timedelta(days=7)
         stmt = stmt.where(
-            Task.due_date >= today, Task.due_date <= end, Task.status != "done"
+            Task.due_date >= today, Task.due_date <= end, Task.status.in_(("todo", "in_progress"))
         )
     elif scope == "planned":
         stmt = stmt.where(
-            Task.due_date.is_not(None), Task.due_date >= today, Task.status != "done"
+            Task.due_date.is_not(None), Task.due_date >= today, Task.status.in_(("todo", "in_progress"))
         )
     elif scope == "overdue":
         stmt = stmt.where(
@@ -115,6 +116,12 @@ async def list_tasks(
             Task.due_date < today,
             Task.status.in_(("todo", "in_progress")),
         )
+    elif scope in ("done", "cancelled"):
+        # секции «Выполнено»/«Отменено» внизу списка: закрытые за последние 7 дней (по done_at).
+        # Старше 7 дней не показываем (не хламится); в БД и на таймлайне остаются.
+        target = "done" if scope == "done" else "wont_do"
+        window = today - timedelta(days=7)
+        stmt = stmt.where(Task.status == target, func.date(Task.done_at) >= window)
     elif scope == "inbox":
         inbox_id = await _inbox_project_id(session)
         stmt = stmt.where(Task.project_id == inbox_id)
@@ -144,11 +151,19 @@ async def smart_list_counts(session, ref_date: date | None = None) -> dict[str, 
     )
     count_all = r_all.scalar_one()
 
-    # today + просрочка (= что показывает смарт-список «Сегодня»: due_date <= сегодня, не done)
+    # today: ТОЛЬКО сегодняшние открытые (просрочка — отдельный счётчик/список «overdue»)
     r_today = await session.execute(
-        select(func.count()).where(Task.status.in_(open_statuses), Task.due_date <= today)
+        select(func.count()).where(Task.status.in_(open_statuses), Task.due_date == today)
     )
     count_today = r_today.scalar_one()
+
+    # overdue: открытые с due_date < сегодня (смарт-список «Просрочено»)
+    r_overdue = await session.execute(
+        select(func.count()).where(
+            Task.status.in_(open_statuses), Task.due_date.is_not(None), Task.due_date < today
+        )
+    )
+    count_overdue = r_overdue.scalar_one()
 
     # tomorrow
     r_tomorrow = await session.execute(
@@ -180,6 +195,7 @@ async def smart_list_counts(session, ref_date: date | None = None) -> dict[str, 
     return {
         "all": count_all,
         "today": count_today,
+        "overdue": count_overdue,
         "tomorrow": count_tomorrow,
         "next7": count_next7,
         "inbox": count_inbox,

@@ -1862,3 +1862,19 @@ body.inline-draft .fab { display: none; }
 @media (display-mode: standalone) {
   .app { padding-top: env(safe-area-inset-top); }
 }
+
+/* ── Секции внизу списка: «Выполнено» / «Отменено» (закрытые за 7 дней) ── */
+.closed-sec { border-top: 1px solid var(--border); margin-top: var(--s2); }
+.closed-head {
+  -webkit-appearance: none; appearance: none; width: 100%;
+  display: flex; align-items: center; gap: var(--s3);
+  background: none; border: none; cursor: pointer;
+  padding: 13px var(--s4); color: var(--text-muted);
+  font-size: 14px; font-weight: 600; text-align: left;
+}
+.closed-head .ch-chev { width: 15px; height: 15px; display: flex; transition: transform 0.15s; }
+.closed-head .ch-chev svg { width: 15px; height: 15px; display: block; }
+.closed-head.open .ch-chev { transform: rotate(90deg); }
+.closed-head .ch-name { flex: 1 1 auto; }
+.closed-head .ch-cnt { font-size: 12px; color: var(--text-muted); }
+.closed-note { font-size: 11px; color: var(--text-muted); font-style: italic; padding: 0 var(--s4) 6px 40px; }
