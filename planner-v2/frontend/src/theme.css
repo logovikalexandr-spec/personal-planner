@@ -1768,3 +1768,29 @@ body.inline-draft .fab { display: none; }
 /* список: приглушение заголовка при отметке (НЕ opacity на всю строку — иначе сквозь
    полупрозрачную строку просвечивают кнопки свайпа за ней). Фон строки непрозрачный. */
 .title-done { transition: color 220ms ease; }
+
+/* ── PWA: экран ввода device-токена (вне Telegram) ── */
+.token-gate {
+  min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+  padding: calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);
+  background: var(--bg);
+}
+.token-gate-card { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+.token-gate-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.token-gate-sub { color: var(--text-muted); font-size: 14px; line-height: 1.45; margin-bottom: 4px; }
+.token-gate-input {
+  -webkit-appearance: none; appearance: none; width: 100%;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 14px; font-size: 16px; color: var(--text); outline: none;
+  font-family: var(--font-mono);
+}
+.token-gate-input:focus { border-color: var(--accent); }
+.token-gate-err { color: var(--danger); font-size: 13px; }
+.token-gate-btn { width: 100%; min-height: 48px; font-size: 16px; }
+
+/* ── PWA standalone (иконка с экрана «Домой», вне Telegram) ──
+   Нет Telegram-шапки → статус-бар/вырез оверлеит контент. Сдвигаем приложение ниже выреза.
+   Telegram Mini App = display-mode:browser → это правило его НЕ касается (там отступ даёт TG). */
+@media (display-mode: standalone) {
+  .app { padding-top: env(safe-area-inset-top); }
+}
