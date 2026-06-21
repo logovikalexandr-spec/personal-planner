@@ -526,6 +526,12 @@ body.inline-draft .fab { display: none; }
 .cal-block {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
+/* Today transform-таймлайн: вся карточка (вкл. чекбокс/паддинг/гэпы) НЕ инициирует native-pan —
+   иначе касание по этим зонам скроллило СТРАНИЦУ вместо таймлайна (touchstart на карточке pd не зовём,
+   чтобы не убить tap-open). Жест ведут наши хендлеры; tap/click и long-press работают.
+   Календарь-compact = native scroll → не трогаем (scoped на .daytimeline--static). */
+.daytimeline--static .cal-block,
+.daytimeline--static .cal-cb { touch-action: none; }
 /* ручка переноса = жест наш (как грип ресайза): touch-action:none, иначе вертикальный
    drag по телу крадёт нативный скролл .cal-scroll → pointercancel рвёт перенос на touch.
    Скролл таймлайна остаётся через пустую сетку и левую колонку часов. */
