@@ -774,9 +774,8 @@ body.inline-draft .fab { display: none; }
 .daytimeline--static.cal-scroll { overflow: hidden; flex: none; position: relative; }
 .daytimeline--static .cal-grid { will-change: transform; }
 
-/* cal-block тактильное нажатие + транзишн часа (§6) */
-.cal-block { transition: transform 140ms ease; }
-.cal-block:active { transform: scale(0.98); }
+/* cal-block: scale-реакции на нажатие НЕТ — при свайпе-скролле по карточке :active срабатывал
+   и она «дёргалась». Реакция только при зажатии (подъём = класс .cal-block.active, box-shadow). */
 .cal-hour { transition: background 120ms ease; }
 
 /* entry-card / FAB — SVG-глифы (§4) */
