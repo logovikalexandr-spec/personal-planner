@@ -554,10 +554,9 @@ export const DayTimeline = memo(function DayTimeline({
               style={{
                 top: ((start - offsetMin) / 60) * HOUR_H + 1,
                 height: heightPx,
+                borderLeftColor: prio ?? "transparent",
                 background: c ? `${c}22` : "var(--surface-2)",
                 ...laneStyle(lay.colIndex, lay.colCount),
-                // кант приоритета рисует .cal-block::before по этой переменной (см. theme.css)
-                ...({ "--prio": prio ?? "transparent" } as React.CSSProperties),
               }}
               onClick={(e) => {
                 e.stopPropagation();
