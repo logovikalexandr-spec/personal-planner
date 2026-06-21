@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
+import { Sheet } from "../components/Sheet";
 import { tg } from "../telegram";
 import {
   backfillHabit, completeTask, createHabit, createMetric, deleteHabit, deleteMetric, deleteMetricEntry,
@@ -594,8 +595,7 @@ function MeasureSheet({ metric, onClose, onSaved }: { metric: MetricOut; onClose
     catch { setSaving(false); }
   };
   return (
-    <div className="sheet-scrim" style={{ zIndex: 80 }} onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+    <Sheet onClose={onClose}>
         <div className="sheet-title">{metric.name} · сегодня</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0 6px" }}>
           <button className="hchk" style={{ ["--c" as string]: metric.color }} onClick={() => bump(-0.1)} aria-label="Минус 0.1">−</button>
@@ -616,8 +616,7 @@ function MeasureSheet({ metric, onClose, onSaved }: { metric: MetricOut; onClose
         <button className="btn-primary" style={{ width: "100%" }} disabled={Number.isNaN(num) || saving} onClick={save}>
           {saving ? "Сохраняю…" : "Сохранить замер"}
         </button>
-      </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -668,8 +667,7 @@ function NewHabitSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
   };
 
   return (
-    <div className="sheet-scrim" onClick={onClose}>
-      <div className="sheet" style={{ maxHeight: "88vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+    <Sheet onClose={onClose}>
         <div className="sheet-title">Новая привычка</div>
 
         <FieldLbl>Название</FieldLbl>
@@ -745,8 +743,7 @@ function NewHabitSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
         </div>
 
         <button className="btn-primary" style={{ marginTop: 18, width: "100%" }} onClick={submit}>Создать привычку</button>
-      </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -886,8 +883,7 @@ function EditHabitSheet({ habit, onClose, onSaved }: { habit: HabitOut; onClose:
     onSaved(await patchHabit(habit.id, patch));
   };
   return (
-    <div className="sheet-scrim" style={{ zIndex: 80 }} onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+    <Sheet onClose={onClose}>
         <div className="sheet-title">Изменить привычку</div>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         {isCount && (
@@ -903,8 +899,7 @@ function EditHabitSheet({ habit, onClose, onSaved }: { habit: HabitOut; onClose:
           ))}
         </div>
         <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={save}>Сохранить</button>
-      </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -923,8 +918,7 @@ function CountStepSheet({ habit, date, onClose, onSaved }: { habit: HabitOut; da
     try { onSaved(await backfillHabit(habit.id, date, val)); } catch { setSaving(false); }
   };
   return (
-    <div className="sheet-scrim" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+    <Sheet onClose={onClose}>
         <div className="sheet-title">{habit.name} · {isToday ? "сегодня" : fmtEntryDate(date)}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "18px 0 10px" }}>
           <button className="hchk" style={{ ["--c" as string]: habit.color }} onClick={() => setVal((v) => round(v - step))} aria-label="Минус">−</button>
@@ -943,8 +937,7 @@ function CountStepSheet({ habit, date, onClose, onSaved }: { habit: HabitOut; da
           ))}
         </div>
         <button className="btn-primary" style={{ width: "100%" }} disabled={saving} onClick={save}>{saving ? "Сохраняю…" : "Сохранить"}</button>
-      </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -979,8 +972,7 @@ function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated
     onCreated(await createMetric({ name: name.trim(), unit: unit.trim() || null, good_direction: dir, color }));
   };
   return (
-    <div className="sheet-scrim" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+    <Sheet onClose={onClose}>
         <div className="sheet-title">Новая метрика</div>
         <input className="input" placeholder="Напр. «Вес»" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -998,8 +990,7 @@ function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated
           ))}
         </div>
         <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={submit}>Создать метрику</button>
-      </div>
-    </div>
+    </Sheet>
   );
 }
 
@@ -1095,8 +1086,7 @@ function EditMetricSheet({ metric, onClose, onSaved }: { metric: MetricOut; onCl
     onSaved(await patchMetric(metric.id, { name: name.trim(), unit: unit.trim() || null, good_direction: dir, color }));
   };
   return (
-    <div className="sheet-scrim" style={{ zIndex: 80 }} onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+    <Sheet onClose={onClose}>
         <div className="sheet-title">Изменить метрику</div>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -1114,7 +1104,6 @@ function EditMetricSheet({ metric, onClose, onSaved }: { metric: MetricOut; onCl
           ))}
         </div>
         <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={save}>Сохранить</button>
-      </div>
-    </div>
+    </Sheet>
   );
 }
