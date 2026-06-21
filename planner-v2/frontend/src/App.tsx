@@ -141,18 +141,27 @@ function AppMain() {
   const anyOverlay = quickOpen || drawerOpen || openTaskId != null;
   const edgeSwipeOff = anyOverlay || (tab === "gantt" && !viewing);
 
-  // Блокируем скролл фона при открытом оверлее: фиксируем body на текущей позиции —
-  // иначе autoFocus инпута в bottom-sheet утаскивает фон вверх («экран улетает»).
+  // Блокируем скролл фона при открытом оверлее.
+  // Оверлеи с autoFocus-инпутом (composer/деталь) → position:fixed на body (фикс «экран улетает»
+  // при фокусе инпута). Шторка (без инпута) → ЛЁГКИЙ lock overflow:hidden БЕЗ сдвига: position:fixed
+  // на body в iOS standalone сбивает fixed-оверлеи (шторка/бэкдроп позиционируются от сдвинутого body)
+  // → снизу чёрный провал ≈scrollY + навбар фона уезжает вверх.
   useEffect(() => {
     if (!anyOverlay) return;
-    const y = window.scrollY;
     const b = document.body.style;
-    b.position = "fixed"; b.top = `-${y}px`; b.left = "0"; b.right = "0"; b.width = "100%";
-    return () => {
-      b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.width = "";
-      window.scrollTo(0, y);
-    };
-  }, [anyOverlay]);
+    const inputOverlay = quickOpen || openTaskId != null;
+    if (inputOverlay) {
+      const y = window.scrollY;
+      b.position = "fixed"; b.top = `-${y}px`; b.left = "0"; b.right = "0"; b.width = "100%";
+      return () => {
+        b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.width = "";
+        window.scrollTo(0, y);
+      };
+    }
+    const prevOverflow = b.overflow;
+    b.overflow = "hidden";
+    return () => { b.overflow = prevOverflow; };
+  }, [anyOverlay, quickOpen, openTaskId]);
   function onRootTouchStart(e: React.TouchEvent) {
     if (edgeSwipeOff) { esx.current = null; esy.current = null; return; }
     const t = e.touches[0];
