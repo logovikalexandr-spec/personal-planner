@@ -1,4 +1,5 @@
 import { authHeaders } from "./lib/auth";
+import { clientToday } from "./lib/clientDate";
 import type {
   AiNote, CheckItem, Counts, HabitInput, HabitOut, InboxItem, MetricInput, MetricOut,
   Milestone, Priority, Project, RecurrenceJson,
@@ -46,10 +47,10 @@ export const updateProjectAI = (id: number, ai: ProjectAiInput) =>
 // Форк 0: этапы проекта (T4 полоски, T4d этапы, Гант). status done|current|future|late.
 export const getStages = (projectId: number) =>
   req<Stage[]>(`/api/stages?project_id=${projectId}`);
-export const getCounts = () => req<Counts>("/api/counts");
+export const getCounts = () => req<Counts>(`/api/counts?today=${clientToday()}`);
 export const getTasks = (scope = "all", projectId?: number, includeChildren = false) =>
   req<Task[]>(
-    `/api/tasks?scope=${scope}` +
+    `/api/tasks?scope=${scope}&today=${clientToday()}` +
       (projectId ? `&project_id=${projectId}` : "") +
       (includeChildren ? `&include_children=true` : ""),
   );

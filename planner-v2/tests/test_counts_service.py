@@ -162,6 +162,34 @@ async def test_smart_list_counts(db_session):
 
 
 @pytest.mark.asyncio
+async def test_smart_list_counts_ref_date_anchors_to_client(db_session):
+    """ref_date (дата клиента) переопределяет date.today() сервера для today/overdue."""
+    from planner.services.tasks import list_tasks
+    other = Project(name="W", slug="w-ref")
+    db_session.add(other)
+    await db_session.flush()
+    server_today = date.today()
+    client_today = server_today + timedelta(days=1)   # клиент на день впереди (UTC vs TZ)
+    db_session.add_all([
+        Task(title="srv", project_id=other.id, status="todo", due_date=server_today),
+        Task(title="cli", project_id=other.id, status="todo", due_date=client_today),
+    ])
+    await db_session.flush()
+
+    # без ref → сервер: сегодня = server_today (задача srv), client-задача в counts.today как overdue? нет, она в будущем
+    c_srv = await smart_list_counts(db_session)
+    assert c_srv["today"] == 1   # srv (due==server_today)
+
+    # с ref=client_today → сегодня = client_today: cli (due==client) + srv (теперь просрочка) = 2
+    c_cli = await smart_list_counts(db_session, ref_date=client_today)
+    assert c_cli["today"] == 2
+
+    # list_tasks scope=today с ref=client_today → только cli (due==client_today)
+    rows = await list_tasks(db_session, scope="today", ref_date=client_today)
+    assert [t.title for t in rows] == ["cli"]
+
+
+@pytest.mark.asyncio
 async def test_smart_list_counts_empty(db_session):
     # no inbox project -> inbox=0, others=0
     c = await smart_list_counts(db_session)

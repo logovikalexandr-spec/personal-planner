@@ -45,17 +45,18 @@ async def list_tasks(
     from_: date | None = Query(None, alias="from"),
     to: date | None = None,
     parent_task_id: int | None = None,
+    today: date | None = None,   # дата клиента (его TZ) для scope today/overdue/week/planned
 ):
     if project_id is not None and include_children:
         from planner.services.tasks import descendant_project_ids
         project_ids = await descendant_project_ids(db, project_id)
         return await svc.list_tasks(
             db, scope=scope, project_ids=project_ids, on_date=on_date,
-            from_date=from_, to_date=to,
+            from_date=from_, to_date=to, ref_date=today,
         )
     return await svc.list_tasks(
         db, scope=scope, project_id=project_id, on_date=on_date,
-        from_date=from_, to_date=to, parent_task_id=parent_task_id,
+        from_date=from_, to_date=to, parent_task_id=parent_task_id, ref_date=today,
     )
 
 
