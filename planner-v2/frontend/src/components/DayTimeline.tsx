@@ -3,7 +3,8 @@ import { IcoBellMicro, IcoRepeatMicro, IcoCheck, IcoStage, IcoXCircle } from "./
 import { tg } from "../telegram";
 import { shouldShowImpact } from "../lib/impact";
 import { stageColor } from "../lib/stage";
-import type { Priority, Project, Task } from "../types";
+import { priorityColor } from "../lib/projectColor";
+import type { Project, Task } from "../types";
 import {
   HOUR_H, STEP_MIN, PX_PER_MIN, DAY_END, MIN_BLOCK_PX,
   parseMin, hhmm, clamp, snap15, layoutColumns,
@@ -29,13 +30,8 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
   return null;
 }
 
-/** Единый маппинг приоритета → цвет канта (общий с TaskItem). */
-export function priorityColor(priority: Priority): string | null {
-  if (priority === "high") return "var(--danger)";
-  if (priority === "medium") return "var(--warning)";
-  if (priority === "low") return "var(--accent)";
-  return null;
-}
+// цвет канта приоритета — единый источник lib/projectColor (re-export для Today, что импортит отсюда)
+export { priorityColor };
 
 type Drag = { id: number; startMin: number; endMin: number };
 type Edge = "top" | "bottom" | "move";

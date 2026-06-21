@@ -6,6 +6,7 @@ import {
   dayDiff, hasConflict, rangeOf, trackWidth, xPx, type DateRange, type Zoom,
 } from "../lib/ganttLayout";
 import type { Project, Stage, Task } from "../types";
+import { priorityColor } from "../lib/projectColor";
 import { tg } from "../telegram";
 import { Sheet } from "../components/Sheet";
 
@@ -371,7 +372,7 @@ function TaskRow({ t, range, ppd, projColor }: { t: Task | undefined; range: Dat
   const start = parseISO(t.due_date);
   const end = t.end_date ? parseISO(t.end_date) : start;
   const box = barPx(start, end, range.from, ppd);
-  const prioDot = t.priority === "high" ? "var(--danger)" : t.priority === "medium" ? "var(--warning)" : t.priority === "low" ? "var(--accent)" : projColor;
+  const prioDot = priorityColor(t.priority) ?? projColor;
   return (
     <div className="grow" style={{ height: TASK_H }} data-testid={`gtask-${t.id}`}>
       <div className="glabel task" style={{ width: 104 }}>
@@ -607,7 +608,7 @@ function StageSheet({ stage, project, stages, tasks }: { stage: Stage; project: 
         <div style={{ margin: "4px 0 2px" }}>
           {stageTasks.slice(0, 5).map((t) => (
             <div key={t.id} className={`gstask ${t.status === "done" ? "is-done" : ""}`}>
-              <span className="sd" style={{ background: t.priority === "high" ? "var(--danger)" : t.priority === "medium" ? "var(--warning)" : "var(--success)" }} />
+              <span className="sd" style={{ background: priorityColor(t.priority) ?? "var(--text-muted)" }} />
               <span className="t">{t.title}</span>
               <span className="sm">{t.status === "done" ? "done" : fmtShort(t.due_date) ?? "—"}</span>
             </div>
