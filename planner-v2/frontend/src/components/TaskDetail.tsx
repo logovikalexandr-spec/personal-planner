@@ -3,6 +3,7 @@ import {
   createTask, deleteTask, getProjects, getTaskDetail, patchTask, putReminders,
 } from "../api";
 import { tg } from "../telegram";
+import { confirmDialog } from "../lib/confirm";
 import type {
   DateDurationValue,
 } from "./DateDurationSheet";
@@ -27,15 +28,9 @@ const PRIORITY_LABEL: Record<Priority, string> = {
 };
 const WD_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-// Подтверждение: нативный Telegram showConfirm (window.confirm в WebView не работает),
-// фолбэк на window.confirm для обычного браузера/харнесса.
-function confirmDelete(message: string): Promise<boolean> {
-  const t = tg() as unknown as { showConfirm?: (m: string, cb: (ok: boolean) => void) => void } | undefined;
-  if (t?.showConfirm) {
-    return new Promise((resolve) => t.showConfirm!(message, (ok) => resolve(!!ok)));
-  }
-  return Promise.resolve(typeof window !== "undefined" ? window.confirm(message) : true);
-}
+// Подтверждение через общий util: в Telegram — нативный showConfirm, в PWA/браузере — window.confirm
+// (showConfirm-заглушка SDK вне Telegram не зовёт колбэк → удаление «висело»). См. lib/confirm.
+const confirmDelete = confirmDialog;
 
 function prioClass(p: Priority): string {
   return p === "high" ? "prio-high" : p === "medium" ? "prio-medium" : p === "low" ? "prio-low" : "";

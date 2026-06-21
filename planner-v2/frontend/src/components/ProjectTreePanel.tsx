@@ -5,7 +5,7 @@ import { IcoAll, IcoInbox, IcoNext7, IcoOverdue, IcoPlus, IcoTodaySmall, IcoTomo
 import { ProjectTree, type TreeLoadState } from "./ProjectTree";
 import { ProjectMenu } from "./ProjectMenu";
 import { ProjectSheet, type ProjectFormValue } from "./ProjectSheet";
-import { tg } from "../telegram";
+import { confirmDialog } from "../lib/confirm";
 import type { ActiveList, Counts, Project, SmartKey } from "../types";
 
 // Унифицированный заголовок секции смарт-списков (Drawer + Lists — один текст).
@@ -122,10 +122,9 @@ export function ProjectTreePanel({
   }
   function requestDelete(p: Project) {
     setMenuFor(null);
-    const doDelete = async () => { await deleteProject(p.id); loadProjects(); };
-    const w = tg() as { showConfirm?: (m: string, cb: (ok: boolean) => void) => void } | undefined;
-    if (w?.showConfirm) w.showConfirm(`Удалить «${p.name}»? Задачи уйдут во Входящие.`, (ok) => { if (ok) doDelete(); });
-    else doDelete();
+    confirmDialog(`Удалить «${p.name}»? Задачи уйдут во Входящие.`).then((ok) => {
+      if (ok) deleteProject(p.id).then(loadProjects);
+    });
   }
   async function handleReorder(items: { id: number; parent_id: number | null; order_index: number }[]) {
     const patchMap = new Map(items.map((i) => [i.id, i]));

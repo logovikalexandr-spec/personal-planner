@@ -11,6 +11,7 @@ import {
 } from "../lib/calDates";
 import { resolveColor } from "../lib/projectColor";
 import { tg } from "../telegram";
+import { confirmDialog } from "../lib/confirm";
 import type { CalendarView, DayCount, Milestone, Project, Task } from "../types";
 
 type Status = "loading" | "ready" | "error";
@@ -97,10 +98,7 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
 
   // удаление задачи из ленты (свайп «Удалить») — подтверждение через TG, потом DELETE + рефетч
   function removeTask(t: Task) {
-    const go = () => { deleteTask(t.id).then(bump).catch(() => {}); };
-    const w = tg();
-    if (w?.showConfirm) w.showConfirm(`Удалить «${t.title}»?`, (ok: boolean) => { if (ok) go(); });
-    else if (confirm(`Удалить «${t.title}»?`)) go();
+    confirmDialog(`Удалить «${t.title}»?`).then((ok) => { if (ok) deleteTask(t.id).then(bump).catch(() => {}); });
   }
 
   // drag блока в колонке «Дни»: оптимистично меняем время → патч в фоне (как Today.resize).
