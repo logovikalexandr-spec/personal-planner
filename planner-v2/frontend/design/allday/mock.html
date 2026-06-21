@@ -1,0 +1,61 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{--bg:#0F0F11;--surface:#19191d;--surface2:#212127;--border:#2a2a30;--text:#f4f4f5;--muted:#8a8a92;--accent:#EE8A3C;--danger:#E0556E;--health:#3FB68B;--font-mono:ui-monospace,Geist Mono,monospace}
+*{box-sizing:border-box}body{margin:0;background:#0a0a0c;color:var(--text);font-family:-apple-system,Geist,system-ui,sans-serif;padding:20px;display:flex;gap:24px;flex-wrap:wrap}
+.phone{width:390px;background:var(--bg);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.cap{font-size:13px;color:var(--accent);font-weight:600;margin:0 0 8px 4px}
+.hd{padding:16px 16px 6px}.hd h1{font-size:26px;margin:0;font-weight:700}
+.sub{color:var(--muted);font-size:13px;font-family:var(--font-mono);margin:8px 0 10px}
+/* all-day новый: label-колонка с тогглом + чипы */
+.allday{display:flex;align-items:flex-start;gap:10px;padding:0 12px 12px}
+.adl{flex:0 0 38px;display:flex;flex-direction:column;gap:8px;padding-top:9px}
+.adl .lbl{font-family:var(--font-mono);font-size:11px;color:var(--muted);line-height:1.2}
+.adtoggle{appearance:none;border:1px solid var(--border);background:var(--surface2);color:var(--muted);
+  border-radius:8px;height:30px;min-width:38px;display:flex;align-items:center;justify-content:center;gap:3px;
+  cursor:pointer;font-size:12px;font-weight:600;font-family:var(--font-mono);padding:0 6px}
+.adtoggle svg{width:14px;height:14px}
+.chips{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:8px}
+.chip{display:flex;align-items:center;width:100%;text-align:left;font-size:14px;font-weight:500;
+  background:color-mix(in srgb,var(--health) 13%,var(--bg));color:var(--health);
+  border:1px solid transparent;border-left:3px solid var(--danger);border-radius:8px;padding:9px 11px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl{border-top:1px solid var(--border);padding:8px 12px;color:var(--muted);font-family:var(--font-mono);font-size:12px}
+.tlrow{height:30px;display:flex;align-items:flex-start;gap:8px;border-top:1px solid #1c1c22;padding-top:2px}
+</style></head><body>
+
+<div><p class="cap">Свёрнуто (2 видно, +2 скрыто)</p>
+<div class="phone">
+  <div class="hd"><h1>Задачи</h1><div class="sub">13 задач · 0 закрыто</div></div>
+  <div class="allday">
+    <div class="adl">
+      <span class="lbl">весь<br>день</span>
+      <button class="adtoggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>2</button>
+    </div>
+    <div class="chips">
+      <div class="chip">Записаться к врачам</div>
+      <div class="chip">Записаться на анализы — расширенная панель</div>
+    </div>
+  </div>
+  <div class="tl"><div class="tlrow">07:00</div><div class="tlrow">08:00</div><div class="tlrow">09:00</div></div>
+</div></div>
+
+<div><p class="cap">Развёрнуто (все 4, кнопка свернуть)</p>
+<div class="phone">
+  <div class="hd"><h1>Задачи</h1><div class="sub">13 задач · 0 закрыто</div></div>
+  <div class="allday">
+    <div class="adl">
+      <span class="lbl">весь<br>день</span>
+      <button class="adtoggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg></button>
+    </div>
+    <div class="chips">
+      <div class="chip">Записаться к врачам</div>
+      <div class="chip">Записаться на анализы — расширенная панель</div>
+      <div class="chip" style="border-left-color:var(--accent)">Поздравить Катю с др 🎁</div>
+      <div class="chip" style="border-left-color:var(--accent)">Оплатить интернет</div>
+    </div>
+  </div>
+  <div class="tl"><div class="tlrow">07:00</div><div class="tlrow">08:00</div><div class="tlrow">09:00</div></div>
+</div></div>
+
+</body></html>
