@@ -436,12 +436,19 @@ select.input { appearance: none; -webkit-appearance: none; }
 .cal-block {
   position: absolute; left: 56px; right: 8px; overflow: hidden;
   border-radius: 10px; padding: 5px 9px; cursor: pointer;
-  background: var(--surface-2); border-left: 3px solid var(--accent);
+  background: var(--surface-2); border-left: 3px solid transparent;
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
   display: flex; align-items: flex-start; gap: 7px;
   /* .cal-grid промотирован translate3d (GPU-скролл) + дробный сдвиг инерции → overflow:hidden
      не клипает скруглённый угол идеально (тинт/бордюр вылезали дугой). clip-path клипает точно. */
   clip-path: inset(0 round 10px);
+}
+/* кант приоритета = вертикальная капсула слева (цвет из инлайн-переменной --prio).
+   НЕ border-left: на коротком блоке скругление 10px сверху+снизу смыкало бордюр в «полумесяц».
+   Капсула вставлена по вертикали (top/bottom) → угловая дуга карточки её не задевает. */
+.cal-block::before {
+  content: ""; position: absolute; left: 0; top: 5px; bottom: 5px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--prio, transparent); pointer-events: none;
 }
 /* колонки наложений — ширина/смещение задаются инлайном (left/width), здесь только переходы */
 .cal-block { transition: left 120ms ease, width 120ms ease, opacity 260ms ease; }
@@ -485,6 +492,9 @@ body.inline-draft .fab { display: none; }
 .cal-block.short { align-items: center; padding-top: 2px; padding-bottom: 2px; }
 .cal-block.short .bt { white-space: nowrap; }
 .cal-block.short .bm { display: none; }
+/* тело-грабхэндл растянуто (align-self:stretch) → на коротком блоке .bt уезжал к верху.
+   центрируем содержимое тела по вертикали, чтобы заголовок стоял по центру карточки. */
+.cal-block.short .cal-block-main { display: flex; flex-direction: column; justify-content: center; }
 .cal-cb {
   width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-muted);
   flex: 0 0 auto; margin-top: 1px; display: inline-flex; align-items: center;
