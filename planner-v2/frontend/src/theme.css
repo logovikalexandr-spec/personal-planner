@@ -423,7 +423,8 @@ select.input { appearance: none; -webkit-appearance: none; }
   position: relative; box-sizing: border-box;
   border-top: 1px solid var(--border); padding-left: 52px;
 }
-.cal-hour:active { background: var(--surface); }
+/* ячейка часа НЕ подсвечивается на касании (:active флешил при скролле). Реакция только
+   при удержании = создание задачи (long-press → черновик + haptic). */
 /* маркер конца суток (00:00 на 24ч): линия + подпись на нижней границе сетки */
 .cal-hour-end {
   position: absolute; left: 0; right: 0; height: 0;
