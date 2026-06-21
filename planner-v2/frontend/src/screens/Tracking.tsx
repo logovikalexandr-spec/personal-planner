@@ -801,8 +801,20 @@ function HabitDetail({ habit, onClose, onChange, onMenu }: {
   const weekDone = habit.week.filter(Boolean).length;
   const pct = isGoal ? habit.streak / (habit.goal_total as number) : weekDone / 7;
   const pct30 = hist ? Math.round(hist.pct30 * 100) : null;
-  const sub = isGoal ? `до рубежа ${habit.goal_total}` :
-    isCount ? (habit.target ? `норма ${habit.target}${habit.unit ? ` ${habit.unit}` : ""}/день` : "счётчик") : "ежедневно";
+  const sk = habit.schedule_kind || "daily";
+  const schedLabel =
+    sk === "goal_date" || isGoal
+      ? (habit.goal_date ? `цель к ${fmtEntryDate(habit.goal_date)}` : `до рубежа ${habit.goal_total}`)
+        + (habit.goal_total ? ` · ${habit.goal_total} дн` : "")
+      : sk === "by_days"
+        ? ((habit.schedule_days ?? []).map((d) => WD[d]).join(" · ") || "по дням")
+        : sk === "weekly_n"
+          ? `${habit.schedule_n ?? 0}×/нед`
+          : "ежедневно";
+  const sub = isCount
+    ? (habit.target ? `норма ${habit.target}${habit.unit ? ` ${habit.unit}` : ""}/день` : "счётчик")
+      + (sk !== "daily" ? ` · ${schedLabel}` : "")
+    : schedLabel;
 
   const levelMap = new Map((hist?.days ?? []).map((d) => [d.date, d.level]));
   const daysCount = new Date(year, month0 + 1, 0).getDate();
@@ -865,34 +877,100 @@ function HabitDetail({ habit, onClose, onChange, onMenu }: {
 }
 
 function EditHabitSheet({ habit, onClose, onSaved }: { habit: HabitOut; onClose: () => void; onSaved: (h: HabitOut) => void }) {
+  const isCount = habit.mark_type === "count";
   const [name, setName] = useState(habit.name);
   const [color, setColor] = useState(habit.color);
   const [target, setTarget] = useState(habit.target != null ? String(habit.target) : "");
   const [unit, setUnit] = useState(habit.unit ?? "");
-  const isCount = habit.mark_type === "count";
+  const initStep = habit.step ?? 1;
+  const [step, setStep] = useState(initStep);
+  const [stepCustom, setStepCustom] = useState(!STEP_PRESETS.includes(initStep));
+  const [customStep, setCustomStep] = useState(STEP_PRESETS.includes(initStep) ? "" : String(initStep));
+  const [sched, setSched] = useState<"daily" | "weekly_n" | "by_days" | "goal_date">(
+    (habit.schedule_kind as "daily" | "weekly_n" | "by_days" | "goal_date") || "daily");
+  const [weeklyN, setWeeklyN] = useState(String(habit.schedule_n ?? 3));
+  const [days, setDays] = useState<number[]>(habit.schedule_days ?? []);
+  const [goalDate, setGoalDate] = useState(habit.goal_date ?? "");
+  const [goalTotal, setGoalTotal] = useState(habit.goal_total != null ? String(habit.goal_total) : "");
+  const toggleDay = (i: number) => setDays((p) => p.includes(i) ? p.filter((x) => x !== i) : [...p, i].sort());
+
   const save = async () => {
     if (!name.trim()) return;
-    const patch: Parameters<typeof patchHabit>[1] = { name: name.trim(), color };
-    if (isCount) { patch.target = parseFloat(target.replace(",", ".")) || null; patch.unit = unit.trim() || null; }
+    const eff = stepCustom ? (parseFloat(customStep.replace(",", ".")) || 1) : step;
+    const patch: Parameters<typeof patchHabit>[1] = { name: name.trim(), color, schedule_kind: sched };
+    if (isCount) { patch.target = parseFloat(target.replace(",", ".")) || null; patch.unit = unit.trim() || null; patch.step = eff; }
+    // обнуляем поля чужих режимов, чтобы стрик-логика не цеплялась за остатки
+    patch.schedule_n = sched === "weekly_n" ? (parseInt(weeklyN) || 3) : null;
+    patch.schedule_days = sched === "by_days" ? days : null;
+    patch.goal_date = sched === "goal_date" ? (goalDate || null) : null;
+    patch.goal_total = sched === "goal_date" ? (parseInt(goalTotal) || null) : null;
     onSaved(await patchHabit(habit.id, patch));
   };
   return (
     <Sheet onClose={onClose}>
         <div className="sheet-title">Изменить привычку</div>
+        <FieldLbl>Название</FieldLbl>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         {isCount && (
-          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <input className="input" placeholder="Норма" value={target} onChange={(e) => setTarget(e.target.value)} inputMode="decimal" />
-            <input className="input" placeholder="Ед." value={unit} onChange={(e) => setUnit(e.target.value)} />
+          <>
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <input className="input" placeholder="Норма/день" value={target} onChange={(e) => setTarget(e.target.value)} inputMode="decimal" />
+              <input className="input" placeholder="Ед. (л/раз/мин)" value={unit} onChange={(e) => setUnit(e.target.value)} />
+            </div>
+            <FieldLbl>Шаг +/−</FieldLbl>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {STEP_PRESETS.map((s) => (
+                <Chip key={s} on={!stepCustom && step === s} onClick={() => { setStepCustom(false); setStep(s); }}>{s}</Chip>
+              ))}
+              <Chip on={stepCustom} onClick={() => setStepCustom(true)}>своё</Chip>
+              {stepCustom && (
+                <input className="input" style={{ flex: "1 1 80px", minWidth: 70 }} placeholder="шаг" value={customStep}
+                  onChange={(e) => setCustomStep(e.target.value)} inputMode="decimal" />
+              )}
+            </div>
+          </>
+        )}
+
+        <FieldLbl>Расписание</FieldLbl>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Chip on={sched === "daily"} onClick={() => setSched("daily")}>Ежедневно</Chip>
+          <Chip on={sched === "weekly_n"} onClick={() => setSched("weekly_n")}>N×/нед</Chip>
+          <Chip on={sched === "by_days"} onClick={() => setSched("by_days")}>По дням</Chip>
+          <Chip on={sched === "goal_date"} onClick={() => setSched("goal_date")}>Цель к дате</Chip>
+        </div>
+        {sched === "weekly_n" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+            <input className="input" style={{ width: 80 }} value={weeklyN} onChange={(e) => setWeeklyN(e.target.value)} inputMode="numeric" />
+            <span style={{ color: "var(--text-muted)", fontSize: 13 }}>раз в неделю</span>
           </div>
         )}
-        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+        {sched === "by_days" && (
+          <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+            {WD.map((d, i) => (
+              <button key={i} onClick={() => toggleDay(i)} style={{
+                flex: 1, padding: "9px 0", borderRadius: 8, cursor: "pointer", fontSize: 12,
+                border: days.includes(i) ? "1px solid var(--accent)" : "1px solid var(--border)",
+                background: days.includes(i) ? "var(--accent-soft)" : "var(--surface-2)",
+                color: days.includes(i) ? "var(--accent)" : "var(--text-muted)",
+              }}>{d}</button>
+            ))}
+          </div>
+        )}
+        {sched === "goal_date" && (
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <input className="input" type="date" value={goalDate} onChange={(e) => setGoalDate(e.target.value)} />
+            <input className="input" placeholder="дней (16)" value={goalTotal} onChange={(e) => setGoalTotal(e.target.value)} inputMode="numeric" />
+          </div>
+        )}
+
+        <FieldLbl>Цвет</FieldLbl>
+        <div style={{ display: "flex", gap: 10 }}>
           {HABIT_PALETTE.map((c) => (
             <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
               style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
           ))}
         </div>
-        <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={save}>Сохранить</button>
+        <button className="btn-primary" style={{ marginTop: 18, width: "100%" }} onClick={save}>Сохранить</button>
     </Sheet>
   );
 }
