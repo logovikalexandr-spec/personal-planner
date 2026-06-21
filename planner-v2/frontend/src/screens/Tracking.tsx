@@ -749,6 +749,7 @@ function NewHabitSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
 // ── #2 Деталь привычки: hero-кольцо, stats, месяц-календарь+бэкфилл, действия (T5-flows #2/#9) ──
 const MONTHS_NOM = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
 const HABIT_PALETTE = ["#EE8A3C", "#5B8DEF", "#3FB68B", "#E0B341", "#9B6BE0", "#E0556E"]; // hex-allowlist (палитра цветов привычек)
+const METRIC_PALETTE = ["#3FB68B", "#5B8DEF", "#EE8A3C", "#9B6BE0"]; // hex-allowlist (мокап T5: зелёный/синий/оранж/фиолет)
 
 function mixColor(hex: string, level: number): string {
   const a = [0.32, 0.5, 0.72, 1][Math.max(1, Math.min(4, level)) - 1];
@@ -1047,40 +1048,44 @@ function MetricFields({ name, setName, unit, setUnit, dir, setDir, color, setCol
   namePlaceholder?: string;
 }) {
   return (
-    <>
-      <FieldLbl>Название</FieldLbl>
-      <input className="input" placeholder={namePlaceholder} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+    <div className="mxform">
+      <div className="fld">
+        <div className="lab">Название</div>
+        <input className="minp" placeholder={namePlaceholder} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+      </div>
 
-      <div style={{ display: "flex", gap: 12 }}>
-        <div style={{ flex: 1 }}>
-          <FieldLbl>Единица</FieldLbl>
-          <input className="input" placeholder="кг" value={unit} onChange={(e) => setUnit(e.target.value)} />
+      <div className="two">
+        <div className="fld">
+          <div className="lab">Единица</div>
+          <input className="minp" placeholder="кг" value={unit} onChange={(e) => setUnit(e.target.value)} />
         </div>
-        <div style={{ flex: 1.35 }}>
-          <FieldLbl>«Хорошо» — это</FieldLbl>
-          <div className="seg" style={{ marginBottom: 0 }}>
-            <button className={dir === "down" ? "seg-on" : ""} onClick={() => setDir("down")}>↓ меньше</button>
-            <button className={dir === "up" ? "seg-on" : ""} onClick={() => setDir("up")}>↑ больше</button>
+        <div className="fld">
+          <div className="lab">«Хорошо» это</div>
+          <div className="fseg">
+            <button className={dir === "down" ? "on" : ""} onClick={() => setDir("down")}>↓ меньше</button>
+            <button className={dir === "up" ? "on" : ""} onClick={() => setDir("up")}>↑ больше</button>
           </div>
         </div>
       </div>
 
-      <FieldLbl>Цвет линии</FieldLbl>
-      <div style={{ display: "flex", gap: 12 }}>
-        {HABIT_PALETTE.map((c) => (
-          <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
-            style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
-        ))}
+      <div className="fld" style={{ marginBottom: 0 }}>
+        <div className="lab">Цвет линии</div>
+        <div className="pal">
+          {METRIC_PALETTE.map((c) => (
+            <button key={c} className={color === c ? "on" : ""} onClick={() => setColor(c)}
+              aria-label={`цвет ${c}`} style={{ background: c }} />
+          ))}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
 function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated: (m: MetricOut) => void }) {
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
-  const [dir, setDir] = useState<"up" | "down">("up");
-  const [color, setColor] = useState(HABIT_PALETTE[1]); // #7 — цвет линии графика
+  const [dir, setDir] = useState<"up" | "down">("down");
+  const [color, setColor] = useState(METRIC_PALETTE[0]); // #7 — цвет линии графика
   const submit = async () => {
     if (!name.trim()) return;
     onCreated(await createMetric({ name: name.trim(), unit: unit.trim() || null, good_direction: dir, color }));
