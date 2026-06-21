@@ -45,6 +45,7 @@ class TaskOut(BaseModel):
     end_time: time | None = None
     recurrence: str | None = None
     reminder_at: datetime | None = None
+    done_at: datetime | None = None     # момент закрытия (done/wont_do) — для секций/retention
     description: str | None = None
     parent_task_id: int | None = None
     progress: int = 0
@@ -254,6 +255,7 @@ class ProjectOrderItem(BaseModel):
 class CountsOut(BaseModel):
     all: int
     today: int
+    overdue: int
     tomorrow: int
     next7: int
     inbox: int

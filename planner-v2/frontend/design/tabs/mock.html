@@ -1,0 +1,85 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#0F0F11;--surface:#19191d;--surface2:#212127;--border:#2a2a30;--text:#f4f4f5;--muted:#8a8a92;--accent:#EE8A3C;--danger:#E0556E;--blue:#4c8dff;--health:#3FB68B;--mono:ui-monospace,Geist Mono,monospace}
+*{box-sizing:border-box}body{margin:0;background:#0a0a0c;color:var(--text);font-family:-apple-system,Geist,system-ui;padding:20px;display:flex;gap:22px;flex-wrap:wrap}
+.cap{font-size:13px;color:var(--accent);font-weight:600;margin:0 0 8px 4px}
+.phone{width:380px;background:var(--bg);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.hd{display:flex;align-items:center;gap:12px;padding:16px 16px 10px}
+.burger{width:42px;height:42px;border-radius:12px;background:var(--surface2);border:none;display:flex;align-items:center;justify-content:center}
+.burger span,.burger span:before,.burger span:after{content:"";display:block;width:18px;height:2px;background:var(--accent);border-radius:2px;position:relative}
+.burger span:before{position:absolute;top:-6px}.burger span:after{position:absolute;top:6px}
+h1{font-size:26px;margin:0;font-weight:700}
+/* таб-полоса */
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 16px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:14px;font-weight:600;white-space:nowrap}
+.tab .c{font-family:var(--mono);font-size:12px;opacity:.8}
+.tab.on{background:var(--accent);color:#1a1209;border-color:var(--accent)}
+.tab.sep{margin-left:6px;border-left:2px solid var(--border);padding-left:14px;border-radius:0 999px 999px 0}
+.grp{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:14px 16px 6px;display:flex;align-items:center;gap:7px}
+.row{display:flex;align-items:flex-start;gap:11px;padding:11px 16px;border-left:3px solid transparent}
+.row.hi{border-left-color:var(--danger)}.row.med{border-left-color:var(--accent)}.row.low{border-left-color:var(--blue)}
+.cb{width:20px;height:20px;border-radius:50%;border:2px solid var(--muted);flex:0 0 auto;margin-top:1px}
+.cb.done{background:var(--accent);border-color:var(--accent)}
+.tt{font-size:15px;font-weight:500;line-height:1.25}
+.mt{font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.done .tt{color:var(--muted);text-decoration:line-through}
+.note{font-size:12px;color:var(--muted);padding:10px 16px;font-style:italic}
+</style></head><body>
+
+<div><p class="cap">«Сегодня» — только сегодняшние (просрочки нет)</p>
+<div class="phone">
+  <div class="hd"><button class="burger"><span></span></button><h1>Задачи</h1></div>
+  <div class="tabs">
+    <div class="tab">Все<span class="c">28</span></div>
+    <div class="tab on">Сегодня<span class="c">2</span></div>
+    <div class="tab">Завтра<span class="c">13</span></div>
+    <div class="tab">7 дней<span class="c">16</span></div>
+    <div class="tab" style="color:var(--danger)">Просрочено<span class="c">10</span></div>
+    <div class="tab">Входящие</div>
+    <div class="tab sep">Выполнено</div>
+    <div class="tab">Отменено</div>
+  </div>
+  <div class="grp">🎯 Глобальные цели</div>
+  <div class="row med"><div class="cb"></div><div><div class="tt">Планирование недели + проекты</div><div class="mt">18:45–21:00</div></div></div>
+  <div class="grp">💚 Здоровье</div>
+  <div class="row hi"><div class="cb"></div><div><div class="tt">Записаться к врачам</div><div class="mt">сегодня</div></div></div>
+</div></div>
+
+<div><p class="cap">«Просрочено» — отдельный список</p>
+<div class="phone">
+  <div class="hd"><button class="burger"><span></span></button><h1>Задачи</h1></div>
+  <div class="tabs">
+    <div class="tab">Все<span class="c">28</span></div>
+    <div class="tab">Сегодня<span class="c">2</span></div>
+    <div class="tab">Завтра<span class="c">13</span></div>
+    <div class="tab">7 дней<span class="c">16</span></div>
+    <div class="tab on" style="background:var(--danger);border-color:var(--danger);color:#1a0808">Просрочено<span class="c">10</span></div>
+    <div class="tab">Входящие</div>
+    <div class="tab sep">Выполнено</div>
+  </div>
+  <div class="grp">🧘 Физическое</div>
+  <div class="row hi"><div class="cb"></div><div><div class="tt">Окно толерантности к хорошему</div><div class="mt" style="color:var(--danger)">10 июн · просрочено 11 дн</div></div></div>
+  <div class="row med"><div class="cb"></div><div><div class="tt">Числа без сжатия</div><div class="mt" style="color:var(--danger)">10 июн · просрочено 11 дн</div></div></div>
+  <div class="row hi"><div class="cb"></div><div><div class="tt">Тело-союзник вне продуктивности</div><div class="mt" style="color:var(--danger)">13 июн · просрочено 8 дн</div></div></div>
+</div></div>
+
+<div><p class="cap">«Выполнено» — done за 7 дней (потом скрываются)</p>
+<div class="phone">
+  <div class="hd"><button class="burger"><span></span></button><h1>Задачи</h1></div>
+  <div class="tabs">
+    <div class="tab">Все<span class="c">28</span></div>
+    <div class="tab">Сегодня<span class="c">2</span></div>
+    <div class="tab">Просрочено<span class="c">10</span></div>
+    <div class="tab sep on">Выполнено</div>
+    <div class="tab">Отменено</div>
+  </div>
+  <div class="note">Показаны выполненные за последние 7 дней</div>
+  <div class="grp">🎯 Глобальные цели</div>
+  <div class="row done"><div class="cb done"></div><div><div class="tt">Кафе: сверка задач + что горит</div><div class="mt">21 июн · 11:00–11:45</div></div></div>
+  <div class="row done"><div class="cb done"></div><div><div class="tt">Кафе: работа по планеру</div><div class="mt">21 июн · 11:45–13:45</div></div></div>
+  <div class="grp">💆 Отдых</div>
+  <div class="row done"><div class="cb done"></div><div><div class="tt">Прогулка</div><div class="mt">21 июн · 10:00–11:00</div></div></div>
+</div></div>
+
+</body></html>

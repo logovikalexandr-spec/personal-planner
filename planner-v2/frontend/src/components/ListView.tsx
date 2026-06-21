@@ -19,23 +19,36 @@ function resolveColor(projectId: number | null, byId: Map<number, Project>): str
   return null;
 }
 
+const isOpen = (t: Task) => t.status === "todo" || t.status === "in_progress";
+
+// Любой список = ОТКРЫТЫЕ (по scope) + закрытые за 7 дней (done/cancelled) для секций внизу.
+// Возвращаем единый массив; TaskListBody раскладывает по статусу (открытые в группы, done/cancelled — секции).
 async function fetchFor(a: ActiveList): Promise<Task[]> {
-  if (a.kind === "project") return getTasks("all", a.id, true);
-  if (a.kind === "smart") {
-    if (a.key === "today") {
-      // «Сегодня» = задачи на сегодня + просроченные (они «подтягиваются» в сегодня).
-      const [today, overdue] = await Promise.all([getTasks("today"), getTasks("overdue")]);
-      const seen = new Set(today.map((t) => t.id));
-      return [...overdue.filter((t) => !seen.has(t.id)), ...today];
-    }
-    if (a.key === "next7") return getTasks("week");
-    if (a.key === "tomorrow") {
-      const all = await getTasks("all");
-      const tmr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-      return all.filter((t) => t.due_date === tmr);
-    }
+  const pid = a.kind === "project" ? a.id : undefined;
+  const incl = a.kind === "project";
+
+  let openP: Promise<Task[]>;
+  if (a.kind === "project") {
+    openP = getTasks("all", a.id, true).then((ts) => ts.filter(isOpen));
+  } else if (a.key === "today") {
+    openP = getTasks("today");                 // только сегодняшние открытые (без просрочки)
+  } else if (a.key === "overdue") {
+    openP = getTasks("overdue");               // отдельный список просрочки
+  } else if (a.key === "next7") {
+    openP = getTasks("week");
+  } else if (a.key === "tomorrow") {
+    const tmr = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    openP = getTasks("all").then((ts) => ts.filter((t) => t.due_date === tmr && isOpen(t)));
+  } else {
+    openP = getTasks("all").then((ts) => ts.filter(isOpen));   // «Все» — только открытые
   }
-  return getTasks("all");
+
+  const [open, done, cancelled] = await Promise.all([
+    openP,
+    getTasks("done", pid, incl),       // done за 7 дней (бэк), для секции «Выполнено»
+    getTasks("cancelled", pid, incl),  // wont_do за 7 дней, для секции «Отменено»
+  ]);
+  return [...open, ...done, ...cancelled];
 }
 
 type BatchPicker = "date" | "project" | "priority" | null;

@@ -52,7 +52,7 @@ export interface Task {
   id: number; title: string; project_id: number | null;
   priority: Priority; status: TaskStatus;
   due_date: string | null; due_time: string | null; end_date: string | null; end_time: string | null;
-  recurrence?: string | null; reminder_at?: string | null;
+  recurrence?: string | null; reminder_at?: string | null; done_at?: string | null;
   recurrence_json?: RecurrenceJson | null;
   progress?: number;          // 0-100, двигается чеклистом
   pinned?: boolean;
@@ -95,9 +95,9 @@ export interface Project {
   ai_notes?: AiNote[] | null;
   weeks_left?: number | null;         // computed бэком из target_date
 }
-export interface Counts { all: number; today: number; tomorrow: number; next7: number; inbox: number; }
+export interface Counts { all: number; today: number; overdue: number; tomorrow: number; next7: number; inbox: number; }
 
-export type SmartKey = "all" | "today" | "tomorrow" | "next7" | "inbox";
+export type SmartKey = "all" | "today" | "overdue" | "tomorrow" | "next7" | "inbox";
 export type ActiveList =
   | { kind: "smart"; key: SmartKey; title: string }
   | { kind: "project"; id: number; title: string };

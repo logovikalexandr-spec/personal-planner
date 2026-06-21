@@ -55,6 +55,7 @@ export const IcoTodaySmall = () => sv(<><rect x="3" y="4" width="18" height="17"
 export const IcoTomorrow = () => sv(<><path d="M3 18h18M12 3v6M9 6l3-3 3 3M5 14l1.5-1.5M19 14l-1.5-1.5" /></>);
 export const IcoNext7 = () => sv(<><rect x="3" y="4" width="18" height="17" rx="3" /><path d="M3 9h18M8 2v4M16 2v4M7 13h3M7 17h3" /></>);
 export const IcoInbox = () => sv(<><path d="M3 13l2.5-7A2 2 0 0 1 7.4 5h9.2a2 2 0 0 1 1.9 1.3L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M3 13h5l1.5 2.5h5L16 13h5" /></>);
+export const IcoOverdue = () => sv(<><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></>); /* треугольник-предупреждение «Просрочено» */
 export const IcoWeekPlan = () => sv(<><path d="M5 3h11l3 3v15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" /><path d="M9 8h6M9 12h6M9 16h4" /></>);
 export const IcoDot = () => sv(<circle cx="12" cy="12" r="4.5" />);
 export const IcoPlus = () => sv(<><path d="M12 5v14M5 12h14" /></>);

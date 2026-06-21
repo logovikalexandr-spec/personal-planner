@@ -151,8 +151,10 @@ async def test_smart_list_counts(db_session):
 
     # all open tasks: a1, a2, a3, a4, a5, a8, a9 = 7
     assert c["all"] == 7
-    # today: a2 (сегодня) + a9 (просрочка) = 2
-    assert c["today"] == 2
+    # today: только a2 (due == сегодня); просрочка вынесена в overdue
+    assert c["today"] == 1
+    # overdue: a9 (due 3 дня назад, открыта)
+    assert c["overdue"] == 1
     # tomorrow: a3 = 1
     assert c["tomorrow"] == 1
     # next7: a2 (today), a3 (tomorrow), a4 (day 5) = 3 (a9 просрочка не входит в next7)
@@ -176,17 +178,44 @@ async def test_smart_list_counts_ref_date_anchors_to_client(db_session):
     ])
     await db_session.flush()
 
-    # без ref → сервер: сегодня = server_today (задача srv), client-задача в counts.today как overdue? нет, она в будущем
+    # без ref → сервер: today = server_today (srv); cli в будущем (tomorrow)
     c_srv = await smart_list_counts(db_session)
     assert c_srv["today"] == 1   # srv (due==server_today)
+    assert c_srv["overdue"] == 0
 
-    # с ref=client_today → сегодня = client_today: cli (due==client) + srv (теперь просрочка) = 2
+    # с ref=client_today → today = client_today (cli); srv теперь просрочка (overdue)
     c_cli = await smart_list_counts(db_session, ref_date=client_today)
-    assert c_cli["today"] == 2
+    assert c_cli["today"] == 1    # cli
+    assert c_cli["overdue"] == 1  # srv
 
     # list_tasks scope=today с ref=client_today → только cli (due==client_today)
     rows = await list_tasks(db_session, scope="today", ref_date=client_today)
     assert [t.title for t in rows] == ["cli"]
+
+
+@pytest.mark.asyncio
+async def test_done_cancelled_scopes_7day_window(db_session):
+    """scope done/cancelled = закрытые за 7 дней (по done_at); старше — не возвращаются."""
+    from datetime import UTC, datetime
+    from planner.services.tasks import list_tasks
+    p = Project(name="P", slug="p-dc")
+    db_session.add(p)
+    await db_session.flush()
+    today = date.today()
+    recent = datetime.combine(today - timedelta(days=2), datetime.min.time(), tzinfo=UTC)
+    old = datetime.combine(today - timedelta(days=10), datetime.min.time(), tzinfo=UTC)
+    db_session.add_all([
+        Task(title="d_recent", project_id=p.id, status="done", done_at=recent),
+        Task(title="d_old", project_id=p.id, status="done", done_at=old),
+        Task(title="c_recent", project_id=p.id, status="wont_do", done_at=recent),
+        Task(title="open", project_id=p.id, status="todo"),
+    ])
+    await db_session.flush()
+
+    done = await list_tasks(db_session, scope="done", ref_date=today)
+    assert [t.title for t in done] == ["d_recent"]   # d_old (10 дней) исключён
+    canc = await list_tasks(db_session, scope="cancelled", ref_date=today)
+    assert [t.title for t in canc] == ["c_recent"]
 
 
 @pytest.mark.asyncio

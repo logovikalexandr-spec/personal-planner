@@ -1,0 +1,63 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#0F0F11;--surface:#19191d;--surface2:#212127;--border:#2a2a30;--text:#f4f4f5;--muted:#8a8a92;--accent:#EE8A3C;--danger:#E0556E;--blue:#4c8dff;--health:#3FB68B;--accSoft:rgba(238,138,60,.16);--mono:ui-monospace,Geist Mono,monospace}
+*{box-sizing:border-box}body{margin:0;background:#0a0a0c;color:var(--text);font-family:-apple-system,Geist,system-ui;padding:20px;display:flex;gap:22px;flex-wrap:wrap}
+.cap{font-size:13px;color:var(--accent);font-weight:600;margin:0 0 8px 4px}
+.phone{width:380px;background:var(--bg);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+/* drawer */
+.sec{font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:14px 16px 6px}
+.drow{display:flex;align-items:center;gap:13px;padding:13px 16px;font-size:16px}
+.drow.on{background:var(--accSoft)}.drow.on .dl{color:var(--accent)}
+.di{width:24px;text-align:center;color:var(--accent)}
+.dl{flex:1}.dc{font-family:var(--mono);color:var(--muted);font-size:14px}
+.sep{height:1px;background:var(--border);margin:8px 16px}
+/* list */
+.hd{display:flex;align-items:center;gap:12px;padding:16px 16px 8px}
+.burger{width:40px;height:40px;border-radius:11px;background:var(--surface2);border:none;display:flex;align-items:center;justify-content:center}
+.burger b{width:18px;height:2px;background:var(--accent);box-shadow:0 -6px 0 var(--accent),0 6px 0 var(--accent);display:block}
+h1{font-size:24px;margin:0;font-weight:700}
+.grp{font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:14px 16px 6px;display:flex;gap:7px}
+.row{display:flex;align-items:flex-start;gap:11px;padding:11px 16px;border-left:3px solid transparent}
+.row.hi{border-left-color:var(--danger)}.row.med{border-left-color:var(--accent)}.row.low{border-left-color:var(--blue)}
+.cb{width:20px;height:20px;border-radius:50%;border:2px solid var(--muted);flex:0 0 auto;margin-top:1px}
+.cb.d{background:var(--accent);border-color:var(--accent)}.cb.x{background:var(--surface2);border-color:var(--muted)}
+.tt{font-size:15px;font-weight:500;line-height:1.25}.mt{font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.done .tt{color:var(--muted);text-decoration:line-through}
+/* bottom sections */
+.fold{display:flex;align-items:center;gap:9px;padding:13px 16px;border-top:1px solid var(--border);color:var(--muted);font-weight:600;font-size:14px;cursor:pointer}
+.fold .chev{transition:transform .15s}.fold.open .chev{transform:rotate(180deg)}
+.fold .n{font-family:var(--mono);font-size:12px;margin-left:auto}
+.subnote{font-size:11px;color:var(--muted);font-style:italic;padding:2px 16px 8px}
+</style></head><body>
+
+<div><p class="cap">Шторка: + «Просрочено» в смарт-списки (низ шторки не меняем)</p>
+<div class="phone">
+  <div class="sec">Смарт-списки</div>
+  <div class="drow on"><span class="di">≡</span><span class="dl">Все</span><span class="dc">28</span></div>
+  <div class="drow"><span class="di">📅</span><span class="dl">Сегодня</span><span class="dc">2</span></div>
+  <div class="drow"><span class="di">📤</span><span class="dl">Завтра</span><span class="dc">13</span></div>
+  <div class="drow"><span class="di">📆</span><span class="dl">Следующие 7 дней</span><span class="dc">16</span></div>
+  <div class="drow"><span class="di" style="color:var(--danger)">⚠️</span><span class="dl" style="color:var(--danger)">Просрочено</span><span class="dc">10</span></div>
+  <div class="drow"><span class="di">📥</span><span class="dl">Входящие</span></div>
+  <div class="sec">Проекты</div>
+  <div class="drow"><span class="di">🎯</span><span class="dl">Глобальные цели</span><span class="dc">1</span></div>
+  <div class="drow"><span class="di">💚</span><span class="dl">Здоровье</span><span class="dc">7</span></div>
+</div></div>
+
+<div><p class="cap">Список «Все»: открытые сверху · внизу секции Выполнено/Отменено</p>
+<div class="phone">
+  <div class="hd"><button class="burger"><b></b></button><h1>Все</h1></div>
+  <div class="grp">🎯 Глобальные цели</div>
+  <div class="row med"><div class="cb"></div><div><div class="tt">Планирование недели + проекты</div><div class="mt">21 июн · 18:45–21:00</div></div></div>
+  <div class="grp">💚 Здоровье</div>
+  <div class="row hi"><div class="cb"></div><div><div class="tt">Записаться к врачам</div><div class="mt">22 июн</div></div></div>
+  <div class="row low"><div class="cb"></div><div><div class="tt">Купить витамины</div><div class="mt">23 июн</div></div></div>
+  <!-- bottom -->
+  <div class="fold open"><span class="chev">▾</span>Выполнено<span class="n">3</span></div>
+  <div class="subnote">за последние 7 дней</div>
+  <div class="row done"><div class="cb d"></div><div><div class="tt">Кафе: сверка задач</div><div class="mt">21 июн · 11:00</div></div></div>
+  <div class="row done"><div class="cb d"></div><div><div class="tt">Прогулка</div><div class="mt">21 июн · 10:00</div></div></div>
+  <div class="fold"><span class="chev">▾</span>Отменено<span class="n">1</span></div>
+</div></div>
+
+</body></html>
