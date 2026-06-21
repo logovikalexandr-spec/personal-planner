@@ -204,7 +204,7 @@ export function TaskDetail({
   async function remove() {
     if (!task) return;
     // window.confirm в Telegram WebView не работает (no-op/false) → нативный showConfirm, фолбэк для браузера.
-    const ok = await confirmDelete("Удалить задачу?");
+    const ok = await confirmDelete(`Удалить «${task.title}»?`, { body: "Задача удалится навсегда. Отменить нельзя." });
     if (!ok) return;
     await deleteTask(task.id);
     onChanged();
