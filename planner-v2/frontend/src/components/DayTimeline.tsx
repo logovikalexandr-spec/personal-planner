@@ -349,16 +349,10 @@ export const DayTimeline = memo(function DayTimeline({
       lastY = y; lastT = e.timeStamp;
     };
     const onTE = () => {
+      // БЕЗ инерции: где отпустил палец — там и встало (владелец: «чётко листнул, там и остановилось»,
+      // как Apple-календарь). Раньше был momentum (velocity + rAF-затухание) → «скользило» дальше.
       dragging = false;
       if (raf) { cancelAnimationFrame(raf); raf = 0; }
-      let v = vy * 16;                                        // инерция (затухание как нативное)
-      if (Math.abs(v) < 0.6) return;
-      const step = () => {
-        offsetRef.current = Math.max(0, Math.min(offsetRef.current - v, maxOff));
-        apply(); v *= 0.95;
-        raf = (Math.abs(v) > 0.35 && offsetRef.current > 0 && offsetRef.current < maxOff) ? requestAnimationFrame(step) : 0;
-      };
-      raf = requestAnimationFrame(step);
     };
     g.addEventListener("touchstart", onTS, { passive: false });
     g.addEventListener("touchmove", onTM, { passive: false });
