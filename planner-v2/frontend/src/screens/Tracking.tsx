@@ -549,9 +549,7 @@ export function Tracking() {
           habit={detail}
           onClose={() => setDetail(null)}
           onChange={(h) => { replaceHabit(h); setDetail(h); }}
-          onEdit={(h) => setEditHabit(h)}
-          onArchive={archiveHabit}
-          onDelete={removeHabit}
+          onMenu={(h) => setMenu(h)}
         />
       )}
       {countSheet && (
@@ -783,9 +781,9 @@ function Stat({ v, l }: { v: string; l: string }) {
   );
 }
 
-function HabitDetail({ habit, onClose, onChange, onEdit, onArchive, onDelete }: {
+function HabitDetail({ habit, onClose, onChange, onMenu }: {
   habit: HabitOut; onClose: () => void; onChange: (h: HabitOut) => void;
-  onEdit: (h: HabitOut) => void; onArchive: (h: HabitOut) => void; onDelete: (h: HabitOut) => void;
+  onMenu: (h: HabitOut) => void;
 }) {
   const now = new Date();
   const year = now.getFullYear(), month0 = now.getMonth();
@@ -820,7 +818,7 @@ function HabitDetail({ habit, onClose, onChange, onEdit, onArchive, onDelete }: 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 12px 10px", borderBottom: "1px solid var(--border)" }}>
         <button onClick={onClose} aria-label="Назад" style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 28, lineHeight: 1, cursor: "pointer", width: 36 }}>‹</button>
         <span style={{ fontWeight: 600 }}>Привычка</span>
-        <button onClick={() => onEdit(habit)} aria-label="Изменить" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", width: 36, fontSize: 22 }}>⋯</button>
+        <button onClick={() => onMenu(habit)} aria-label="Действия" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", width: 36, fontSize: 22 }}>⋯</button>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 14px 28px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18 }}>
@@ -860,12 +858,7 @@ function HabitDetail({ habit, onClose, onChange, onEdit, onArchive, onDelete }: 
             );
           })}
         </div>
-        <div style={{ color: "var(--text-muted)", fontSize: 11, marginBottom: 22 }}>Тап по прошлому пустому дню — отметить задним числом.</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-          <button className="hcard" onClick={() => onEdit(habit)} style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--border)", fontSize: 14 }}>Изменить</button>
-          <button className="hcard" onClick={() => onArchive(habit)} style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--border)", fontSize: 14 }}>Архивировать</button>
-          <button className="hcard" onClick={() => onDelete(habit)} style={{ textAlign: "left", cursor: "pointer", color: "var(--danger)", border: "1px solid rgba(255,92,92,.4)", fontSize: 14 }}>Удалить привычку</button>
-        </div>
+        <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Тап по прошлому пустому дню — отметить задним числом.</div>
       </div>
     </div>
   );
