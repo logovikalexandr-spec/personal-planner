@@ -349,10 +349,19 @@ export const DayTimeline = memo(function DayTimeline({
       lastY = y; lastT = e.timeStamp;
     };
     const onTE = () => {
-      // БЕЗ инерции: где отпустил палец — там и встало (владелец: «чётко листнул, там и остановилось»,
-      // как Apple-календарь). Раньше был momentum (velocity + rAF-затухание) → «скользило» дальше.
       dragging = false;
       if (raf) { cancelAnimationFrame(raf); raf = 0; }
+      // Apple-стиль: быстрый флик → инерция катится; осознанный медленный драг (довёл и отпустил) →
+      // встаёт ровно на месте. Дискриминатор = скорость в момент отпускания (vy сглажена; пауза перед
+      // подъёмом гасит vy→0 → без глайда). Порог FLICK высокий (раньше 0.6 → катилось почти всегда).
+      let v = vy * 16;
+      if (Math.abs(v) < 7) return;                           // ниже флик-порога → чёткая остановка, без инерции
+      const step = () => {
+        offsetRef.current = Math.max(0, Math.min(offsetRef.current - v, maxOff));
+        apply(); v *= 0.95;                                  // затухание как нативное
+        raf = (Math.abs(v) > 0.35 && offsetRef.current > 0 && offsetRef.current < maxOff) ? requestAnimationFrame(step) : 0;
+      };
+      raf = requestAnimationFrame(step);
     };
     g.addEventListener("touchstart", onTS, { passive: false });
     g.addEventListener("touchmove", onTM, { passive: false });
