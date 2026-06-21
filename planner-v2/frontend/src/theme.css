@@ -1303,6 +1303,22 @@ body.inline-draft .fab { display: none; }
 .m-delta.up { color: #5B8DEF; }
 .m-spark { margin-top: 9px; display: block; }
 
+/* список метрик — полноширинные строки в столбик (мокап T5 .mrow) */
+.mlist { margin-bottom: var(--s5); }
+.mrow { background: var(--surface); border: 1px solid var(--border); border-radius: 15px; padding: 13px 15px; margin-bottom: 10px; cursor: pointer; }
+.mrow .mtop { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.mrow .mn { font-size: 15.5px; font-weight: 600; }
+.mrow .mn span { color: var(--text-muted); font-weight: 500; font-size: 11px; font-family: var(--font-mono); margin-left: 5px; }
+.mrow .madd { margin-left: auto; flex: 0 0 auto; width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 17px; line-height: 1; cursor: pointer; }
+.mrow .mvrow { display: flex; align-items: baseline; gap: 0; }
+.mrow .mbig { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.mrow .md { font-size: 12.5px; font-weight: 600; margin-left: 8px; }
+.mrow .md.good { color: #3FB68B; } /* hex-allowlist (зелёный — улучшение down-метрики) */
+.mrow .md.up { color: #5B8DEF; }   /* hex-allowlist (синий — рост up-метрики) */
+.mrow .md.flat { color: var(--text-muted); }
+.mrow .md.bad { color: var(--danger); }
+.mrow-spark { margin-top: 10px; display: block; }
+
 /* retro */
 .retro {
   background: linear-gradient(135deg, #1c1d22, #161417); border: 1px solid var(--border); border-radius: var(--radius);

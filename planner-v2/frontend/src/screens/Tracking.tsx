@@ -260,8 +260,8 @@ function HeatRow({ habit, dates, todayIdx, onCellTap }: {
   );
 }
 
-function MetricsView({ metrics, onOpen, onNew }: {
-  metrics: MetricOut[]; onOpen: (m: MetricOut) => void; onNew: () => void;
+function MetricsView({ metrics, onOpen, onNew, onMeasure }: {
+  metrics: MetricOut[]; onOpen: (m: MetricOut) => void; onNew: () => void; onMeasure: (m: MetricOut) => void;
 }) {
   if (metrics.length === 0) {
     return <Empty text="Нет метрик. Следи за любым числом — вес, сон, настроение."
@@ -272,22 +272,33 @@ function MetricsView({ metrics, onOpen, onNew }: {
       <div className="trk-seclbl" style={{ display: "flex", justifyContent: "space-between" }}>
         <span>Метрики недели</span><button className="lnk" onClick={onNew}>+ Метрика</button>
       </div>
-      <div className="mgrid">
+      <div className="mlist">
         {metrics.map((m) => {
+          // дельта: цвет по направлению «хорошо» — улучшение зелёным (down)/синим (up), ухудшение красным
+          let cls = "flat", txt = "— без изменений";
+          if (m.delta != null && m.delta !== 0) {
+            const improving = m.good_direction === "down" ? m.delta < 0 : m.delta > 0;
+            const arrow = m.delta < 0 ? "▼" : "▲";
+            cls = improving ? (m.good_direction === "down" ? "good" : "up") : "bad";
+            txt = `${arrow} ${Math.abs(m.delta).toFixed(1)} за неделю`;
+          }
           const pts = sparkPoints(m.entries.map((e) => e.value).reverse());
-          const dir = m.delta == null ? null : (m.good_direction === "down" ? m.delta < 0 : m.delta > 0) ? "up" : "down";
           return (
-            <div key={m.id} className="mcard" onClick={() => onOpen(m)}>
-              <div className="m-lbl">{m.name}</div>
-              <div className="m-val">
-                {m.latest ?? "—"}<small> {m.unit}</small>
-                {m.delta != null && dir && (
-                  <span className={"m-delta " + dir}>{m.delta < 0 ? "▼" : "▲"}{Math.abs(m.delta).toFixed(1)}</span>
-                )}
+            <div key={m.id} className="mrow" onClick={() => onOpen(m)}>
+              <div className="mtop">
+                <div className="mn">{m.name}{m.unit ? <span>{m.unit}</span> : null}</div>
+                <button className="madd" aria-label="Добавить замер"
+                  onClick={(e) => { e.stopPropagation(); onMeasure(m); }}>+</button>
               </div>
-              <svg className="m-spark" width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none">
-                <polyline points={pts} fill="none" stroke={m.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <div className="mvrow">
+                <div className="mbig">{m.latest ?? "—"}</div>
+                <div className={"md " + cls}>{txt}</div>
+              </div>
+              {pts && (
+                <svg className="mrow-spark" width="100%" height="34" viewBox="0 0 120 26" preserveAspectRatio="none">
+                  <polyline points={pts} fill="none" stroke={m.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
             </div>
           );
         })}
@@ -537,7 +548,7 @@ export function Tracking() {
       </div>
 
       {view === "habits" && <HabitsView habits={habits} onToggle={onToggle} onCount={(h) => setCountSheet({ habit: h, date: todayISO() })} onOpen={setDetail} onMenu={setMenu} onCellTap={onCellTap} onNew={() => setSheet("habit")} />}
-      {view === "metrics" && <MetricsView metrics={metrics} onOpen={setMetricDetail} onNew={() => setSheet("metric")} />}
+      {view === "metrics" && <MetricsView metrics={metrics} onOpen={setMetricDetail} onNew={() => setSheet("metric")} onMeasure={(m) => setMeasure(m)} />}
       {view === "retro" && <RetroView retro={retro} metrics={metrics} onTaskToggle={onOverdueDone} />}
 
       {sheet === "habit" && <NewHabitSheet onClose={() => setSheet(null)} onCreated={(h) => { setHabits((p) => [...p, h]); setSheet(null); }} />}
