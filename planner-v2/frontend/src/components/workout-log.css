@@ -1,0 +1,184 @@
+/* WorkoutLog — подраздел Цели. Onyx/ember, Geist. Только дизайн-токены theme.css. */
+
+/* оверлей подраздела поверх Целей */
+.wl-overlay { position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+/* кнопка входа «Тренировки» на карточке цели */
+.t4-workout {
+  appearance: none; margin-top: 12px; width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px;
+  color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.t4-workout:active { background: var(--surface); }
+
+.wl { display: flex; flex-direction: column; min-height: 100%; background: var(--bg); }
+.wl-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(env(safe-area-inset-top) + var(--s4)) var(--s4) var(--s3);
+  position: sticky; top: 0; z-index: 4; background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.wl-back {
+  appearance: none; flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.wl-body { padding: var(--s4) var(--s4) var(--s6); }
+
+/* пилюля «завершена» в шапке завершённой тренировки */
+.wl-done-pill {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+  color: var(--success); background: rgba(63,182,139,0.16); border-radius: 999px; padding: 6px 12px;
+}
+.wl-done-pill svg { width: 14px; height: 14px; }
+/* кнопка отмены завершённой тренировки */
+.wl-cancel { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.wl-cancel:active { background: rgba(255,92,92,0.10); }
+/* карточка дня в истории — кликабельна (открыть/отменить) */
+.wl-daycard { cursor: pointer; transition: background 140ms ease; }
+.wl-daycard:active { background: var(--surface-2); }
+
+/* шаблоны */
+.wl-tpl {
+  appearance: none; display: flex; align-items: center; gap: 12px; width: 100%;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px; cursor: pointer; color: var(--text); transition: background 140ms, transform 140ms;
+}
+.wl-tpl:active { transform: scale(0.99); background: var(--surface-2); }
+.wl-tpl-ico {
+  width: 40px; height: 40px; flex: 0 0 auto; border-radius: 11px;
+  background: var(--accent-soft); font-size: 22px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.wl-tpl-chev { color: var(--text-muted); display: flex; }
+
+/* неделя сейчас (шапка таба) */
+.wl-weeknow {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: var(--s4);
+}
+.wl-weeknow-range { font-size: 15px; font-weight: 700; }
+.wl-weeknow-prog { font-size: 12px; color: var(--accent); background: var(--accent-soft); border-radius: 7px; padding: 2px 8px; margin-left: auto; font-weight: 600; }
+
+/* итоги недели (появляется под шаблонами, когда есть тренировки на неделе) */
+.wl-weeksum {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; margin-top: var(--s4);
+}
+.wl-weeksum-emo { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; }
+.wl-weeksum-emo svg { width: 24px; height: 24px; }
+.wl-weeksum-title { font-size: 15px; font-weight: 700; }
+
+/* шаблон: следующая / выполнена */
+.wl-tpl.next { border-color: var(--accent); }
+.wl-tpl.is-done { opacity: 0.75; }
+.wl-next-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 2px 7px; flex: 0 0 auto; }
+.wl-tpl-done { width: 26px; height: 26px; border-radius: 50%; background: var(--success); color: #fff; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+
+/* история: аккордеон месяц → неделя → день */
+.wl-mgroup { margin-bottom: var(--s2); }
+.wl-month, .wl-week {
+  appearance: none; display: flex; align-items: center; gap: 8px; width: 100%; cursor: pointer;
+  background: none; border: none; color: var(--text); font-family: var(--font);
+}
+.wl-month { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; padding: 12px 2px 8px; }
+.wl-week { font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: var(--text-muted); padding: 8px 2px 6px; }
+.wl-wgroup { margin-left: 4px; }
+.wl-acc-chev { display: inline-flex; color: var(--text-muted); transition: transform 150ms ease; }
+.wl-acc-chev.open { transform: rotate(180deg); }
+.wl-acc-cnt { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
+.wl-day-check { width: 18px; height: 18px; border-radius: 50%; background: var(--success); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.wl-day-check svg { width: 12px; height: 12px; }
+
+/* карточка коуча в истории */
+.wl-coach {
+  margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 12px;
+  border-left: 3px solid var(--accent); font-size: 13px; line-height: 1.45; color: var(--text);
+}
+.wl-coach-badge {
+  display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 1px 6px; margin-right: 7px;
+}
+
+/* активная сессия */
+.wl-exname {
+  appearance: none; background: none; border: none; color: var(--text); cursor: pointer; padding: 0;
+  font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+}
+.wl-exhist { color: var(--text-muted); display: inline-flex; }
+.wl-prev { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); margin: 4px 0 10px; display: flex; align-items: center; gap: 8px; }
+.wl-target { color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 7px; font-weight: 600; }
+
+.wl-sets { display: flex; flex-direction: column; gap: 6px; }
+.wl-sets-hd {
+  display: grid; grid-template-columns: 30px 1fr 1fr 44px; align-items: center; gap: 8px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 6px 2px;
+}
+.wl-sets-hd span { text-align: center; }
+.wl-sets-hd span:first-child { text-align: left; padding-left: 4px; }
+.wl-setrow {
+  display: grid; grid-template-columns: 30px 1fr 1fr 44px; align-items: center; gap: 8px;
+  background: var(--surface-2); border-radius: 10px; padding: 6px;
+}
+
+/* поле-число: тап → ввод (без +/−) */
+.wl-num {
+  appearance: none; width: 100%; border: 1px solid transparent; background: var(--surface); border-radius: 9px;
+  min-height: 44px; cursor: pointer; color: var(--text); display: flex; align-items: center;
+  justify-content: center; gap: 3px; padding: 0 8px; line-height: 1;
+}
+.wl-num .mono { line-height: 1; }
+.wl-num:active { background: var(--accent-soft); }
+.wl-num .mono { font-size: 17px; font-weight: 600; }
+.wl-num-val { display: inline-flex; align-items: baseline; gap: 3px; }
+.wl-num-u { color: var(--text-muted); font-size: 11px; }
+.wl-num-input {
+  width: 100%; min-height: 44px; text-align: center; border: 1px solid var(--accent); border-radius: 9px;
+  background: var(--surface); color: var(--text); font-family: var(--font-mono); font-size: 17px; font-weight: 600; outline: none;
+}
+.wl-setrow.warm { opacity: 0.7; }
+.wl-idx {
+  width: 28px; height: 28px; border-radius: 8px; border: none; cursor: pointer;
+  background: var(--surface); color: var(--text-muted); font-family: var(--font-mono); font-size: 13px; font-weight: 600;
+}
+.wl-setrow.warm .wl-idx { color: var(--warning); }
+/* галочка «сделал» на подход */
+.wl-check {
+  width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--border);
+  background: none; color: #fff; cursor: pointer; justify-self: center;
+  display: flex; align-items: center; justify-content: center; transition: background 140ms, border-color 140ms;
+}
+.wl-check.on { background: var(--accent); border-color: var(--accent); }
+.wl-setrow.done { opacity: 0.62; }
+.wl-setrow.done .wl-idx { color: var(--success); }
+
+.wl-step {
+  width: 30px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: 18px; line-height: 1; cursor: pointer; flex: 0 0 auto;
+}
+.wl-step:active { background: var(--accent-soft); color: var(--accent); }
+
+.wl-add {
+  appearance: none; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  background: none; border: 1px dashed rgba(138,139,145,0.4); border-radius: 10px;
+  color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 9px 14px; margin-top: 4px; align-self: flex-start;
+}
+.wl-add-ex { width: 100%; justify-content: center; margin: 4px 0 8px; }
+
+/* нижняя панель */
+.wl-bottom {
+  position: sticky; bottom: 0; padding: 12px var(--s4) calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--bg) 35%);
+}
+
+/* тост-разбор тренера (имитация пуша) */
+.wl-toast {
+  position: fixed; left: 12px; right: 12px; bottom: calc(20px + env(safe-area-inset-bottom));
+  background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  animation: wl-rise 240ms cubic-bezier(0.22,1,0.36,1); z-index: 80;
+}
+@keyframes wl-rise { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* история упражнения */
+.wl-pr { color: var(--success); background: rgba(63,182,139,0.16); border-radius: 6px; padding: 1px 7px; font-size: 11px; font-weight: 700; font-family: var(--font-mono); }

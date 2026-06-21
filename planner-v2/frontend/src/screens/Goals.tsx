@@ -3,6 +3,9 @@ import { getDayTasks, getProjects, getStages, getTasksRange } from "../api";
 import { localISO, weekDays } from "../lib/calDates";
 import type { AiNote, Project, Stage } from "../types";
 import { tg } from "../telegram";
+import { WorkoutLog } from "../components/WorkoutLog";
+import { makeWorkoutApi } from "../components/workoutApi";
+import "../components/workout-log.css";
 
 // ── T4 «Цели» (мокап база-проекта-v3/pages/T4-celi.html) ──
 // Список проектов-целей: A1 пульс · A2-A7 карточка (имя→деталь·кольцо%шанс·полоски
@@ -62,7 +65,7 @@ const IcoWarn = () => (
   </svg>
 );
 
-function ProjectCard({ p, stages }: { p: Project; stages: Stage[] }) {
+function ProjectCard({ p, stages, onOpenWorkout }: { p: Project; stages: Stage[]; onOpenWorkout: () => void }) {
   const c = p.color || "var(--accent)";
   const { pos, total } = stagePosition(stages);
   const target = fmtTargetShort(p.target_date);
@@ -110,6 +113,15 @@ function ProjectCard({ p, stages }: { p: Project; stages: Stage[] }) {
           <span>{note.text}</span>
         </div>
       )}
+
+      <button
+        className="t4-workout"
+        data-testid={`goal-workout-${p.id}`}
+        onClick={(e) => { e.stopPropagation(); onOpenWorkout(); }}
+      >
+        <span>🏋 Тренировки</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+      </button>
     </div>
   );
 }
@@ -120,6 +132,9 @@ export function Goals() {
   const [todayN, setTodayN] = useState(0);
   const [week, setWeek] = useState({ done: 0, total: 0 });
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [workoutGoalId, setWorkoutGoalId] = useState<number | null>(null);
+  const workoutApi = useMemo(() => (workoutGoalId == null ? null : makeWorkoutApi(workoutGoalId)), [workoutGoalId]);
+  const workoutGoalName = projects.find((p) => p.id === workoutGoalId)?.name ?? "Цель";
 
   const load = useCallback(async () => {
     setState("loading");
@@ -227,7 +242,7 @@ export function Goals() {
         <>
           <div className="seclbl">Активные</div>
           {projects.map((p) => (
-            <ProjectCard key={p.id} p={p} stages={stagesByProject[p.id] ?? []} />
+            <ProjectCard key={p.id} p={p} stages={stagesByProject[p.id] ?? []} onOpenWorkout={() => setWorkoutGoalId(p.id)} />
           ))}
         </>
       )}
@@ -235,6 +250,17 @@ export function Goals() {
       <button className="t4-newbtn" data-testid="goal-new" onClick={onNew}>
         + Новый проект — разобрать с ИИ
       </button>
+
+      {workoutGoalId != null && workoutApi && (
+        <div className="wl-overlay" data-testid="workout-overlay">
+          <WorkoutLog
+            goalId={workoutGoalId}
+            goalName={workoutGoalName}
+            api={workoutApi}
+            onBack={() => setWorkoutGoalId(null)}
+          />
+        </div>
+      )}
     </div>
   );
 }

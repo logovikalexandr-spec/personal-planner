@@ -174,3 +174,24 @@ export interface RetroOut {
 }
 export const getRetro = (weekStart?: string) =>
   req<RetroOut>(`/api/tracking/retro${weekStart ? `?week_start=${weekStart}` : ""}`);
+
+// ── Workout-лог (Волна 1) ───────────────────────────────────────────────────
+export type ApiTemplateEx = { id: number; exercise_id: number; order_index: number; target_sets: number; rep_low: number; rep_high: number; coach_target_weight: number | null };
+export type ApiTemplate = { id: number; project_id: number; name: string; order_index: number; exercises: ApiTemplateEx[] };
+export type ApiExercise = { id: number; name: string; muscle_group: string; default_rep_low: number | null; default_rep_high: number | null; order_index: number };
+export type ApiSet = { id?: number; exercise_id: number; set_index: number; weight: number; reps: number; rpe: number | null; is_warmup: boolean; done: boolean; note: string | null };
+export type ApiSession = { id: number; project_id: number; template_id: number | null; stage_id: number | null; date: string; review_note: string | null; coach_note: string | null; duration_minutes: number | null; completed: boolean; sets: ApiSet[] };
+export type ApiHistPoint = { date: string; top_1rm: number; best_set: { weight: number; reps: number }; total_volume: number };
+
+export const wGetExercises = () => req<ApiExercise[]>("/api/exercises");
+export const wGetTemplates = (pid: number) => req<ApiTemplate[]>(`/api/projects/${pid}/workout-templates`);
+export const wGetWorkouts = (pid: number) => req<ApiSession[]>(`/api/projects/${pid}/workouts`);
+export const wCreateWorkout = (pid: number, date: string, templateId?: number | null) =>
+  req<ApiSession>("/api/workouts", { method: "POST", body: JSON.stringify({ project_id: pid, date, template_id: templateId ?? null }) });
+export const wPutSets = (sid: number, sets: Partial<ApiSet>[]) =>
+  req<ApiSession>(`/api/workouts/${sid}/sets`, { method: "PUT", body: JSON.stringify({ sets }) });
+export const wComplete = (sid: number, reviewNote?: string, durationMinutes?: number) =>
+  req<ApiSession>(`/api/workouts/${sid}/complete`, { method: "POST", body: JSON.stringify({ review_note: reviewNote ?? null, duration_minutes: durationMinutes ?? null }) });
+export const wCancel = (sid: number) => reqVoid(`/api/workouts/${sid}`, { method: "DELETE" });
+export const wHistory = (exId: number) => req<ApiHistPoint[]>(`/api/exercises/${exId}/history`);
+export const wLastSets = (exId: number) => req<{ weight: number; reps: number; rpe: number | null }[]>(`/api/exercises/${exId}/last-sets`);

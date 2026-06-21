@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # pwa_token=None → PWA-вход выключен (только Telegram initData).
     pwa_token: str | None = None
     pwa_app_url: str = "https://planner.188.245.42.4.nip.io/app/"
+    # Агент-тренер (workout-лог): LLM-разбор сессии. None → фолбэк-текст без LLM.
+    anthropic_api_key: str | None = None
+    coach_model: str = "claude-haiku-4-5-20251001"
 
 
 @lru_cache

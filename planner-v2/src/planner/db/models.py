@@ -254,3 +254,90 @@ class MetricEntry(Base):
     entry_date: Mapped[date] = mapped_column(Date)
     value: Mapped[float] = mapped_column(Float, default=0)
     metric: Mapped[Metric] = relationship(back_populates="entries")
+
+
+# ─── Workout-лог (Волна 1: подраздел Цели «Рекомпозиция») ───────────────────
+
+class Exercise(Base):
+    __tablename__ = "exercise"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    muscle_group: Mapped[str] = mapped_column(String(40), default="other")
+    equipment: Mapped[str | None] = mapped_column(String(40), default=None)
+    is_custom: Mapped[bool] = mapped_column(Boolean, default=False)
+    default_rep_low: Mapped[int | None] = mapped_column(Integer, default=None)
+    default_rep_high: Mapped[int | None] = mapped_column(Integer, default=None)
+    notes: Mapped[str | None] = mapped_column(String(300), default=None)
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+    archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class WorkoutTemplate(Base):
+    __tablename__ = "workout_template"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(80))
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    exercises: Mapped[list[TemplateExercise]] = relationship(
+        back_populates="template", cascade="all, delete-orphan", lazy="selectin",
+        order_by="TemplateExercise.order_index",
+    )
+
+
+class TemplateExercise(Base):
+    __tablename__ = "template_exercise"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    template_id: Mapped[int] = mapped_column(ForeignKey("workout_template.id", ondelete="CASCADE"))
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"))
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+    target_sets: Mapped[int] = mapped_column(Integer, default=3)
+    rep_low: Mapped[int] = mapped_column(Integer, default=8)
+    rep_high: Mapped[int] = mapped_column(Integer, default=12)
+    # Q7: тренер сам ставит целевой вес на след. сессию; откат = NULL
+    coach_target_weight: Mapped[float | None] = mapped_column(Float, default=None)
+
+    template: Mapped[WorkoutTemplate] = relationship(back_populates="exercises")
+
+
+class WorkoutSession(Base):
+    __tablename__ = "workout_session"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"))
+    template_id: Mapped[int | None] = mapped_column(ForeignKey("workout_template.id", ondelete="SET NULL"), default=None)
+    stage_id: Mapped[int | None] = mapped_column(ForeignKey("stage.id", ondelete="SET NULL"), default=None)
+    date: Mapped[date] = mapped_column(Date)
+    review_note: Mapped[str | None] = mapped_column(String(2000), default=None)
+    coach_note: Mapped[str | None] = mapped_column(String(4000), default=None)
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, default=None)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    sets: Mapped[list[SetLog]] = relationship(
+        back_populates="session", cascade="all, delete-orphan", lazy="selectin",
+        order_by="SetLog.set_index",
+    )
+
+
+class SetLog(Base):
+    __tablename__ = "set_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("workout_session.id", ondelete="CASCADE"))
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"))
+    set_index: Mapped[int] = mapped_column(Integer, default=0)
+    weight: Mapped[float] = mapped_column(Float, default=0)
+    reps: Mapped[int] = mapped_column(Integer, default=0)
+    rpe: Mapped[float | None] = mapped_column(Float, default=None)
+    is_warmup: Mapped[bool] = mapped_column(Boolean, default=False)
+    done: Mapped[bool] = mapped_column(Boolean, default=False)
+    note: Mapped[str | None] = mapped_column(String(300), default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    session: Mapped[WorkoutSession] = relationship(back_populates="sets")

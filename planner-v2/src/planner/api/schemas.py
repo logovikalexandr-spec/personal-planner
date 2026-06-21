@@ -396,3 +396,102 @@ class MetricOut(BaseModel):
 class MetricMeasureIn(BaseModel):
     date: date
     value: float
+
+
+# ─── Workout-лог ────────────────────────────────────────────────────────────
+
+class ExerciseCreate(BaseModel):
+    name: str
+    muscle_group: str = "other"
+    equipment: str | None = None
+    is_custom: bool = True
+    default_rep_low: int | None = None
+    default_rep_high: int | None = None
+
+
+class ExerciseOut(BaseModel):
+    id: int
+    name: str
+    muscle_group: str
+    equipment: str | None = None
+    is_custom: bool
+    default_rep_low: int | None = None
+    default_rep_high: int | None = None
+    order_index: int
+    model_config = {"from_attributes": True}
+
+
+class TemplateExerciseOut(BaseModel):
+    id: int
+    exercise_id: int
+    order_index: int
+    target_sets: int
+    rep_low: int
+    rep_high: int
+    coach_target_weight: float | None = None
+    model_config = {"from_attributes": True}
+
+
+class TemplateOut(BaseModel):
+    id: int
+    project_id: int
+    name: str
+    order_index: int
+    exercises: list[TemplateExerciseOut] = []
+    model_config = {"from_attributes": True}
+
+
+class SetIn(BaseModel):
+    exercise_id: int
+    set_index: int = 0
+    weight: float = 0
+    reps: int = 0
+    rpe: float | None = None
+    is_warmup: bool = False
+    done: bool = False
+    note: str | None = None
+
+
+class SetOut(SetIn):
+    id: int
+    model_config = {"from_attributes": True}
+
+
+class WorkoutSessionCreate(BaseModel):
+    project_id: int
+    template_id: int | None = None
+    date: date
+
+
+class WorkoutSessionOut(BaseModel):
+    id: int
+    project_id: int
+    template_id: int | None = None
+    stage_id: int | None = None
+    date: date
+    review_note: str | None = None
+    coach_note: str | None = None
+    duration_minutes: int | None = None
+    completed: bool
+    sets: list[SetOut] = []
+    model_config = {"from_attributes": True}
+
+
+class WorkoutCompleteIn(BaseModel):
+    review_note: str | None = None
+    duration_minutes: int | None = None
+
+
+class SetsReplaceIn(BaseModel):
+    sets: list[SetIn]
+
+
+class ExerciseHistoryPoint(BaseModel):
+    date: date
+    top_1rm: float
+    best_set: dict
+    total_volume: float
+
+
+class CoachTargetIn(BaseModel):
+    weight: float | None = None
