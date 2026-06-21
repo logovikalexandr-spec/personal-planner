@@ -4,6 +4,7 @@ import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { Sheet } from "../components/Sheet";
 import { IcoEdit, IcoTrash } from "../components/icons";
+import { useLongPress } from "../lib/useLongPress";
 import { tg } from "../telegram";
 import {
   backfillHabit, completeTask, createHabit, createMetric, deleteHabit, deleteMetric, deleteMetricEntry,
@@ -123,15 +124,10 @@ function HabitCard({ h, onToggle, onCount, onOpen, onMenu }: {
       {h.done_today ? "подряд" : "· сегодня ещё нет"}</>;
 
   // long-press → контекст-меню; тап → деталь (подавляем клик после long-press)
-  const lp = useRef<number | null>(null);
-  const fired = useRef(false);
-  const down = () => { fired.current = false; lp.current = window.setTimeout(() => { fired.current = true; onMenu(h); }, 500); };
-  const cancel = () => { if (lp.current) { clearTimeout(lp.current); lp.current = null; } };
-  const click = () => { if (fired.current) { fired.current = false; return; } onOpen(h); };
+  const { pressed, handlers } = useLongPress(() => onMenu(h), () => onOpen(h));
 
   return (
-    <div className="hcard" style={{ ["--c" as string]: h.color, cursor: "pointer" }}
-      onClick={click} onPointerDown={down} onPointerUp={cancel} onPointerLeave={cancel} onPointerCancel={cancel}>
+    <div className={"hcard" + (pressed ? " pressed" : "")} style={{ ["--c" as string]: h.color, cursor: "pointer" }} {...handlers}>
       <div className="hc-row">
         <StreakRing pct={pct} num={h.streak} color={ringColor} />
         <div className="hc-body">
@@ -261,8 +257,42 @@ function HeatRow({ habit, dates, todayIdx, onCellTap }: {
   );
 }
 
-function MetricsView({ metrics, onOpen, onNew, onMeasure }: {
-  metrics: MetricOut[]; onOpen: (m: MetricOut) => void; onNew: () => void; onMeasure: (m: MetricOut) => void;
+function MetricRow({ m, onOpen, onMeasure, onMenu }: {
+  m: MetricOut; onOpen: (m: MetricOut) => void; onMeasure: (m: MetricOut) => void; onMenu: (m: MetricOut) => void;
+}) {
+  // дельта: цвет по направлению «хорошо» — улучшение зелёным (down)/синим (up), ухудшение красным
+  let cls = "flat", txt = "— без изменений";
+  if (m.delta != null && m.delta !== 0) {
+    const improving = m.good_direction === "down" ? m.delta < 0 : m.delta > 0;
+    const arrow = m.delta < 0 ? "▼" : "▲";
+    cls = improving ? (m.good_direction === "down" ? "good" : "up") : "bad";
+    txt = `${arrow} ${Math.abs(m.delta).toFixed(1)} за неделю`;
+  }
+  const pts = sparkPoints(m.entries.map((e) => e.value).reverse());
+  const { pressed, handlers } = useLongPress(() => onMenu(m), () => onOpen(m));
+  return (
+    <div className={"mrow" + (pressed ? " pressed" : "")} {...handlers}>
+      <div className="mtop">
+        <div className="mn">{m.name}{m.unit ? <span>{m.unit}</span> : null}</div>
+        <button className="madd" aria-label="Добавить замер"
+          onClick={(e) => { e.stopPropagation(); onMeasure(m); }}>+</button>
+      </div>
+      <div className="mvrow">
+        <div className="mbig">{m.latest ?? "—"}</div>
+        <div className={"md " + cls}>{txt}</div>
+      </div>
+      {pts && (
+        <svg className="mrow-spark" width="100%" height="34" viewBox="0 0 120 26" preserveAspectRatio="none">
+          <polyline points={pts} fill="none" stroke={m.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
+function MetricsView({ metrics, onOpen, onNew, onMeasure, onMenu }: {
+  metrics: MetricOut[]; onOpen: (m: MetricOut) => void; onNew: () => void;
+  onMeasure: (m: MetricOut) => void; onMenu: (m: MetricOut) => void;
 }) {
   if (metrics.length === 0) {
     return <Empty text="Нет метрик. Следи за любым числом — вес, сон, настроение."
@@ -274,35 +304,9 @@ function MetricsView({ metrics, onOpen, onNew, onMeasure }: {
         <span>Метрики недели</span><button className="lnk" onClick={onNew}>+ Метрика</button>
       </div>
       <div className="mlist">
-        {metrics.map((m) => {
-          // дельта: цвет по направлению «хорошо» — улучшение зелёным (down)/синим (up), ухудшение красным
-          let cls = "flat", txt = "— без изменений";
-          if (m.delta != null && m.delta !== 0) {
-            const improving = m.good_direction === "down" ? m.delta < 0 : m.delta > 0;
-            const arrow = m.delta < 0 ? "▼" : "▲";
-            cls = improving ? (m.good_direction === "down" ? "good" : "up") : "bad";
-            txt = `${arrow} ${Math.abs(m.delta).toFixed(1)} за неделю`;
-          }
-          const pts = sparkPoints(m.entries.map((e) => e.value).reverse());
-          return (
-            <div key={m.id} className="mrow" onClick={() => onOpen(m)}>
-              <div className="mtop">
-                <div className="mn">{m.name}{m.unit ? <span>{m.unit}</span> : null}</div>
-                <button className="madd" aria-label="Добавить замер"
-                  onClick={(e) => { e.stopPropagation(); onMeasure(m); }}>+</button>
-              </div>
-              <div className="mvrow">
-                <div className="mbig">{m.latest ?? "—"}</div>
-                <div className={"md " + cls}>{txt}</div>
-              </div>
-              {pts && (
-                <svg className="mrow-spark" width="100%" height="34" viewBox="0 0 120 26" preserveAspectRatio="none">
-                  <polyline points={pts} fill="none" stroke={m.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-            </div>
-          );
-        })}
+        {metrics.map((m) => (
+          <MetricRow key={m.id} m={m} onOpen={onOpen} onMeasure={onMeasure} onMenu={onMenu} />
+        ))}
       </div>
     </>
   );
@@ -484,6 +488,8 @@ export function Tracking() {
   const [countSheet, setCountSheet] = useState<{ habit: HabitOut; date: string } | null>(null);
   const [menu, setMenu] = useState<HabitOut | null>(null);
   const [metricDetail, setMetricDetail] = useState<MetricOut | null>(null);
+  const [metricMenu, setMetricMenu] = useState<MetricOut | null>(null);
+  const [editMetric, setEditMetric] = useState<MetricOut | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -524,7 +530,7 @@ export function Tracking() {
   function onDeleteMetric(m: MetricOut) {
     tg()?.showConfirm?.(`Удалить метрику «${m.name}»?`, async (ok: boolean) => {
       if (!ok) return;
-      try { await deleteMetric(m.id); setMetrics((p) => p.filter((x) => x.id !== m.id)); setMetricDetail(null); } catch { load(); }
+      try { await deleteMetric(m.id); setMetrics((p) => p.filter((x) => x.id !== m.id)); setMetricDetail(null); setMetricMenu(null); } catch { load(); }
     });
   }
   function onOverdueDone(t: Task) {
@@ -549,7 +555,7 @@ export function Tracking() {
       </div>
 
       {view === "habits" && <HabitsView habits={habits} onToggle={onToggle} onCount={(h) => setCountSheet({ habit: h, date: todayISO() })} onOpen={setDetail} onMenu={setMenu} onCellTap={onCellTap} onNew={() => setSheet("habit")} />}
-      {view === "metrics" && <MetricsView metrics={metrics} onOpen={setMetricDetail} onNew={() => setSheet("metric")} onMeasure={(m) => setMeasure(m)} />}
+      {view === "metrics" && <MetricsView metrics={metrics} onOpen={setMetricDetail} onNew={() => setSheet("metric")} onMeasure={(m) => setMeasure(m)} onMenu={(m) => setMetricMenu(m)} />}
       {view === "retro" && <RetroView retro={retro} metrics={metrics} onTaskToggle={onOverdueDone} />}
 
       {sheet === "habit" && <NewHabitSheet onClose={() => setSheet(null)} onCreated={(h) => { setHabits((p) => [...p, h]); setSheet(null); }} />}
@@ -576,7 +582,16 @@ export function Tracking() {
       {metricDetail && (
         <MetricDetail metric={metricDetail} onClose={() => setMetricDetail(null)}
           onChange={(m) => { replaceMetric(m); setMetricDetail(m); }}
+          onMenu={(m) => setMetricMenu(m)} />
+      )}
+      {metricMenu && (
+        <MetricMenuSheet metric={metricMenu} onClose={() => setMetricMenu(null)}
+          onEdit={(m) => { setMetricMenu(null); setEditMetric(m); }}
           onDelete={onDeleteMetric} />
+      )}
+      {editMetric && (
+        <EditMetricSheet metric={editMetric} onClose={() => setEditMetric(null)}
+          onSaved={(m) => { replaceMetric(m); setMetricDetail((d) => (d && d.id === m.id ? m : d)); setEditMetric(null); }} />
       )}
       {editHabit && (
         <EditHabitSheet
@@ -1054,6 +1069,24 @@ function HabitMenuSheet({ habit, onClose, onEdit, onArchive, onDelete }: {
   );
 }
 
+// меню метрики (long-press / ⋯) — карточки-действия с иконками, как у привычки.
+function MetricMenuSheet({ metric, onClose, onEdit, onDelete }: {
+  metric: MetricOut; onClose: () => void; onEdit: (m: MetricOut) => void; onDelete: (m: MetricOut) => void;
+}) {
+  return (
+    <Sheet onClose={onClose}>
+      <div className="hmenu-list">
+        <button className="hmenu-item" onClick={() => onEdit(metric)}>
+          <span className="hmenu-ico"><IcoEdit /></span><span>Изменить</span>
+        </button>
+        <button className="hmenu-item" data-danger="" onClick={() => onDelete(metric)}>
+          <span className="hmenu-ico"><IcoTrash /></span><span>Удалить метрику</span>
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
 // Общие поля формы метрики (Новая/Изменить) — единый чистый макет с подписями.
 function MetricFields({ name, setName, unit, setUnit, dir, setDir, color, setColor, namePlaceholder }: {
   name: string; setName: (v: string) => void; unit: string; setUnit: (v: string) => void;
@@ -1114,12 +1147,11 @@ function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated
 }
 
 // #8 — деталь метрики: график + период (7/30/Год) + лог замеров (свайп-удалить) + замер + edit/delete.
-function MetricDetail({ metric, onClose, onChange, onDelete }: {
-  metric: MetricOut; onClose: () => void; onChange: (m: MetricOut) => void; onDelete: (m: MetricOut) => void;
+function MetricDetail({ metric, onClose, onChange, onMenu }: {
+  metric: MetricOut; onClose: () => void; onChange: (m: MetricOut) => void; onMenu: (m: MetricOut) => void;
 }) {
   const [period, setPeriod] = useState<7 | 30 | 365>(30);
   const [measuring, setMeasuring] = useState(false);
-  const [edit, setEdit] = useState(false);
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - period);
   const inRange = metric.entries.filter((e) => new Date(e.entry_date + "T00:00:00") >= cutoff);
   const chrono = [...inRange].reverse(); // старые→новые для графика
@@ -1138,7 +1170,7 @@ function MetricDetail({ metric, onClose, onChange, onDelete }: {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 12px 10px", borderBottom: "1px solid var(--border)" }}>
         <button onClick={onClose} aria-label="Назад" style={{ background: "none", border: "none", color: "var(--accent)", fontSize: 28, lineHeight: 1, cursor: "pointer", width: 36 }}>‹</button>
         <span style={{ fontWeight: 600 }}>Метрика</span>
-        <button onClick={() => setEdit(true)} aria-label="Изменить" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", width: 36, fontSize: 22 }}>⋯</button>
+        <button onClick={() => onMenu(metric)} aria-label="Действия" style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", width: 36, fontSize: 22 }}>⋯</button>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 14px 28px" }}>
         <div style={{ marginBottom: 12 }}>
@@ -1175,12 +1207,8 @@ function MetricDetail({ metric, onClose, onChange, onDelete }: {
             </span>
           </div>
         ))}
-        <div style={{ marginTop: 22 }}>
-          <button className="hcard" onClick={() => onDelete(metric)} style={{ textAlign: "left", cursor: "pointer", color: "var(--danger)", border: "1px solid rgba(255,92,92,.4)", fontSize: 14, width: "100%" }}>Удалить метрику</button>
-        </div>
       </div>
       {measuring && <MeasureSheet metric={metric} onClose={() => setMeasuring(false)} onSaved={(m) => { onChange(m); setMeasuring(false); }} />}
-      {edit && <EditMetricSheet metric={metric} onClose={() => setEdit(false)} onSaved={(m) => { onChange(m); setEdit(false); }} />}
     </div>
   );
 }
