@@ -1040,6 +1040,42 @@ function HabitMenuSheet({ habit, onClose, onEdit, onArchive, onDelete }: {
   );
 }
 
+// Общие поля формы метрики (Новая/Изменить) — единый чистый макет с подписями.
+function MetricFields({ name, setName, unit, setUnit, dir, setDir, color, setColor, namePlaceholder }: {
+  name: string; setName: (v: string) => void; unit: string; setUnit: (v: string) => void;
+  dir: "up" | "down"; setDir: (v: "up" | "down") => void; color: string; setColor: (v: string) => void;
+  namePlaceholder?: string;
+}) {
+  return (
+    <>
+      <FieldLbl>Название</FieldLbl>
+      <input className="input" placeholder={namePlaceholder} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+
+      <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <FieldLbl>Единица</FieldLbl>
+          <input className="input" placeholder="кг" value={unit} onChange={(e) => setUnit(e.target.value)} />
+        </div>
+        <div style={{ flex: 1.35 }}>
+          <FieldLbl>«Хорошо» — это</FieldLbl>
+          <div className="seg" style={{ marginBottom: 0 }}>
+            <button className={dir === "down" ? "seg-on" : ""} onClick={() => setDir("down")}>↓ меньше</button>
+            <button className={dir === "up" ? "seg-on" : ""} onClick={() => setDir("up")}>↑ больше</button>
+          </div>
+        </div>
+      </div>
+
+      <FieldLbl>Цвет линии</FieldLbl>
+      <div style={{ display: "flex", gap: 12 }}>
+        {HABIT_PALETTE.map((c) => (
+          <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
+            style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
+        ))}
+      </div>
+    </>
+  );
+}
+
 function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated: (m: MetricOut) => void }) {
   const [name, setName] = useState("");
   const [unit, setUnit] = useState("");
@@ -1052,22 +1088,9 @@ function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated
   return (
     <Sheet onClose={onClose}>
         <div className="sheet-title">Новая метрика</div>
-        <input className="input" placeholder="Напр. «Вес»" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <input className="input" placeholder="Ед. (кг)" value={unit} onChange={(e) => setUnit(e.target.value)} />
-          <div className="seg" style={{ flex: 1 }}>
-            <button className={dir === "down" ? "seg-on" : ""} onClick={() => setDir("down")}>↓ меньше</button>
-            <button className={dir === "up" ? "seg-on" : ""} onClick={() => setDir("up")}>↑ больше</button>
-          </div>
-        </div>
-        <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "14px 0 6px" }}>Цвет линии</div>
-        <div style={{ display: "flex", gap: 10 }}>
-          {HABIT_PALETTE.map((c) => (
-            <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
-              style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
-          ))}
-        </div>
-        <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={submit}>Создать метрику</button>
+        <MetricFields name={name} setName={setName} unit={unit} setUnit={setUnit}
+          dir={dir} setDir={setDir} color={color} setColor={setColor} namePlaceholder="Напр. «Вес»" />
+        <button className="btn-primary" style={{ marginTop: 20, width: "100%" }} onClick={submit}>Создать метрику</button>
     </Sheet>
   );
 }
@@ -1166,22 +1189,9 @@ function EditMetricSheet({ metric, onClose, onSaved }: { metric: MetricOut; onCl
   return (
     <Sheet onClose={onClose}>
         <div className="sheet-title">Изменить метрику</div>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-        <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-          <input className="input" placeholder="Ед." value={unit} onChange={(e) => setUnit(e.target.value)} />
-          <div className="seg" style={{ flex: 1 }}>
-            <button className={dir === "down" ? "seg-on" : ""} onClick={() => setDir("down")}>↓ меньше</button>
-            <button className={dir === "up" ? "seg-on" : ""} onClick={() => setDir("up")}>↑ больше</button>
-          </div>
-        </div>
-        <div style={{ fontSize: 11, color: "var(--text-muted)", margin: "14px 0 6px" }}>Цвет линии</div>
-        <div style={{ display: "flex", gap: 10 }}>
-          {HABIT_PALETTE.map((c) => (
-            <button key={c} onClick={() => setColor(c)} aria-label={`цвет ${c}`}
-              style={{ width: 30, height: 30, borderRadius: "50%", background: c, border: color === c ? "2.5px solid var(--text)" : "2.5px solid transparent", cursor: "pointer" }} />
-          ))}
-        </div>
-        <button className="btn-primary" style={{ marginTop: 16, width: "100%" }} onClick={save}>Сохранить</button>
+        <MetricFields name={name} setName={setName} unit={unit} setUnit={setUnit}
+          dir={dir} setDir={setDir} color={color} setColor={setColor} namePlaceholder="Название метрики" />
+        <button className="btn-primary" style={{ marginTop: 20, width: "100%" }} onClick={save}>Сохранить</button>
     </Sheet>
   );
 }
