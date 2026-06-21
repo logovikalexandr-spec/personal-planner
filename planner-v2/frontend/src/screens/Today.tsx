@@ -208,6 +208,10 @@ export function Today({
     [tasks],
   );
 
+  // Раскрытие/сворачивание all-day меняет высоту шапки → таймлайн (GPU-clip фикс-высоты от rect.top)
+  // должен пересчитать клип, иначе перекрывается. Дёргаем resize после коммита раскладки.
+  useEffect(() => { window.dispatchEvent(new Event("resize")); }, [alldayExpanded]);
+
   // Прыжок к now-линии теперь делает DayTimeline (GPU-transform скролл) по сигналу-ключу.
   const [scrollNowKey, setScrollNowKey] = useState(0);
   const jumpNow = useCallback(() => setScrollNowKey((k) => k + 1), []);
@@ -308,7 +312,20 @@ export function Today({
           </div>
           {allday.length > 0 && (
             <div className="cal-allday today-pad" data-testid="allday">
-              <span className="cal-allday-label">весь<br />день</span>
+              <div className="cal-allday-label">
+                <span>весь<br />день</span>
+                {allday.length > 2 && (
+                  <button
+                    className="cal-allday-toggle"
+                    data-testid="btn-allday-toggle"
+                    onClick={() => setAlldayExpanded((v) => !v)}
+                    aria-label={alldayExpanded ? "свернуть" : "развернуть"}
+                  >
+                    <span className={`chev ${alldayExpanded ? "up" : ""}`}><IcoChevronDown /></span>
+                    {!alldayExpanded && <span className="n">{allday.length - 2}</span>}
+                  </button>
+                )}
+              </div>
               <div className="cal-allday-chips">
                 {(alldayExpanded ? allday : allday.slice(0, 2)).map((t) => {
                   const c = resolveColor(t.project_id, byId);
@@ -327,11 +344,6 @@ export function Today({
                     </button>
                   );
                 })}
-                {!alldayExpanded && allday.length > 2 && (
-                  <button className="cal-chip cal-chip-more" data-testid="btn-allday-expand" onClick={() => setAlldayExpanded(true)}>
-                    +{allday.length - 2} ещё
-                  </button>
-                )}
               </div>
             </div>
           )}
