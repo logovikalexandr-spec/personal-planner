@@ -339,7 +339,7 @@ function RingPct({ pct }: { pct: number }) {
 }
 
 function RetroView({ retro, metrics, onTaskToggle }: { retro: RetroOut | null; metrics: MetricOut[]; onTaskToggle: (t: Task) => void }) {
-  const [odOpen, setOdOpen] = useState(true);
+  const [odOpen, setOdOpen] = useState(false); // просрочка в Ретро свёрнута по умолчанию
   if (!retro) return <Empty text="Нет данных за неделю. Отмечай задачи и привычки." />;
 
   const { tasks, habits } = retro;
