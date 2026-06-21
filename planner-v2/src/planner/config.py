@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     mini_app_initdata_max_age_sec: int = 86400
     mini_app_dist_dir: str = "frontend/dist"
     log_level: str = "INFO"
+    # PWA (вход вне Telegram): device-токен + URL приложения для команды /applink.
+    # pwa_token=None → PWA-вход выключен (только Telegram initData).
+    pwa_token: str | None = None
+    pwa_app_url: str = "https://planner.188.245.42.4.nip.io/app/"
 
 
 @lru_cache

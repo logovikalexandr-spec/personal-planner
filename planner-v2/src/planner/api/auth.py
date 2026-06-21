@@ -89,12 +89,29 @@ def verify_init_data(
     )
 
 
+def _bearer_token(authorization: str | None) -> str | None:
+    """Достаёт токен из заголовка `Authorization: Bearer <token>` (None если не Bearer)."""
+    if not authorization:
+        return None
+    scheme, _, value = authorization.partition(" ")
+    return value.strip() if scheme.lower() == "bearer" and value.strip() else None
+
+
 async def require_owner(
     x_telegram_init_data: Annotated[str | None, Header()] = None,
+    authorization: Annotated[str | None, Header()] = None,
     settings: Settings = Depends(get_settings),
 ) -> TelegramUser:
+    # PWA-путь: device-токен (вход вне Telegram). Постоянное сравнение против тайминг-атак.
+    bearer = _bearer_token(authorization)
+    if settings.pwa_token and bearer and hmac.compare_digest(bearer, settings.pwa_token):
+        return TelegramUser(
+            id=settings.owner_telegram_id,
+            first_name=None, last_name=None, username=None, language_code=None,
+        )
+    # Telegram-путь: подпись initData.
     if not x_telegram_init_data:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "X-Telegram-Init-Data header is required")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "auth required (Telegram initData or PWA token)")
     try:
         return verify_init_data(
             x_telegram_init_data,

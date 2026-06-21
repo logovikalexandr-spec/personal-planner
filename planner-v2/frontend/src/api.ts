@@ -1,16 +1,14 @@
-import { tg } from "./telegram";
+import { authHeaders } from "./lib/auth";
 import type {
   AiNote, CheckItem, Counts, HabitInput, HabitOut, InboxItem, MetricInput, MetricOut,
   Milestone, Priority, Project, RecurrenceJson,
   Reminder, ReminderInput, Stage, Tag, Task, TaskDetail,
 } from "./types";
 
-function initData(): string { return tg()?.initData ?? ""; }
-
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const r = await fetch(path, {
     ...init,
-    headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initData(), ...(init?.headers ?? {}) },
+    headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers ?? {}) },
   });
   if (!r.ok) throw new Error(`${path} -> ${r.status}`);
   return r.json() as Promise<T>;
@@ -19,7 +17,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 async function reqVoid(path: string, init?: RequestInit): Promise<void> {
   const r = await fetch(path, {
     ...init,
-    headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initData(), ...(init?.headers ?? {}) },
+    headers: { "Content-Type": "application/json", ...authHeaders(), ...(init?.headers ?? {}) },
   });
   if (!r.ok) throw new Error(`${path} -> ${r.status}`);
 }
