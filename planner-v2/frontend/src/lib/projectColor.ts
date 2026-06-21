@@ -11,11 +11,13 @@ export function resolveColor(projectId: number | null | undefined, byId: Map<num
   return null;
 }
 
-/** Цвет приоритета (канта блока недели/строки). null = без полосы (приоритет none). */
+/** ЕДИНЫЙ источник цвета приоритета (канон владельца 2026-06-20): high=красный, medium=ember,
+ *  low=синий, none=без полосы. Держать в синхроне с pickers.PRIORITY_COLOR и theme.css .prio-*.
+ *  Все виды (таймлайн/неделя/Гант/списки) берут отсюда — иначе цвет «криво» расходится. */
 export function priorityColor(p: string): string | null {
   if (p === "high") return "var(--danger)";
-  if (p === "medium") return "var(--warning)";
-  if (p === "low") return "var(--accent)";
+  if (p === "medium") return "var(--accent)";
+  if (p === "low") return "var(--blue)";
   return null;
 }
 
