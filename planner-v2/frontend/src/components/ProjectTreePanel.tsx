@@ -122,7 +122,7 @@ export function ProjectTreePanel({
   }
   function requestDelete(p: Project) {
     setMenuFor(null);
-    confirmDialog(`Удалить «${p.name}»? Задачи уйдут во Входящие.`).then((ok) => {
+    confirmDialog(`Удалить «${p.name}»?`, { body: "Задачи уйдут во «Входящие»." }).then((ok) => {
       if (ok) deleteProject(p.id).then(loadProjects);
     });
   }
