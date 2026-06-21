@@ -27,6 +27,57 @@ def test_heat_level_gradient():
     assert svc.habit_heat_level("check", 0, None) == 0
 
 
+# ── чистый стрик под расписание ───────────────────────────────────────────── #
+def test_streak_daily_pure():
+    today = date(2026, 6, 12)
+    done = {today - timedelta(days=i) for i in range(3)}  # сегодня..-2
+    assert svc.compute_streak_pure(done, today, "daily", None, None) == 3
+    # сегодня не отмечено → дневной стрик 0
+    assert svc.compute_streak_pure(done - {today}, today, "daily", None, None) == 0
+
+
+def test_streak_by_days_skips_offdays():
+    today = date(2026, 6, 12)  # пятница
+    sched = [0, 2, 4]  # Пн/Ср/Пт
+    done = {date(2026, 6, 12), date(2026, 6, 10), date(2026, 6, 8)}  # Пт/Ср/Пн
+    # выходные/Вт/Чт вне графика — серию не рвут
+    assert svc.compute_streak_pure(done, today, "by_days", sched, None) == 3
+
+
+def test_streak_by_days_today_grace():
+    today = date(2026, 6, 12)  # пятница, плановый, ещё НЕ отмечен
+    sched = [0, 2, 4]
+    done = {date(2026, 6, 10), date(2026, 6, 8)}  # Ср/Пн
+    assert svc.compute_streak_pure(done, today, "by_days", sched, None) == 2
+
+
+def test_streak_by_days_breaks_on_missed_plan_day():
+    today = date(2026, 6, 12)
+    sched = [0, 2, 4]
+    # Ср 10 пропущен → серия = только Пт сегодня
+    done = {date(2026, 6, 12), date(2026, 6, 8)}
+    assert svc.compute_streak_pure(done, today, "by_days", sched, None) == 1
+
+
+def test_streak_weekly_n_counts_weeks():
+    today = date(2026, 6, 12)  # неделя 08–14
+    done = {
+        date(2026, 6, 8), date(2026, 6, 10), date(2026, 6, 12),   # тек. неделя = 3
+        date(2026, 6, 1), date(2026, 6, 3), date(2026, 6, 5),     # пред. неделя = 3
+    }
+    assert svc.compute_streak_pure(done, today, "weekly_n", None, 3) == 2
+
+
+def test_streak_weekly_n_current_week_grace():
+    today = date(2026, 6, 12)
+    done = {
+        date(2026, 6, 12),                                        # тек. неделя = 1 (<3, недобор)
+        date(2026, 6, 1), date(2026, 6, 3), date(2026, 6, 5),     # пред. = 3
+    }
+    # недобор текущей недели не рвёт серию, но и не считается
+    assert svc.compute_streak_pure(done, today, "weekly_n", None, 3) == 1
+
+
 # ── БД ────────────────────────────────────────────────────────────────────── #
 @pytest.mark.asyncio
 async def test_create_and_list_habit(db_session):

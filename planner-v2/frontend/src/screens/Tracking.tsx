@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { tg } from "../telegram";
@@ -58,18 +59,65 @@ function StreakRing({ pct, num, color }: { pct: number; num: number; color: stri
   );
 }
 
+// дни недели Пн..Вс (индекс 0=Пн, как schedule_days/week бэка)
+const DOW = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+// русское склонение: plural(2,["день","дня","дней"]) → "дня"
+function plural(n: number, forms: [string, string, string]): string {
+  const a = Math.abs(n) % 100, b = a % 10;
+  if (a > 10 && a < 20) return forms[2];
+  if (b > 1 && b < 5) return forms[1];
+  if (b === 1) return forms[0];
+  return forms[2];
+}
+// сколько дней осталось до даты (вкл. сегодня = 0); null если нет даты
+function daysLeftTo(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(iso + "T00:00:00");
+  return Math.max(0, Math.round((d.getTime() - today.getTime()) / 86400000));
+}
+
 function HabitCard({ h, onToggle, onCount, onOpen, onMenu }: {
   h: HabitOut; onToggle: (h: HabitOut) => void; onCount: (h: HabitOut) => void;
   onOpen: (h: HabitOut) => void; onMenu: (h: HabitOut) => void;
 }) {
-  const weekDone = h.week.filter(Boolean).length;
-  const isGoal = h.goal_total != null && h.goal_total > 0;
+  const sk = (h.schedule_kind || "daily") as "daily" | "weekly_n" | "by_days" | "goal_date";
   const isCount = h.mark_type === "count";
+  const isGoalDate = sk === "goal_date";
+  const goalTotal = h.goal_total ?? 0;
+  const weekDone = h.week.filter(Boolean).length;
+  const days = h.schedule_days ?? [];
+
+  // недельная цель + выполнено под тип расписания
+  const wkTarget = sk === "weekly_n" ? (h.schedule_n ?? 3)
+    : sk === "by_days" ? (days.length || 7)
+      : 7;
+  const wkDone = sk === "by_days" ? days.filter((d) => h.week[d]).length : weekDone;
+
   // edge #11: стрик прерван (был рекорд) / цель-дата достигнута
   const broken = !isCount && h.streak === 0 && h.record_streak > 0 && !h.done_today;
-  const reached = isGoal && h.goal_total != null && h.streak >= h.goal_total;
-  const pct = reached ? 1 : isGoal ? h.streak / (h.goal_total as number) : weekDone / 7;
+  const reached = isGoalDate && goalTotal > 0 && h.streak >= goalTotal;
+  // заполнение кольца под тип
+  const pct = reached ? 1
+    : isGoalDate ? (goalTotal ? h.streak / goalTotal : 0)
+      : wkTarget ? wkDone / wkTarget : 0;
   const ringColor = broken ? "var(--text-muted)" : h.color;
+  const daysLeft = isGoalDate ? daysLeftTo(h.goal_date) : null;
+
+  // строка стрика под тип расписания
+  let streakNode: ReactNode;
+  if (broken) streakNode = <>стрик прерван · рекорд был {h.record_streak}</>;
+  else if (reached) streakNode = <>цель достигнута · {goalTotal}/{goalTotal} ✓</>;
+  else if (isGoalDate)
+    streakNode = <><b>{h.streak} / {goalTotal} {plural(goalTotal, ["день", "дня", "дней"])}</b>
+      {daysLeft != null ? ` · осталось ${daysLeft} ${plural(daysLeft, ["день", "дня", "дней"])}` : ""}</>;
+  else if (sk === "weekly_n")
+    streakNode = h.streak > 0
+      ? <><b>{h.streak} {plural(h.streak, ["неделя", "недели", "недель"])}</b> подряд</>
+      : <>{wkDone}/{wkTarget} на этой неделе</>;
+  else
+    streakNode = <><b>{h.streak} {plural(h.streak, ["день", "дня", "дней"])}</b>{" "}
+      {h.done_today ? "подряд" : "· сегодня ещё нет"}</>;
 
   // long-press → контекст-меню; тап → деталь (подавляем клик после long-press)
   const lp = useRef<number | null>(null);
@@ -87,11 +135,7 @@ function HabitCard({ h, onToggle, onCount, onOpen, onMenu }: {
           <div className="hc-name">{h.name}</div>
           <div className="hc-streak" style={broken ? { color: "var(--danger)" } : reached ? { color: h.color } : undefined}>
             {!broken && <Flame />}
-            <span>
-              {broken ? <>стрик прерван · рекорд был {h.record_streak}</>
-                : reached ? <>цель достигнута · {h.goal_total}/{h.goal_total} ✓</>
-                : <><b>{h.streak} {h.streak === 1 ? "день" : "дней"}</b>{" "}{isGoal ? `· цель ${h.goal_total}` : h.done_today ? "подряд" : "· сегодня ещё нет"}</>}
-            </span>
+            <span>{streakNode}</span>
           </div>
         </div>
         {isCount ? (
@@ -112,11 +156,28 @@ function HabitCard({ h, onToggle, onCount, onOpen, onMenu }: {
           сегодня: <b>{h.today_value}{h.unit ? ` ${h.unit}` : ""}</b>
           {h.target ? ` / ${h.target}${h.unit ? ` ${h.unit}` : ""}` : ""}
         </div>
-      ) : isGoal ? (
+      ) : isGoalDate ? (
         <>
           <div className="hpbar"><i style={{ width: `${Math.min(100, pct * 100)}%` }} /></div>
-          <div className="hpgoal">до цели: <b>{h.streak} / {h.goal_total} дней</b></div>
+          <div className="hpgoal">до цели: <b>{h.streak} / {goalTotal} {plural(goalTotal, ["день", "дня", "дней"])}</b></div>
         </>
+      ) : sk === "by_days" ? (
+        <div className="wkrow wkrow--days">
+          {days.map((d) => (
+            <span key={d} className="wkday">
+              <i className={h.week[d] ? "fill" : ""} style={{ ["--c" as string]: h.color }} />
+              <em>{DOW[d]}</em>
+            </span>
+          ))}
+          <span className="wklbl">{wkDone >= days.length && days.length > 0 ? "неделя закрыта ✓" : `${wkDone} / ${days.length} за неделю`}</span>
+        </div>
+      ) : sk === "weekly_n" ? (
+        <div className="wkrow">
+          {Array.from({ length: wkTarget }).map((_, i) => (
+            <i key={i} className={i < wkDone ? "fill" : ""} style={{ ["--c" as string]: h.color }} />
+          ))}
+          <span className="wklbl">{wkDone >= wkTarget ? "цель недели ✓" : `${wkDone} / ${wkTarget} за неделю`}</span>
+        </div>
       ) : (
         <div className="wkrow">
           {h.week.map((on, i) => <i key={i} className={on ? "fill" : ""} style={{ ["--c" as string]: h.color }} />)}
@@ -691,7 +752,7 @@ function NewHabitSheet({ onClose, onCreated }: { onClose: () => void; onCreated:
 
 // ── #2 Деталь привычки: hero-кольцо, stats, месяц-календарь+бэкфилл, действия (T5-flows #2/#9) ──
 const MONTHS_NOM = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-const HABIT_PALETTE = ["#EE8A3C", "#5B8DEF", "#3FB68B", "#E0B341", "#9B6BE0", "#E0556E"];
+const HABIT_PALETTE = ["#EE8A3C", "#5B8DEF", "#3FB68B", "#E0B341", "#9B6BE0", "#E0556E"]; // hex-allowlist (палитра цветов привычек)
 
 function mixColor(hex: string, level: number): string {
   const a = [0.32, 0.5, 0.72, 1][Math.max(1, Math.min(4, level)) - 1];
@@ -793,7 +854,7 @@ function HabitDetail({ habit, onClose, onChange, onEdit, onArchive, onDelete }: 
                   aspectRatio: "1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center",
                   fontSize: 12, fontFamily: "var(--font-mono)",
                   background: level > 0 ? mixColor(habit.color, level) : "var(--surface-2)",
-                  color: level > 0 ? "#fff" : "var(--text-muted)",
+                  color: level > 0 ? "#fff" : "var(--text-muted)", // hex-allowlist (контраст-текст на залитой ячейке)
                   opacity: isFuture ? 0.3 : 1,
                   border: isToday ? `1.5px solid ${habit.color}` : "1.5px solid transparent",
                   cursor: canBackfill ? "pointer" : "default",
