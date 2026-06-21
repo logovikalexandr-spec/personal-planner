@@ -3,22 +3,8 @@ import { TaskItem } from "./TaskItem";
 import { BatchBar } from "./BatchBar";
 import { IcoChevron } from "./icons";
 import { groupByProject } from "../lib/groupByProject";
-import { flatten } from "../lib/projectTree";
+import { cmpSmartTask, projectRankMap } from "../lib/taskSort";
 import type { Project, Task } from "../types";
-
-// Сортировка задач внутри группы смарт-списка: приоритет ↓, дата ↑ (старше сверху), время ↑.
-// Задачи без даты/времени — в конец своей приоритет-группы.
-const PRIO_RANK: Record<Task["priority"], number> = { high: 3, medium: 2, low: 1, none: 0 };
-function cmpSmartTask(a: Task, b: Task): number {
-  const pr = PRIO_RANK[b.priority] - PRIO_RANK[a.priority];
-  if (pr) return pr;
-  const da = a.due_date ?? "9999-99-99", db = b.due_date ?? "9999-99-99";
-  if (da !== db) return da < db ? -1 : 1;
-  const ta = a.due_time ?? "99:99", tb = b.due_time ?? "99:99";
-  if (ta !== tb) return ta < tb ? -1 : 1;
-  return a.id - b.id;   // стабильный тайбрейк (id неизменен) → позиция детерминирована,
-                        // отметка «готово»/рефетч НЕ перетасовывают задачу — стоит там же
-}
 
 // Волна 2 F2 — общий рендер списка задач: свайпы + long-press multi-select + batch-панель
 // + свёрнутая секция «Выполнено и Won't Do». ОДНО поведение везде (PATTERNS):
@@ -59,12 +45,8 @@ export function TaskListBody({
     if (!groupByProjectMap) return null;
     const gs = groupByProject(tasks, groupByProjectMap);
     gs.forEach((g) => g.tasks.sort(cmpSmartTask));
-    // ранг проекта по тому же обходу дерева, что рисует шторка (flatten развёрнутого дерева)
-    const all = [...groupByProjectMap.values()].sort(
-      (a, b) => Number(b.pinned) - Number(a.pinned) || a.order_index - b.order_index || a.name.localeCompare(b.name),
-    );
-    const rank = new Map<number, number>();
-    flatten(all).forEach((p, i) => rank.set(p.id, i));
+    // ранг проекта по тому же обходу дерева, что рисует шторка (общий источник)
+    const rank = projectRankMap(groupByProjectMap);
     return gs.sort((a, b) => {
       if (!a.project) return 1;            // «Без проекта» — всегда в конец
       if (!b.project) return -1;
