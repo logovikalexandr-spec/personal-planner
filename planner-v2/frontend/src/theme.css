@@ -223,8 +223,12 @@ input, textarea, [contenteditable="true"] {
   animation: fade-in 200ms ease;
 }
 .drawer {
-  position: fixed; top: 0; left: 0; bottom: 0; width: 84%; max-width: 360px; z-index: 61;
-  background: var(--surface); padding: calc(env(safe-area-inset-top) + var(--s5)) 0 var(--s4);
+  /* height:100dvh (вьюпорт-юнит), НЕ bottom:0 — при открытой шторке body=position:fixed (scroll-lock)
+     короче вьюпорта, и bottom:0 на iOS standalone резолвится по укороченному body → панель
+     обрывалась, снизу чёрный провал. dvh всегда = полный экран. + safe-area-bottom под дом-бар. */
+  position: fixed; top: 0; left: 0; height: 100dvh; width: 84%; max-width: 360px; z-index: 61;
+  background: var(--surface);
+  padding: calc(env(safe-area-inset-top) + var(--s5)) 0 calc(var(--s4) + env(safe-area-inset-bottom));
   overflow-y: auto; display: flex; flex-direction: column;
   box-shadow: 8px 0 30px rgba(0, 0, 0, 0.5);
   animation: drawer-in 240ms cubic-bezier(0.22, 1, 0.36, 1);
