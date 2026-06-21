@@ -1211,7 +1211,10 @@ body.inline-draft .fab { display: none; }
 .hcard {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 14px 15px; margin-bottom: var(--s3); position: relative; overflow: hidden;
+  transition: transform .13s ease, background .13s ease;
 }
+/* визуальная реакция на удержание карточки (long-press) */
+.hcard.pressed, .mrow.pressed { transform: scale(0.975); background: var(--surface-2); }
 .hcard::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c); }
 .hc-row { display: flex; align-items: center; gap: 13px; }
 .hc-body { flex: 1; min-width: 0; }
@@ -1305,7 +1308,7 @@ body.inline-draft .fab { display: none; }
 
 /* список метрик — полноширинные строки в столбик (мокап T5 .mrow) */
 .mlist { margin-bottom: var(--s5); }
-.mrow { background: var(--surface); border: 1px solid var(--border); border-radius: 15px; padding: 13px 15px; margin-bottom: 10px; cursor: pointer; }
+.mrow { background: var(--surface); border: 1px solid var(--border); border-radius: 15px; padding: 13px 15px; margin-bottom: 10px; cursor: pointer; transition: transform .13s ease, background .13s ease; }
 .mrow .mtop { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
 .mrow .mn { font-size: 15.5px; font-weight: 600; }
 .mrow .mn span { color: var(--text-muted); font-weight: 500; font-size: 11px; font-family: var(--font-mono); margin-left: 5px; }
