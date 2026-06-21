@@ -1,6 +1,8 @@
 import type { Priority } from "../types";
 
-export const HOUR_H = 56;
+export const HOUR_H = 96;   // высота часа в таймлайне. 96 (было 56): 15-мин слот = 24px ≥ min-height 22px →
+                            // короткие задачи читаемы, без наложения «каши» (07:00 Подъём/Душ/Медитация/Валик).
+                            // Все px-расчёты и now-линия/скролл производны от HOUR_H → масштабируются автоматически.
 export const STEP_MIN = 15;
 export const PX_PER_MIN = HOUR_H / 60;
 export const DAY_END = 24 * 60;

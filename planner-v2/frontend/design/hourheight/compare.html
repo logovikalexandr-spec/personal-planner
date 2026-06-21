@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Высота часа — сравнение</title>
+<style>
+  :root{ --bg:#0F0F11; --s2:#19191d; --border:#27272c; --text:#f4f4f5; --muted:#8a8a92;
+         --accent:#EE8A3C; --danger:#E0556E; --warning:#E0B341; --health:#3FB68B; }
+  *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,Geist,Inter,system-ui,sans-serif;}
+  .wrap{display:flex;gap:14px;padding:16px;align-items:flex-start;}
+  .col{flex:1;min-width:0;}
+  .col h3{font-size:13px;color:var(--muted);font-weight:600;margin:0 0 2px 4px;}
+  .col h3 b{color:var(--accent);}
+  .col .note{font-size:11px;color:var(--muted);margin:0 0 8px 4px;}
+  .tl{position:relative;background:var(--bg);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  .hour{position:relative;border-top:1px solid var(--border);}
+  .hour:first-child{border-top:none}
+  .hlabel{position:absolute;left:6px;top:2px;font-size:10px;color:var(--muted);font-family:Geist Mono,ui-monospace,monospace;}
+  .blk{position:absolute;left:44px;right:6px;border-radius:8px;overflow:hidden;
+       background:var(--s2);border-left:3px solid transparent;padding:3px 8px;display:flex;flex-direction:column;gap:1px;justify-content:center;}
+  .blk .bt{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15;}
+  .blk .bm{font-size:11px;color:var(--muted);font-family:Geist Mono,monospace;white-space:nowrap;overflow:hidden;}
+  .cb{position:absolute;left:-26px;top:50%;transform:translateY(-50%);width:17px;height:17px;border:2px solid var(--muted);border-radius:50%;}
+  .blkwrap{position:absolute;}
+</style></head>
+<body>
+<div class="wrap" id="wrap"></div>
+<script>
+const HEIGHTS = [
+  {h:56,  title:"Сейчас", note:"56px/час · 15мин=14px"},
+  {h:96,  title:"Просторнее", note:"96px/час · 15мин=24px"},
+  {h:120, title:"Крупно", note:"120px/час · 15мин=30px"},
+];
+// утренние задачи (как на скрине). min=минуты от 00:00, dur=длительность
+const START=6, END=12; // окно 06:00–12:00
+const TASKS = [
+  {t:"🧘 Подъём",        s:7*60+0,  d:15, c:"--health", p:"--warning"},
+  {t:"🚿 Душ",           s:7*60+15, d:15, c:"--health", p:"--warning"},
+  {t:"🕉 Медитация",     s:7*60+30, d:15, c:"--health", p:"--warning"},
+  {t:"🧘 Валик-протокол",s:7*60+45, d:15, c:"--health", p:"--warning"},
+  {t:"🧘 Завтрак",       s:8*60+0,  d:30, c:"--health", p:"--warning"},
+  {t:"🏋 Зал",           s:8*60+30, d:60, c:"--health", p:"--danger"},
+  {t:"📦 Созвон по Стокам",s:10*60+15,d:60,c:"--accent", p:"--danger"},
+];
+function hhmm(m){return String(Math.floor(m/60)).padStart(2,'0')+":"+String(m%60).padStart(2,'0');}
+function build(H){
+  const px=H.h/60, top0=START*60;
+  const col=document.createElement('div');col.className='col';
+  col.innerHTML=`<h3>${H.title? '':''}</h3>`;
+  const head=document.createElement('div');
+  head.innerHTML=`<h3>${H.title}</h3><div class="note">${H.note}</div>`;
+  const tl=document.createElement('div');tl.className='tl';
+  tl.style.height=((END-START)*60*px)+'px';
+  for(let h=START;h<END;h++){
+    const hr=document.createElement('div');hr.className='hour';hr.style.height=(60*px)+'px';
+    hr.innerHTML=`<span class="hlabel">${String(h).padStart(2,'0')}:00</span>`;
+    tl.appendChild(hr);
+  }
+  TASKS.forEach(tk=>{
+    const wrap=document.createElement('div');wrap.className='blkwrap';
+    const blkTop=(tk.s-top0)*px+1;
+    const blkH=Math.max(tk.d*px-2, 22);
+    wrap.style.top=blkTop+'px';wrap.style.left='0';wrap.style.right='0';wrap.style.height=blkH+'px';
+    const b=document.createElement('div');b.className='blk';
+    b.style.top='0';b.style.bottom='0';
+    b.style.background=`color-mix(in srgb, var(${tk.c}) 13%, var(--bg))`;
+    b.style.borderLeftColor=`var(${tk.p})`;
+    const showTime = blkH>=34;
+    b.innerHTML=`<span class="cb"></span><span class="bt">${tk.t}</span>`+(showTime?`<span class="bm">${hhmm(tk.s)}–${hhmm(tk.s+tk.d)}</span>`:``);
+    wrap.appendChild(b);tl.appendChild(wrap);
+  });
+  head.appendChild(tl);return head;
+}
+const wrap=document.getElementById('wrap');
+HEIGHTS.forEach(H=>{const c=document.createElement('div');c.className='col';c.appendChild(build(H));wrap.appendChild(c);});
+</script>
+</body></html>
