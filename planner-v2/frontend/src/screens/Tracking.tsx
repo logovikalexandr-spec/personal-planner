@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { Sheet } from "../components/Sheet";
+import { IcoEdit, IcoTrash } from "../components/icons";
 import { tg } from "../telegram";
 import {
   backfillHabit, completeTask, createHabit, createMetric, deleteHabit, deleteMetric, deleteMetricEntry,
@@ -942,23 +943,29 @@ function CountStepSheet({ habit, date, onClose, onSaved }: { habit: HabitOut; da
 }
 
 // #5 — контекст-меню привычки (long-press): Изменить / Архивировать / Удалить.
+const IcoArchive = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" /><path d="M10 12h4" />
+  </svg>
+);
+
 function HabitMenuSheet({ habit, onClose, onEdit, onArchive, onDelete }: {
   habit: HabitOut; onClose: () => void; onEdit: (h: HabitOut) => void; onArchive: (h: HabitOut) => void; onDelete: (h: HabitOut) => void;
 }) {
-  const Item = ({ label, fn, danger }: { label: string; fn: () => void; danger?: boolean }) => (
-    <button onClick={fn} style={{ textAlign: "left", cursor: "pointer", border: "1px solid var(--border)", borderRadius: 10, padding: "13px 14px", background: "var(--surface-2)", fontSize: 14, color: danger ? "var(--danger)" : "var(--text)" }}>{label}</button>
+  const Item = ({ icon, label, fn, danger }: { icon: ReactNode; label: string; fn: () => void; danger?: boolean }) => (
+    <button className="hmenu-item" data-danger={danger ? "" : undefined} onClick={fn}>
+      <span className="hmenu-ico">{icon}</span>
+      <span>{label}</span>
+    </button>
   );
   return (
-    <div className="sheet-scrim" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-title">{habit.name}</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 9, marginTop: 8 }}>
-          <Item label="Изменить" fn={() => onEdit(habit)} />
-          <Item label="Архивировать" fn={() => onArchive(habit)} />
-          <Item label="Удалить" fn={() => onDelete(habit)} danger />
-        </div>
+    <Sheet onClose={onClose}>
+      <div className="hmenu-list">
+        <Item icon={<IcoEdit />} label="Изменить" fn={() => onEdit(habit)} />
+        <Item icon={<IcoArchive />} label="Архивировать" fn={() => onArchive(habit)} />
+        <Item icon={<IcoTrash />} label="Удалить привычку" fn={() => onDelete(habit)} danger />
       </div>
-    </div>
+    </Sheet>
   );
 }
 
