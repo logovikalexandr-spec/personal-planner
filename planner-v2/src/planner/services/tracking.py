@@ -163,17 +163,83 @@ async def entries_map(session, habit_id: int, start: date, end: date) -> dict[da
     return {d: v for (d, v) in rows}
 
 
+# ── чистый расчёт стрика под тип расписания ───────────────────────────────── #
+# единицы: daily/by_days/goal_date → дни, weekly_n → недели.
+# done_days = множество дат с зачётом (уже отфильтровано habit_is_done).
+def _streak_daily(done_days: set[date], today: date) -> int:
+    """Подряд календарные дни до today (включ.). Сегодня не отмечено → стрик 0."""
+    streak, cur = 0, today
+    while cur in done_days:
+        streak += 1
+        cur -= timedelta(days=1)
+    return streak
+
+
+def _streak_by_days(done_days: set[date], today: date, sched: list[int]) -> int:
+    """Подряд ПЛАНОВЫЕ дни (sched: 0=Пн..6=Вс). Дни вне графика серию не рвут.
+    Сегодня — грейс: если плановый и ещё не отмечен, день не рвёт (он не закончился)."""
+    days = set(sched)
+    if not days:
+        return _streak_daily(done_days, today)
+    streak, cur, first = 0, today, True
+    # ограничиваем взгляд назад: разрыв на плановом не-сделанном дне всё равно завершит
+    while cur >= today - timedelta(days=370):
+        wd = cur.weekday()  # Пн=0..Вс=6 — совпадает с schedule_days
+        if wd in days:
+            if cur in done_days:
+                streak += 1
+            elif first and cur == today:
+                pass  # грейс сегодня
+            else:
+                break
+        cur -= timedelta(days=1)
+        first = False
+    return streak
+
+
+def _week_start(d: date) -> date:
+    return d - timedelta(days=d.weekday())
+
+
+def _streak_weekly_n(done_days: set[date], today: date, n: int) -> int:
+    """Подряд недели (Пн–Вс) с зачётом ≥ n дней. Текущая неделя: засчитывается только
+    если норма уже выполнена; недобор текущей недели серию не рвёт (она не закончилась)."""
+    n = max(1, n)
+
+    def week_count(ws: date) -> int:
+        we = ws + timedelta(days=6)
+        return sum(1 for d in done_days if ws <= d <= we)
+
+    streak = 0
+    ws = _week_start(today)
+    if week_count(ws) >= n:
+        streak += 1
+    ws -= timedelta(days=7)
+    while week_count(ws) >= n:
+        streak += 1
+        ws -= timedelta(days=7)
+    return streak
+
+
+def compute_streak_pure(
+    done_days: set[date], today: date, kind: str, sched: list[int] | None, n: int | None
+) -> int:
+    if kind == "weekly_n":
+        return _streak_weekly_n(done_days, today, n or 1)
+    if kind == "by_days":
+        return _streak_by_days(done_days, today, sched or [])
+    return _streak_daily(done_days, today)  # daily, goal_date
+
+
 async def compute_streak(session, habit: Habit, today: date) -> int:
-    """Текущий дневной стрик: подряд дни до today (включ.) с зачётом. Обновляет record_streak."""
+    """Текущий стрик с зачётом под schedule_kind. Обновляет record_streak."""
     rows = await session.execute(
         select(HabitEntry.entry_date, HabitEntry.value).where(HabitEntry.habit_id == habit.id)
     )
     done_days = {d for (d, v) in rows if habit_is_done(habit.mark_type, v, habit.target)}
-    streak = 0
-    cur = today
-    while cur in done_days:
-        streak += 1
-        cur = cur - timedelta(days=1)
+    streak = compute_streak_pure(
+        done_days, today, habit.schedule_kind or "daily", habit.schedule_days, habit.schedule_n
+    )
     if streak > habit.record_streak:
         habit.record_streak = streak
         await session.flush()

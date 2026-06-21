@@ -7,17 +7,30 @@ import { BottomTabs } from "./components/BottomTabs";
 // чтобы визуально сверить рабочий экран с мокапом T5-habits.html. НЕ прод.
 
 const HABITS = [
+  // daily — ежедневно, 7 пипов
   { id: 1, name: "Зарядка + валик", color: "#5B8DEF", mark_type: "check", target: null, unit: null, step: null,
     schedule_kind: "daily", schedule_n: null, schedule_days: null, goal_date: null, goal_total: null,
     record_streak: 21, archived: false, order_index: 0, today_value: 1, done_today: true, streak: 12,
     week: [true, true, true, true, true, false, false], heat7: [4, 4, 3, 4, 4, 1, 0] },
+  // count — дневная норма
   { id: 2, name: "Вода 2л", color: "#3FB68B", mark_type: "count", target: 2, unit: "л", step: 0.5,
     schedule_kind: "daily", schedule_n: null, schedule_days: null, goal_date: null, goal_total: null,
     record_streak: 9, archived: false, order_index: 1, today_value: 1.0, done_today: false, streak: 4,
     week: [true, true, true, false, true, false, false], heat7: [1, 2, 1, 0, 2, 1, 0] },
+  // by_days — Зал Пн/Вт/Чт/Пт (4 плановых дня), сделано Пн+Чт
+  { id: 4, name: "Зал 🏋️", color: "#EE8A3C", mark_type: "check", target: null, unit: null, step: null,
+    schedule_kind: "by_days", schedule_n: null, schedule_days: [0, 1, 3, 4], goal_date: null, goal_total: null,
+    record_streak: 14, archived: false, order_index: 2, today_value: 0, done_today: false, streak: 6,
+    week: [true, false, false, true, false, false, false], heat7: [4, 0, 0, 3, 0, 0, 0] },
+  // weekly_n — Бег 3 раза в неделю, сделано 2
+  { id: 5, name: "Бег", color: "#E0556E", mark_type: "check", target: null, unit: null, step: null,
+    schedule_kind: "weekly_n", schedule_n: 3, schedule_days: null, goal_date: null, goal_total: null,
+    record_streak: 7, archived: false, order_index: 3, today_value: 0, done_today: false, streak: 5,
+    week: [true, false, true, false, false, false, false], heat7: [3, 0, 4, 0, 0, 0, 0] },
+  // goal_date — обратный отсчёт к дате
   { id: 3, name: "Без травы", color: "#9B6BE0", mark_type: "check", target: null, unit: null, step: null,
-    schedule_kind: "goal_date", schedule_n: null, schedule_days: null, goal_date: "2026-06-22", goal_total: 16,
-    record_streak: 8, archived: false, order_index: 2, today_value: 1, done_today: true, streak: 8,
+    schedule_kind: "goal_date", schedule_n: null, schedule_days: null, goal_date: "2026-06-30", goal_total: 16,
+    record_streak: 8, archived: false, order_index: 4, today_value: 1, done_today: true, streak: 8,
     week: [true, true, true, true, true, true, true], heat7: [4, 4, 4, 4, 4, 4, 4] },
 ];
 const METRICS = [
