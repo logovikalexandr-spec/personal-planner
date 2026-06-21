@@ -99,10 +99,11 @@ function HabitCard({ h, onToggle, onCount, onOpen, onMenu }: {
   // edge #11: стрик прерван (был рекорд) / цель-дата достигнута
   const broken = !isCount && h.streak === 0 && h.record_streak > 0 && !h.done_today;
   const reached = isGoalDate && goalTotal > 0 && h.streak >= goalTotal;
-  // заполнение кольца под тип
+  // заполнение кольца под тип. count = прогресс дня (today_value/норма), подливается каждым +шагом
   const pct = reached ? 1
-    : isGoalDate ? (goalTotal ? h.streak / goalTotal : 0)
-      : wkTarget ? wkDone / wkTarget : 0;
+    : isCount ? (h.target ? Math.min(1, (h.today_value ?? 0) / h.target) : (h.done_today ? 1 : 0))
+      : isGoalDate ? (goalTotal ? h.streak / goalTotal : 0)
+        : wkTarget ? wkDone / wkTarget : 0;
   const ringColor = broken ? "var(--text-muted)" : h.color;
   const daysLeft = isGoalDate ? daysLeftTo(h.goal_date) : null;
 
@@ -811,7 +812,8 @@ function HabitDetail({ habit, onClose, onChange, onMenu }: {
   const isCount = habit.mark_type === "count";
   const isGoal = habit.goal_total != null && habit.goal_total > 0;
   const weekDone = habit.week.filter(Boolean).length;
-  const pct = isGoal ? habit.streak / (habit.goal_total as number) : weekDone / 7;
+  const pct = isCount ? (habit.target ? Math.min(1, (habit.today_value ?? 0) / habit.target) : (habit.done_today ? 1 : 0))
+    : isGoal ? habit.streak / (habit.goal_total as number) : weekDone / 7;
   const pct30 = hist ? Math.round(hist.pct30 * 100) : null;
   const sk = habit.schedule_kind || "daily";
   const schedLabel =
