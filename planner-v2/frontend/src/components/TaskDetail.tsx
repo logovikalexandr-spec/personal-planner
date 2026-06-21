@@ -41,6 +41,11 @@ function autoGrow(el: HTMLTextAreaElement) {
   el.style.height = "auto";
   el.style.height = `${Math.min(el.scrollHeight, NOTES_MAX)}px`;
 }
+// Заголовок: textarea растёт под контент без потолка → длинное имя видно целиком (перенос строк).
+function growTitle(el: HTMLTextAreaElement) {
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+}
 function fmtDate(iso: string | null, time: string | null, end: string | null): string {
   if (!iso) return "Нет";
   const d = new Date(iso + "T00:00:00");
@@ -91,6 +96,7 @@ export function TaskDetail({
   const [addingSub, setAddingSub] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // ⋯ меню шапки (Подзадача/Не буду делать/Удалить)
   const notesRef = useRef<HTMLTextAreaElement>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
 
   async function load() {
     setStatus("loading");
@@ -110,9 +116,12 @@ export function TaskDetail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
-  // длинная заметка существующей задачи: растянуть поле под контент при открытии
+  // длинная заметка/заголовок существующей задачи: растянуть поле под контент при открытии
   useEffect(() => {
-    if (status === "ready" && notesRef.current) autoGrow(notesRef.current);
+    if (status === "ready") {
+      if (notesRef.current) autoGrow(notesRef.current);
+      if (titleRef.current) growTitle(titleRef.current);
+    }
   }, [status]);
 
   function patchLocal(p: Partial<TaskDetailT>) {
@@ -292,9 +301,10 @@ export function TaskDetail({
             {done ? <IcoCheck /> : wontDo ? <IcoXCircle /> : null}
           </button>
           <textarea
+            ref={titleRef}
             className={`detail-title-input ${closed ? "title-done" : ""}`}
             value={titleDraft}
-            onChange={(e) => setTitleDraft(e.target.value)}
+            onChange={(e) => { setTitleDraft(e.target.value); growTitle(e.currentTarget); }}
             onBlur={commitTitle}
             rows={1}
             placeholder="Название задачи"
