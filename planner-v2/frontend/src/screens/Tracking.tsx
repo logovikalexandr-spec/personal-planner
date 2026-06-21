@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { tg } from "../telegram";
+import { confirmDialog } from "../lib/confirm";
 import {
   backfillHabit, completeTask, createHabit, createMetric, deleteHabit, deleteMetric, deleteMetricEntry,
   getHabits, getHabitHistory, getMetrics, getRetro, measureMetric, patchHabit, patchMetric, toggleHabit,
@@ -435,19 +436,19 @@ export function Tracking() {
     try { replaceHabit(await backfillHabit(h.id, iso, level > 0 ? 0 : 1)); } catch { load(); } // value<=0 = снять
   }
   function archiveHabit(h: HabitOut) {
-    tg()?.showConfirm?.(`Архивировать «${h.name}»? Скроется, история сохранится.`, async (ok: boolean) => {
+    confirmDialog(`Архивировать «${h.name}»?`, { body: "Скроется, история сохранится.", confirmText: "Архивировать", danger: false }).then(async (ok) => {
       if (!ok) return;
       try { await patchHabit(h.id, { archived: true }); setHabits((p) => p.filter((x) => x.id !== h.id)); setDetail(null); setMenu(null); } catch { load(); }
     });
   }
   function removeHabit(h: HabitOut) {
-    tg()?.showConfirm?.(`Удалить «${h.name}»? Стрики и история сотрутся навсегда.`, async (ok: boolean) => {
+    confirmDialog(`Удалить «${h.name}»?`, { body: "Стрики и история сотрутся навсегда." }).then(async (ok) => {
       if (!ok) return;
       try { await deleteHabit(h.id); setHabits((p) => p.filter((x) => x.id !== h.id)); setDetail(null); setMenu(null); } catch { load(); }
     });
   }
   function onDeleteMetric(m: MetricOut) {
-    tg()?.showConfirm?.(`Удалить метрику «${m.name}»?`, async (ok: boolean) => {
+    confirmDialog(`Удалить метрику «${m.name}»?`, { body: "Все замеры удалятся навсегда." }).then(async (ok) => {
       if (!ok) return;
       try { await deleteMetric(m.id); setMetrics((p) => p.filter((x) => x.id !== m.id)); setMetricDetail(null); } catch { load(); }
     });
@@ -956,7 +957,7 @@ function MetricDetail({ metric, onClose, onChange, onDelete }: {
   const good = metric.delta == null ? null : (metric.good_direction === "down" ? metric.delta < 0 : metric.delta > 0);
 
   const delEntry = (date: string) => {
-    tg()?.showConfirm?.(`Удалить замер за ${date}?`, async (ok: boolean) => {
+    confirmDialog(`Удалить замер за ${date}?`).then(async (ok) => {
       if (!ok) return;
       try { onChange(await deleteMetricEntry(metric.id, date)); } catch { /* ignore */ }
     });
