@@ -7,6 +7,7 @@ import { DateJumpSheet } from "../components/DateJumpSheet";
 import { createTask, getDayTasks, getProjects, getTasks, patchTask } from "../api";
 import { createPayload } from "../lib/timelineLayout";
 import { groupByProject } from "../lib/groupByProject";
+import { cmpTaskGrouped, projectRankMap } from "../lib/taskSort";
 import { useBottomAnchor } from "../lib/viewportAnchor";
 import { tg } from "../telegram";
 import type { ParseResult } from "../lib/quickParse";
@@ -193,10 +194,14 @@ export function Today({
   // многодневный спан (end_date > due_date) показываем чипом в all-day, не блоком в одном дне
   const isMultiDay = (t: Task) => !!t.end_date && !!t.due_date && t.end_date !== t.due_date;
   const timed = useMemo(() => tasks.filter((t) => t.due_time && !isMultiDay(t)), [tasks]);
-  // all-day = без времени ИЛИ многодневный; открытые (не done/wont_do)
+  // all-day = без времени ИЛИ многодневный; открытые (не done/wont_do).
+  // Порядок = как в смарт-списках/шторке: проект (порядок шторки) → приоритет ↓ → дата/время (общий источник).
   const allday = useMemo(
-    () => tasks.filter((t) => (!t.due_time || isMultiDay(t)) && t.status !== "done" && t.status !== "wont_do"),
-    [tasks],
+    () =>
+      tasks
+        .filter((t) => (!t.due_time || isMultiDay(t)) && t.status !== "done" && t.status !== "wont_do")
+        .sort(cmpTaskGrouped(projectRankMap(byId))),
+    [tasks, byId],
   );
   const closed = useMemo(
     () => tasks.filter((t) => t.status === "done" || t.status === "wont_do"),
