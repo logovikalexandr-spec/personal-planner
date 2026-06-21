@@ -16,7 +16,7 @@ grep -oE '\-\-[a-z0-9-]+:' "$THEME" | grep -oE '\-\-[a-z0-9-]+' | sort -u > /tmp
 grep -rhoE 'var\(--[a-z0-9-]+' src --include='*.tsx' --include='*.css' --include='*.ts' \
   | grep -oE '\-\-[a-z0-9-]+' | sort -u > /tmp/_tok_use.txt
 # Рантайм-токены задаются из JS (setProperty) / inline-scoped — не в theme.css, это норма.
-RUNTIME='^--(c|kb-inset)$'
+RUNTIME='^--(c|kb-inset|prio)$'
 broken=$(comm -23 /tmp/_tok_use.txt /tmp/_tok_def.txt | grep -vE "$RUNTIME" || true)
 if [ -n "$broken" ]; then
   echo "BLOCK: битые var() (нет в $THEME):"; echo "$broken" | sed 's/^/  ❌ /'
