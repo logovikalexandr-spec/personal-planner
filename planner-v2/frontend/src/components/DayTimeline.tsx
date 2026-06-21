@@ -331,14 +331,20 @@ export const DayTimeline = memo(function DayTimeline({
     let startY = 0, startOff = 0, lastY = 0, lastT = 0, vy = 0, raf = 0, dragging = false;
     const onTS = (e: TouchEvent) => {
       const t = e.target as HTMLElement;
-      if (t.closest(".cal-block, .cal-draft, input, textarea, button")) { dragging = false; return; }
-      e.preventDefault();                                    // глушим лупу + iOS-перехват (нативный скролл выкл.)
+      // интерактив (инпут черновика, кнопки, грипы ресайза) — не перехватываем под скролл
+      if (t.closest(".cal-draft, input, textarea, button, .cal-resize")) { dragging = false; return; }
+      // Apple-стиль: скроллим и по карточке тоже (раньше тут был bail на .cal-block → драг по карточке
+      // ничего не скроллил). Подъём блока (long-press) живёт параллельно и отменяется при сдвиге >CANCEL_PX.
+      // pd зовём ТОЛЬКО на пустой сетке (глушит лупу/iOS-перехват). На карточке pd убил бы синтет-клик
+      // (tap-open детали) на iOS — потому НЕ зовём; нативный скролл на теле и так выкл. (touch-action:none).
+      if (!t.closest(".cal-block")) e.preventDefault();
       if (raf) { cancelAnimationFrame(raf); raf = 0; }
       recalcMax();                                           // один reflow на старте жеста, не на каждый move
       startY = lastY = e.touches[0].clientY; startOff = offsetRef.current; lastT = e.timeStamp; vy = 0; dragging = true;
     };
     const onTM = (e: TouchEvent) => {
-      if (!dragging || createRef.current?.armed) return;     // взвели создание → не скроллим (двигаем блок)
+      // не скроллим, если активен другой жест: создание (armed) / подъём-или-ресайз блока (dragRef)
+      if (!dragging || createRef.current?.armed || dragRef.current) return;
       const y = e.touches[0].clientY;
       offsetRef.current = Math.max(0, Math.min(startOff - (y - startY), maxOff));
       apply();                                               // ПРЯМО (transform на композиторе дешёвый, без reflow/rAF-лага)
