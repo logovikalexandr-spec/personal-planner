@@ -7,8 +7,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
-      injectRegister: "auto",
+      // prompt + ручной registerSW (lib/pwa) — без тихого авто-reload.
+      // Обновление применяет pull-to-refresh-жест (потянул вниз → reload свежего шелла).
+      registerType: "prompt",
+      injectRegister: false,
       includeAssets: ["apple-touch-icon-180.png"],
       manifest: {
         name: "Planner",
@@ -27,9 +29,21 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallback: "/app/index.html",
         navigateFallbackDenylist: [/^\/api/],   // API не кэшируем и не подменяем шеллом
         globPatterns: ["**/*.{js,css,html,woff2,png,svg}"],
+        // Навигация = NetworkFirst: онлайн всегда тянет свежий index.html → свежие хэши
+        // бандла (новый деплой грузится без ручной чистки SW-кэша). Офлайн → кэш-фолбэк.
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }: { request: Request }) => request.mode === "navigate",
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "app-shell",
+              networkTimeoutSeconds: 3,
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
     }),
   ],
