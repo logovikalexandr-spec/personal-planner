@@ -17,6 +17,7 @@ import type { ParseResult } from "./lib/quickParse";
 import { applyTelegramTheme } from "./telegram";
 import { PickerHarness } from "./harness/PickerHarness";
 import { PullToRefresh } from "./components/PullToRefresh";
+import { ViewportDebug } from "./components/ViewportDebug";
 
 // dev behavior-proof: ?harness=picker рендерит harness вместо App (без сети/tg-auth)
 const HARNESS = typeof location !== "undefined" && location.search.includes("harness=picker");
@@ -236,6 +237,7 @@ function AppMain() {
   return (
     <div className="app" onTouchStart={onRootTouchStart} onTouchEnd={onRootTouchEnd}>
       <PullToRefresh />
+      <ViewportDebug />
       {viewing && (
         <ListView active={viewing} reloadKey={reloadKey} onMenu={openDrawer} onInboxChange={bump} onOpenTask={openTask} />
       )}
