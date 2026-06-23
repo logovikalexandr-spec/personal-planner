@@ -86,7 +86,13 @@ export function PullToRefresh() {
         st.refreshing = true;
         setRefreshing(true);
         setVisual(TRIGGER_PX);
-        refreshApp(); // reload свежего шелла (страница уйдёт)
+        // мягкое обновление (без reload) → по завершении сбрасываем крутилку
+        refreshApp().finally(() => {
+          st.refreshing = false;
+          setRefreshing(false);
+          st.visual = 0;
+          setVisual(0);
+        });
       } else {
         st.visual = 0;
         setVisual(0);

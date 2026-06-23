@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useRefreshSignal } from "../lib/refreshSignal";
 import { Empty } from "../components/Empty";
 import { TaskItem } from "../components/TaskItem";
 import { Sheet } from "../components/Sheet";
@@ -501,6 +502,7 @@ export function Tracking() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useRefreshSignal(load); // pull-to-refresh
 
   const replaceHabit = (h: HabitOut) => setHabits((p) => p.map((x) => (x.id === h.id ? h : x)));
   const replaceMetric = (m: MetricOut) => setMetrics((p) => p.map((x) => (x.id === m.id ? m : x)));

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { deleteTask, getMilestones, getProjects, getTasks, getTasksRange, patchTask } from "../api";
+import { useRefreshSignal } from "../lib/refreshSignal";
 import { CalendarDays } from "../components/CalendarDays";
 import { CalendarWeek } from "../components/CalendarWeek";
 import { CalendarMonth } from "../components/CalendarMonth";
@@ -83,6 +84,7 @@ export function Calendar({ onOpenDay }: { onOpenDay: (iso: string) => void }) {
   }, [win.from, win.to, view]);
 
   useEffect(() => { load(); }, [load, reloadKey]);
+  useRefreshSignal(load); // pull-to-refresh
 
   const bump = () => setReloadKey((k) => k + 1);
 

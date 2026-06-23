@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRefreshSignal } from "../lib/refreshSignal";
 import { DayTimeline, priorityColor } from "../components/DayTimeline";
 import { TaskItem } from "../components/TaskItem";
 import { QuickAddBar } from "../components/QuickAddBar";
@@ -85,6 +86,7 @@ export function Today({
   useEffect(() => {
     load().catch(() => {});
   }, [reloadKey, load]);
+  useRefreshSignal(load); // pull-to-refresh
 
   const toggle = useCallback(async (t: Task) => {
     tg()?.HapticFeedback?.impactOccurred?.("light");

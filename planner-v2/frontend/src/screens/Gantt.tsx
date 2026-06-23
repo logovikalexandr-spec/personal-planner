@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getProjects, getStages, getTasks } from "../api";
+import { useRefreshSignal } from "../lib/refreshSignal";
 import { addDays, parseISO } from "../lib/calDates";
 import {
   PPD, barPx, barStatusClass, buildColumns, criticalPathIds,
@@ -87,6 +88,7 @@ export function Gantt() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  useRefreshSignal(load); // pull-to-refresh
 
   // задачи выбранного проекта (для мини-баров под текущим этапом) — ленивая дозагрузка
   useEffect(() => {

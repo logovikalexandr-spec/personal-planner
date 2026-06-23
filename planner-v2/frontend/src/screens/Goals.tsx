@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getDayTasks, getProjects, getStages, getTasksRange } from "../api";
+import { useRefreshSignal } from "../lib/refreshSignal";
 import { localISO, weekDays } from "../lib/calDates";
 import type { AiNote, Project, Stage } from "../types";
 import { tg } from "../telegram";
@@ -167,6 +168,7 @@ export function Goals() {
   useEffect(() => {
     void load();
   }, [load]);
+  useRefreshSignal(load); // pull-to-refresh
 
   const pulse = useMemo(() => {
     const behind = projects.filter((p) => isBehind(p, stagesByProject[p.id] ?? [])).length;
