@@ -181,8 +181,10 @@ input, textarea, [contenteditable="true"] {
 .tabbar button {
   appearance: none; border: none; background: transparent; cursor: pointer;
   position: relative;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; font-size: 11px; color: var(--text-muted); padding: 0;
+  /* иконки прижаты к низу строки (вплотную к зоне home-индикатора) — без «тёмной полосы»
+     лишнего воздуха под ними; мёртвое пространство уходит вверх, к контенту. */
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 4px; font-size: 11px; color: var(--text-muted); padding: 0 0 6px;
   transition: color 140ms ease;
 }
 .tabbar button.active { color: var(--accent); }
