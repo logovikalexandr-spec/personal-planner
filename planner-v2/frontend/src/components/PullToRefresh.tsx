@@ -61,8 +61,10 @@ export function PullToRefresh() {
       const dx = t.clientX - st.sx;
       const dy = t.clientY - st.sy;
       if (st.claimed === "pending") {
-        // глушим iOS rubber-band уже на старте движения вниз (до claim), чтобы навбар не дёргался
-        if (dy > 0 && dy >= Math.abs(dx)) e.preventDefault();
+        // NOTE: do NOT call e.preventDefault() here while still "pending".
+        // Calling it before the gesture is confirmed triggers iOS compositor to adjust the
+        // document scroll layer on short (non-scrollable) tabs, which visually jitters the
+        // position:fixed tabbar. preventDefault is called below once claimed==="pull" is confirmed.
         st.claimed = decide(dx, dy);
         if (st.claimed === "reject") { st.active = false; return; }
         if (st.claimed === "pending") return;
