@@ -610,6 +610,7 @@ export function Tracking() {
 function MeasureSheet({ metric, onClose, onSaved }: { metric: MetricOut; onClose: () => void; onSaved: (m: MetricOut) => void }) {
   const [val, setVal] = useState<string>(metric.latest != null ? String(metric.latest) : "");
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState(false); // замер не ушёл (сеть/сервер) — не молчим, показываем
   const num = parseFloat(val.replace(",", "."));
   const bump = (d: number) => {
     const base = Number.isNaN(num) ? (metric.latest ?? 0) : num;
@@ -617,9 +618,9 @@ function MeasureSheet({ metric, onClose, onSaved }: { metric: MetricOut; onClose
   };
   const save = async () => {
     if (Number.isNaN(num) || saving) return;
-    setSaving(true);
+    setSaving(true); setErr(false);
     try { onSaved(await measureMetric(metric.id, todayISO(), num)); }
-    catch { setSaving(false); }
+    catch { setSaving(false); setErr(true); }
   };
   return (
     <Sheet onClose={onClose}>
@@ -640,8 +641,13 @@ function MeasureSheet({ metric, onClose, onSaved }: { metric: MetricOut; onClose
             прошлый: {metric.latest}{metric.unit ? ` ${metric.unit}` : ""}
           </div>
         )}
+        {err && (
+          <div style={{ textAlign: "center", color: "var(--danger)", fontSize: 12, marginBottom: 10 }}>
+            Не сохранилось — проверь связь и повтори.
+          </div>
+        )}
         <button className="btn-primary" style={{ width: "100%" }} disabled={Number.isNaN(num) || saving} onClick={save}>
-          {saving ? "Сохраняю…" : "Сохранить замер"}
+          {saving ? "Сохраняю…" : err ? "Повторить" : "Сохранить замер"}
         </button>
     </Sheet>
   );
