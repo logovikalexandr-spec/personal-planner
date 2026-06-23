@@ -30,7 +30,9 @@
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
 /* запрет двойного-тапа/пинч-зума (вместе с user-scalable=no в viewport) */
-html { touch-action: manipulation; }
+/* text-size-adjust:100% — выкл iOS авто-инфляцию шрифта: длинный nowrap-текст
+   (all-day чипы, строки задач) Safari раздувал → размер скакал. Теперь строго по CSS. */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
   background: var(--bg);
   color: var(--text);
