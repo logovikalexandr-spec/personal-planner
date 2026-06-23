@@ -261,12 +261,11 @@ function HeatRow({ habit, dates, todayIdx, onCellTap }: {
 function MetricRow({ m, onOpen, onMeasure, onMenu }: {
   m: MetricOut; onOpen: (m: MetricOut) => void; onMeasure: (m: MetricOut) => void; onMenu: (m: MetricOut) => void;
 }) {
-  // дельта: цвет по направлению «хорошо» — улучшение зелёным (down)/синим (up), ухудшение красным
+  // дельта: цвет по НАПРАВЛЕНИЮ — вниз красное, вверх зелёное (выбор владельца)
   let cls = "flat", txt = "— без изменений";
   if (m.delta != null && m.delta !== 0) {
-    const improving = m.good_direction === "down" ? m.delta < 0 : m.delta > 0;
     const arrow = m.delta < 0 ? "▼" : "▲";
-    cls = improving ? (m.good_direction === "down" ? "good" : "up") : "bad";
+    cls = m.delta < 0 ? "bad" : "good";
     txt = `${arrow} ${Math.abs(m.delta).toFixed(1)} за неделю`;
   }
   const pts = sparkPoints(m.entries.map((e) => e.value).reverse());
@@ -427,12 +426,12 @@ function RetroView({ retro, metrics, onTaskToggle }: { retro: RetroOut | null; m
           <div className="trk-seclbl">Метрики недели</div>
           <div className="hcard" style={{ padding: "2px 12px" }}>
             {metrics.map((m, i) => {
-              const good = m.delta == null ? null : (m.good_direction === "down" ? m.delta < 0 : m.delta > 0);
+              const dCol = m.delta == null ? "var(--text-muted)" : m.delta < 0 ? "var(--danger)" : "var(--success)";
               return (
                 <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderBottom: i < metrics.length - 1 ? "1px solid var(--border)" : "none", fontSize: 13.5 }}>
                   <span>{m.name}{m.good_direction === "up" ? <span style={{ color: "var(--text-muted)", fontSize: 11 }}> · цель ↑</span> : null}</span>
                   {m.delta != null && (
-                    <span className="mono" style={{ fontWeight: 600, color: good ? "var(--success)" : "var(--text-muted)" }}>
+                    <span className="mono" style={{ fontWeight: 600, color: dCol }}>
                       {m.delta < 0 ? "▼" : "▲"} {Math.abs(m.delta).toFixed(1)} {m.unit ?? ""}
                     </span>
                   )}
@@ -1153,6 +1152,46 @@ function NewMetricSheet({ onClose, onCreated }: { onClose: () => void; onCreated
   );
 }
 
+// Настоящий линейный график метрики: сетка + Y-подписи + площадь + линия + точки + даты.
+function MetricChart({ data, color }: { data: { entry_date: string; value: number }[]; color: string }) {
+  const W = 320, H = 168, PADL = 40, PADR = 12, PADT = 12, PADB = 24;
+  const plotW = W - PADL - PADR, plotH = H - PADT - PADB;
+  if (data.length === 0) {
+    return <div style={{ height: H, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: 13, marginBottom: 12 }}>Нет данных за период</div>;
+  }
+  const vals = data.map((d) => d.value);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (lo === hi) { const p = Math.abs(hi) * 0.1 || 1; lo -= p; hi += p; }
+  else { const p = (hi - lo) * 0.15; lo -= p; hi += p; }
+  const X = (i: number) => PADL + (data.length === 1 ? plotW / 2 : (plotW * i) / (data.length - 1));
+  const Y = (v: number) => PADT + plotH * (1 - (v - lo) / (hi - lo));
+  const line = data.map((d, i) => `${X(i).toFixed(1)},${Y(d.value).toFixed(1)}`).join(" ");
+  const area = `M ${X(0).toFixed(1)} ${(PADT + plotH).toFixed(1)} `
+    + data.map((d, i) => `L ${X(i).toFixed(1)} ${Y(d.value).toFixed(1)}`).join(" ")
+    + ` L ${X(data.length - 1).toFixed(1)} ${(PADT + plotH).toFixed(1)} Z`;
+  const ticks = [0, 0.5, 1]; // доли hi→lo
+  const fmtV = (v: number) => `${Math.round(v * 10) / 10}`;
+  const fmtD = (iso: string) => { const d = new Date(iso + "T00:00:00"); return `${d.getDate()}.${d.getMonth() + 1}`; };
+  return (
+    <svg className="mchart" width="100%" viewBox={`0 0 ${W} ${H}`} style={{ marginBottom: 12, display: "block" }}>
+      {ticks.map((t, i) => {
+        const y = PADT + plotH * t;
+        return (
+          <g key={i}>
+            <line x1={PADL} y1={y} x2={W - PADR} y2={y} stroke="var(--border)" strokeWidth="1" />
+            <text x={PADL - 6} y={y + 3} textAnchor="end" fontSize="9" fill="var(--text-muted)" fontFamily="var(--font-mono)">{fmtV(hi - (hi - lo) * t)}</text>
+          </g>
+        );
+      })}
+      <path d={area} fill={color} opacity="0.12" />
+      {data.length > 1 && <polyline points={line} fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />}
+      {data.map((d, i) => <circle key={i} cx={X(i)} cy={Y(d.value)} r="2.6" fill={color} stroke="var(--bg)" strokeWidth="1.4" />)}
+      <text x={X(0)} y={H - 7} textAnchor="start" fontSize="9" fill="var(--text-muted)" fontFamily="var(--font-mono)">{fmtD(data[0].entry_date)}</text>
+      {data.length > 1 && <text x={X(data.length - 1)} y={H - 7} textAnchor="end" fontSize="9" fill="var(--text-muted)" fontFamily="var(--font-mono)">{fmtD(data[data.length - 1].entry_date)}</text>}
+    </svg>
+  );
+}
+
 // #8 — деталь метрики: график + период (7/30/Год) + лог замеров (свайп-удалить) + замер + edit/delete.
 function MetricDetail({ metric, onClose, onChange, onMenu }: {
   metric: MetricOut; onClose: () => void; onChange: (m: MetricOut) => void; onMenu: (m: MetricOut) => void;
@@ -1162,8 +1201,7 @@ function MetricDetail({ metric, onClose, onChange, onMenu }: {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - period);
   const inRange = metric.entries.filter((e) => new Date(e.entry_date + "T00:00:00") >= cutoff);
   const chrono = [...inRange].reverse(); // старые→новые для графика
-  const pts = sparkPoints(chrono.map((e) => e.value));
-  const good = metric.delta == null ? null : (metric.good_direction === "down" ? metric.delta < 0 : metric.delta > 0);
+  const deltaColor = metric.delta == null ? "var(--text-muted)" : metric.delta < 0 ? "var(--danger)" : "var(--success)";
 
   const delEntry = (date: string) => {
     confirmDialog(`Удалить замер за ${date}?`).then(async (ok) => {
@@ -1185,16 +1223,13 @@ function MetricDetail({ metric, onClose, onChange, onMenu }: {
           <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 3 }}>
             {metric.latest ?? "—"} {metric.unit}
             {metric.delta != null && (
-              <span style={{ color: good ? "var(--success)" : "var(--text-muted)", marginLeft: 8 }}>
+              <span style={{ color: deltaColor, marginLeft: 8 }}>
                 {metric.delta < 0 ? "▼" : "▲"}{Math.abs(metric.delta).toFixed(1)} за период
               </span>
             )}
           </div>
         </div>
-        <svg width="100%" height="80" viewBox="0 0 120 30" preserveAspectRatio="none" style={{ marginBottom: 8 }}>
-          {pts ? <polyline points={pts} fill="none" stroke={metric.color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            : <text x="60" y="16" textAnchor="middle" fontSize="6" fill="var(--text-muted)">нет данных</text>}
-        </svg>
+        <MetricChart data={chrono} color={metric.color} />
         <div className="seg" style={{ marginBottom: 16 }}>
           <button className={period === 7 ? "seg-on" : ""} onClick={() => setPeriod(7)}>7д</button>
           <button className={period === 30 ? "seg-on" : ""} onClick={() => setPeriod(30)}>30д</button>
