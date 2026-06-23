@@ -31,15 +31,26 @@ export default function App() {
   return <AppMain />;
 }
 
+const TAB_KEYS: TabKey[] = ["today", "calendar", "gantt", "goals", "tracking"];
+// pull-to-refresh = location.reload(); чтобы остаться на той же странице — храним таб/вид
+// в sessionStorage (переживает reload, сбрасывается при закрытии PWA → холодный старт = Today).
+function savedTab(): TabKey {
+  try { const t = sessionStorage.getItem("planner.tab") as TabKey; if (t && TAB_KEYS.includes(t)) return t; } catch { /* private mode */ }
+  return "today";
+}
+function savedTodayView(): "timeline" | "tasks" {
+  try { return sessionStorage.getItem("planner.todayView") === "tasks" ? "tasks" : "timeline"; } catch { return "timeline"; }
+}
+
 function AppMain() {
-  const [tab, setTab] = useState<TabKey>("today");
+  const [tab, setTab] = useState<TabKey>(savedTab);
   // Перф: keep-alive экранов — таб монтируется при первом визите и остаётся (show/hide),
   // переключение = без remount/refetch dnd-дерева. mount платится один раз, не каждый switch.
-  const [mountedTabs, setMountedTabs] = useState<Set<TabKey>>(() => new Set<TabKey>(["today"]));
+  const [mountedTabs, setMountedTabs] = useState<Set<TabKey>>(() => new Set<TabKey>(["today", savedTab()]));
   const [viewing, setViewing] = useState<ActiveList | null>(null); // открытый список из Lists / Inbox из Today
   const [quickOpen, setQuickOpen] = useState(false);
   const [qaText, setQaText] = useState(""); // текст quick-add (контролируемо)
-  const [todayView, setTodayView] = useState<"timeline" | "tasks">("timeline"); // вид внутри таба «Сегодня»
+  const [todayView, setTodayView] = useState<"timeline" | "tasks">(savedTodayView); // вид внутри таба «Сегодня»
   const [reloadKey, setReloadKey] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -115,6 +126,10 @@ function AppMain() {
   useEffect(() => {
     getMe().catch(() => {}); // валидация сессии (имя в шапке шторки убрано)
   }, []);
+
+  // запоминаем текущий таб/вид → pull-to-refresh (reload) остаётся на той же странице
+  useEffect(() => { try { sessionStorage.setItem("planner.tab", tab); } catch { /* noop */ } }, [tab]);
+  useEffect(() => { try { sessionStorage.setItem("planner.todayView", todayView); } catch { /* noop */ } }, [todayView]);
 
   function onTabChange(k: TabKey) {
     setTab(k);
