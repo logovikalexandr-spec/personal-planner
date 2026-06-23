@@ -29,6 +29,9 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
+/* overscroll-behavior:none — гасит iOS rubber-band документа: на коротких табах (Цели/Гант)
+   баунс отрывал fixed-навбар вверх (под ним чёрный провал). PTR-жест свой, не страдает. */
+html, body { overscroll-behavior: none; }
 /* запрет двойного-тапа/пинч-зума (вместе с user-scalable=no в viewport) */
 /* text-size-adjust:100% — выкл iOS авто-инфляцию шрифта: длинный nowrap-текст
    (all-day чипы, строки задач) Safari раздувал → размер скакал. Теперь строго по CSS. */

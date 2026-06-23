@@ -61,6 +61,8 @@ export function PullToRefresh() {
       const dx = t.clientX - st.sx;
       const dy = t.clientY - st.sy;
       if (st.claimed === "pending") {
+        // глушим iOS rubber-band уже на старте движения вниз (до claim), чтобы навбар не дёргался
+        if (dy > 0 && dy >= Math.abs(dx)) e.preventDefault();
         st.claimed = decide(dx, dy);
         if (st.claimed === "reject") { st.active = false; return; }
         if (st.claimed === "pending") return;
