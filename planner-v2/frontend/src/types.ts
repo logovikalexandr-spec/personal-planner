@@ -91,6 +91,7 @@ export interface Project {
   pinned: boolean; order_index: number;
   // Форк 0 AI-слой (зеркало ProjectOut): success_probability/target_date/ai_notes пишет Claude.
   success_probability?: number | null;
+  success_probability_prev?: number | null;  // тренд шанса ▲/▼
   target_date?: string | null;       // ISO date
   ai_notes?: AiNote[] | null;
   weeks_left?: number | null;         // computed бэком из target_date

@@ -164,6 +164,7 @@ class ProjectOut(BaseModel):
     open_count: int = 0
     # AI-слой (заполняет human-in-loop Claude, бэк LLM не зовёт)
     success_probability: int | None = None
+    success_probability_prev: int | None = None  # для тренда ▲/▼ шанса
     target_date: date | None = None
     ai_notes: list[AiNote] | None = None
     weeks_left: int | None = None  # computed из target_date

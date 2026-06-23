@@ -1,5 +1,5 @@
 import {
-  wCancel, wComplete, wCreateWorkout, wGetExercises, wGetTemplates, wGetWorkouts,
+  wCancel, wComplete, wCreateWorkout, wGetExercises, wGetTemplates, wGetWorkout, wGetWorkouts,
   wHistory, wLastSets, wPutSets,
 } from "../api";
 import { clientToday } from "../lib/clientDate";
@@ -36,6 +36,14 @@ export function makeWorkoutApi(goalId: number): WorkoutApi {
         template_name: (s.template_id != null && names.get(s.template_id)) || "Тренировка",
         duration_minutes: s.duration_minutes, review_note: s.review_note, coach_note: s.coach_note,
         set_count: (s.sets ?? []).filter((x) => !x.is_warmup).length,
+      }));
+    },
+
+    getWorkoutSets: async (sessionId): Promise<WSet[]> => {
+      const s = await wGetWorkout(sessionId);
+      return (s.sets ?? []).map((x) => ({
+        exercise_id: x.exercise_id, set_index: x.set_index, weight: x.weight, reps: x.reps,
+        is_warmup: x.is_warmup, done: x.done, note: x.note,
       }));
     },
 

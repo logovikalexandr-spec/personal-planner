@@ -112,6 +112,7 @@ const mockApi: WorkoutApi = {
   getTemplates: async () => TEMPLATES,
   getExercises: async () => EX,
   getWorkouts: async () => SESSIONS,
+  getWorkoutSets: async () => [],
   getHistory: async (id) => HIST[id] ?? HIST[1],
   lastSets: async (id) => LAST[id] ?? [],
   completeSession: async () => ({ coach_note: COACH_REPLY }),

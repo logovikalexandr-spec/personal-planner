@@ -27,6 +27,8 @@ class Project(Base):
     # --- AI-слой (заполняет human-in-loop Claude через write-API, бэк LLM не зовёт) ---
     # success_probability: 0..100 вероятность успеха проекта-цели
     success_probability: Mapped[int | None] = mapped_column(Integer, default=None)
+    # предыдущее значение шанса — для тренда ▲/▼ на карточке цели (ставится при пересчёте)
+    success_probability_prev: Mapped[int | None] = mapped_column(Integer, default=None)
     target_date: Mapped[date | None] = mapped_column(Date, default=None)
     # ai_notes: список {date, type(accelerate|risk|info), text}
     ai_notes: Mapped[list | None] = mapped_column(JSON, default=None)

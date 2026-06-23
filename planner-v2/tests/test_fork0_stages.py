@@ -136,6 +136,24 @@ async def test_update_project_ai_validates_probability(db_session):
         await svc.update_project_ai(db_session, p.id, {"success_probability": 150})
 
 
+@pytest.mark.asyncio
+async def test_update_project_ai_shifts_prev_on_change(db_session):
+    p = Project(name="P", slug="p-prev", success_probability=60)
+    db_session.add(p)
+    await db_session.flush()
+    # первый пересчёт: prev фиксирует старое 60, текущее = 65 → тренд ▲5
+    await svc.update_project_ai(db_session, p.id, {"success_probability": 65})
+    assert p.success_probability == 65
+    assert p.success_probability_prev == 60
+    # пересчёт без изменения значения не двигает prev
+    await svc.update_project_ai(db_session, p.id, {"success_probability": 65})
+    assert p.success_probability_prev == 60
+    # следующий пересчёт вниз: prev = 65 → тренд ▼5
+    await svc.update_project_ai(db_session, p.id, {"success_probability": 60})
+    assert p.success_probability == 60
+    assert p.success_probability_prev == 65
+
+
 # --------------------------------------------------------------------------- #
 # API
 # --------------------------------------------------------------------------- #

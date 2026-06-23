@@ -52,6 +52,7 @@ def _to_out(p: Project, open_count: int = 0) -> ProjectOut:
         order_index=p.order_index,
         open_count=open_count,
         success_probability=p.success_probability,
+        success_probability_prev=p.success_probability_prev,
         target_date=p.target_date,
         ai_notes=p.ai_notes,
         weeks_left=_weeks_left(p.target_date),

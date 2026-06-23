@@ -2,6 +2,72 @@
 
 > Где остановились. Апдейтить на `/wrapup`.
 
+## ⏸ 2026-06-24: workout-доводка + сага «футер всплывает» — ЧАСТИЧНО, ЗАПАРКОВАНО
+**Прод:** бандл `index-CpoiW-dl.js`, health 200. Лог: `контекст/сессии/2026-06-24.md`.
+- **«0 мин в зале» убрано** (workout итоги недели/история — длительность не засекалась).
+- **Тренд-стрелка ▲/▼ у «65% ШАНС»** (карточка Целей, стиль метрик) + бэк: миграция `d2e3f4a5b6c7` колонка `project.success_probability_prev`, авто-сдвиг prev в `update_project_ai`, пересчёт=ручной (Claude в БД). Стрелки пока нет (prev пуст) — **пересчёт шанса к концу недели**.
+- **`инструкции.md`** prod-домен sslip→nip.io.
+- **🔴 БАГ футера трени «всплывает при правке числа»** (iOS PWA, ~16 деплоев) — ЧАСТИЧНО, «лучше но не до конца». Разбор → harness `[[planner-workout-footer-keyboard-bug]]`. Текущее: футер=flex в оверлее `100dvh`, таб-бар/футер фон `--bg` (полоса под баром ушла), условный vv-сайзинг при клаве. Остаточный сдвиг при правке.
+**Диагностика осталась в коде** (снять при доводке): `WlDebugOverlay` (`wl-debug`/`?wldebug`/3 тапа по шапке) + `BUILD_TAG` в шапке трени.
+**Открыто:** футер добить (device-замер при клаве); пересчёт шанса; мелочь workout (кнопка старт/seed/недельный разбор).
+
+## ✅ 2026-06-23: pull-to-refresh + метрики-график + навбар-фикс — ЗАДЕПЛОЕНО
+**Прод:** бандл `index-D8ft11z5.js`, health 200. Сессия: `контекст/сессии/2026-06-23.md`.
+- **PWA pull-to-refresh**: network-first шелл (свежий бандл онлайн, без ручной чистки кэша) + жест «потянул вниз» (`PullToRefresh`/`lib/pullRefresh`) + остаётся на текущем табе (sessionStorage).
+- **🔬 gsd-debug навбар «подлетал» на Гант/Цели**: корень = `location.reload()` в PTR сдвигал fixed-навбар вверх на КОРОТКИХ табах (iOS пост-reload транзиент). **Фикс: PTR без reload** — мягкое обновление через `lib/refreshSignal` (событие `planner:refresh` → каждый экран `useRefreshSignal(load)`). Новый код = на cold-start. Анкер/overscroll/preventDefault провалились (CDP не репродит iOS); развязка от точного симптома владельца + дебаг-оверлей чисел вьюпорта.
+- **Метрики**: настоящий `MetricChart` (сетка+оси+площадь+линия+точки+даты) вместо кривульки; дельта по направлению (вниз=красн/вверх=зел); замер при ошибке = видимое «Не сохранилось»+«Повторить» (был молчащий catch).
+- **all-day шрифт**: `text-size-adjust:100%` (iOS авто-инфляция). **Навбар**: иконки `flex-end` (убран тёмный воздух под ними).
+**Грабли:** агент-деплой не пересобрал образ (проверять served-бандл!); zsh не word-split'ит переменную (массив); iOS-фиксы вслепую бесполезны (CDP≠iOS) — нужен симптом+замер с устройства.
+**Открыто:** workout-WIP НЕ тронут (uncommitted, запаркован grill-me+мокап). Багов нет.
+
+## ✅ 2026-06-21 (вечер-10, трек ЗАДАЧИ): кастомный confirm-модал + удаление в PWA — ЗАДЕПЛОЕНО
+**Прод итог:** бандл `index-BT6McaRZ.js`, health 200, phase0. Worktree `planner-wt-tasks`/`feat/tasks`.
+- **БАГ удаления в PWA:** `tg()` НЕ undefined в PWA (SDK telegram-web-app.js грузится из index.html) → `showConfirm` есть, но вне Telegram колбэк не зовётся → удаление «висело». Фикс: `lib/confirm.confirmDialog` гейтит по `isTelegram()` (есть initData), не по наличию метода. → [[learnings]].
+- **Кастомный confirm-модал** `lib/confirm.tsx` (ConfirmHost в main.tsx) — тёмный iOS-alert (заголовок+тело+Отмена/красная Удалить, danger/primary, confirmText), вместо window.confirm в PWA; в Telegram нативный showConfirm. По референсу владельца. CSS `.confirm-backdrop/.confirm-card/...` в theme.css.
+- **Переведены ВСЕ confirm:** TaskDetail (задача), Calendar (свайп ленты), ProjectTreePanel (проект ⋯), Tracking (привычка архив/удаление, метрика, замер ×4). Goals/Gantt `showPopup` = info-попапы, не трогал (не блокируют). Tracking — auto-merge с чатом Привычек прошёл чисто (тот чат завершён).
+- **⚠️ ИНЦИДЕНТ:** при chrome-devtools тесте на ПРОДЕ снёс реальную задачу id73 «Планирование недели…» (headless авто-принял window.confirm + слепой клик в swipe-delete). Восстановил psql-INSERT как id79. deleteTask=HARD. УРОК: не автокликать delete на проде. → [[learnings]] + harness.
+- Удалил привычку «Бег» (id8) по просьбе через API (бэк-роут DELETE /habits ок, 204).
+**Открыто/фоллоу:** **SW-кэш PWA мешает** — каждый деплой владелец чистит вручную (Настройки→Safari→Данные сайтов→planner→удалить); ПРЕДЛОЖЕНО авто-обновление PWA (баннер «Обновить»/network-first шелл) — НЕ сделано, спросить. Красная подсветка «Просрочено» в шторке (опц.). T4 Цели/T3 Гант не построены.
+
+## ✅ 2026-06-21 (вечер-9, трек ЗАДАЧИ): просрочка отдельным списком + секции Выполнено/Отменено + client-date — ЗАДЕПЛОЕНО
+**Прод:** бандл `index-Cb5H5ez-.js`, health 200, phase0 `7136f5f`. Мокапы `frontend/design/tabs/mock2.html`, `design/allday/`, `design/hourheight/`.
+- **Смарт-списки анкерятся на дату КЛИЕНТА** (не сервера-UTC): фронт шлёт `today=clientToday` (lib/clientDate) в `/tasks`+`/counts`; бэк `ref_date` в list_tasks/smart_list_counts (fallback date.today()). Иначе «Сегодня» расходился с устройством (сервер UTC=21, юзер=22). → [[learnings]].
+- **«Сегодня» = только сегодняшние открытые**; просрочка вынесена в новый смарт-список **«Просрочено»** (шторка, IcoOverdue красный). Бэк scope today/week/planned = open-only (todo/in_progress); counts +overdue (today=due==today).
+- **Секции внизу любого списка «Выполнено»/«Отменено»** = закрытые за 7 дней по `done_at` (старше скрыты; в БД и на таймлайне остаются). Бэк scope `done`/`cancelled` (status+func.date(done_at)≥today−7). Фронт: ListView fetch open+done+cancelled (единый массив), TaskListBody раскладывает по статусу (открытые в группы, done/cancelled — сворачиваемые секции `.closed-sec`). TaskOut/Task +done_at.
+- Решения владельца: просрочка=отдельный список · retention 7 дней · раскладка=секции внизу списка (НЕ верхние табы — отверг, смарт-списки живут в шторке). UI-first: мокап mock2 утверждён до кода.
+- Тесты: pytest 172 (+done/cancelled scope, +overdue counts, +ref_date), фронт 74, build ок. Таймлайн НЕ тронут.
+**Открыто:** «Завтра» смарт-список через client-filter (ок); device-проверка владельцем после сброса SW-кэша; красная подсветка пункта «Просрочено» в шторке (не делал, опционально).
+
+## ✅ 2026-06-21 (вечер-8.5, трек ЗАДАЧИ): PWA — приложение на iPhone (на экран «Домой») — ЗАДЕПЛОЕНО
+**Прод:** бандл `index-vsmgy668.js`, health 200; manifest/sw.js/иконки = 200. Worktree `planner-wt-tasks`/`feat/tasks`→phase0.
+**Зачем:** боль — Telegram-шапка режет верх + заход через ТГ. Выбор владельца (раньше парковали): **PWA**, не Apple-native (бесплатно, без App Store/Apple Developer; правило free-stack).
+**A — оболочка:** `vite-plugin-pwa` (manifest standalone + service-worker offline-shell, `registerType:autoUpdate`, navigateFallbackDenylist `/api`), apple-touch-icon + apple-meta в index.html, ember-чек иконки 192/512/180 (`frontend/public/`, генерил chrome-screenshot 512 + sips-даунскейл — у Chrome min-window ~500, мелкие напрямую не снять). safe-area: `@media (display-mode: standalone){ .app{ padding-top: env(safe-area-inset-top) } }` (Telegram=browser-mode → не задет; низ/таббар уже был на safe-area).
+**B — вход без Telegram (device-токен):** бэк `require_owner` принимает `Authorization: Bearer == settings.pwa_token` (`hmac.compare_digest`) ИЛИ Telegram initData. `pwa_token`/`pwa_app_url` в config; env `PWA_TOKEN` на сервере (`openssl rand -hex 32` в `.env`). Бот `/applink` (только владельцу через allowlist) печатает URL+токен. Фронт: `lib/auth` (токен в localStorage, `authHeaders`=initData+Bearer, `needsAuth`), `api.ts` на `authHeaders`, экран `TokenGate` (вне TG без токена → ввод → `/me` валидация → reload). main.tsx: `needsAuth()? <TokenGate/> : <App/>`.
+**Проверено:** бэк pytest 170 (+4 pwa-auth), фронт 74, build ок; прод end-to-end `/api/me`: без auth=401, верный Bearer=200, неверный=401.
+**ГОЧА деплоя:** были БЭК-правки → rsync не только `frontend/`, но и `src/` (иначе образ соберётся на старом бэке). Docker frontend-стейдж `npm install` сам подхватил новый vite-plugin-pwa.
+**Владельцу — установка на iPhone:** бот `/applink` → открыть URL в **Safari** → Поделиться → «На экран „Домой“» → запустить с иконки → вставить токен один раз. → harness [[planner-pwa-install]].
+**Открыто/фоллоу:** web-push напоминания (iOS 16.4+ для home-PWA) не делали. device-проверка владельцем (полный экран без ТГ-шапки, safe-area вырез/дом-бар, ввод токена, офлайн).
+
+## ✅ 2026-06-21 (вечер-8, трек ЗАДАЧИ): скролл драгом по карточке таймлайна (Apple-стиль) — ЗАДЕПЛОЕНО+подтверждён
+**Прод:** бандл `index-CrqiyVF7.js` → **`index-CPPPQgDx.js`**, health 200. Worktree `planner-wt-tasks`/ветка `feat/tasks` (ff-merge→phase0, commit `004b5f7`). Владелец подтвердил на iPhone «всё ок».
+**Параллель:** этот чат = таб Задачи (`planner-wt-tasks`/`feat/tasks`); следующий чат = Привычки (`planner-wt-habits`/`feat/habits`, первым делом вольёт phase0 — отстал на 107).
+**Жалоба:** в сформированном дне нельзя скроллить драгом ПО карточкам, только по пустым полям (в Apple-календаре можно).
+**Корень:** Today GPU-transform-скролл (`DayTimeline.tsx` useEffect ~298): `onTS` бейлил на `.cal-block` (`dragging=false`) → скролл стартовал только с пустой сетки.
+**Фикс (2 правки, только touch-хендлеры):** (1) `onTS` убрал `.cal-block` из bail → скролл стартует и по карточке; pd зовём ТОЛЬКО на пустой сетке (на карточке pd убил бы синтет-клик tap-open на iOS; нативный скролл и так off через `touch-action:none` на `.cal-block-main`); bail оставлен на `.cal-draft/input/textarea/button/.cal-resize`. (2) `onTM` гард `dragRef.current` — активный подъём/ресайз блока не скроллит заодно. Подъём (long-press 220мс) отменяется существующим CANCEL_PX при сдвиге → дискриминация скролл-vs-подъём бесплатна. tsc чист, vitest 68/68. Десктоп не затронут (только touch). → [[learnings]].
+**+ ДОБИТО в этой же сессии (вечер-8, всё на проде, бандл итог `index-B07lfEe-.js`):**
+- **Высота часа 56→96px** (`HOUR_H` в timelineLayout): 15-мин слот был 14px < min-height 22px → каша коротких. 96 → слот 24px ≥ 22, читаемо; длинные не раздуты; недельный вид (WEEK_PX_PER_HOUR) свой, не тронут. Владелец «нравится». Возможный фоллоу: переключатель плотности 56/96/120 (как «зум» TickTick; pinch-зум не делаем — iOS-трилемма).
+- **Короткие встык-задачи → колонки** (`layoutColumns`): Подъём/Душ/Медитация (5/10/15мин встык, ставит planner) по времени НЕ пересекались → 1 колонка → min-height наложил. Фикс: визуальный конец блока = `max(end, start+MIN_BLOCK_MIN)` где MIN_BLOCK_MIN=min-height в минутах → близкие короткие разводятся по колонкам (Apple); читаемые ≥~14мин не дробятся. +2 теста (70). MIN_BLOCK_PX/MIN_BLOCK_MIN вынесены в timelineLayout.
+- **Текст короткого блока по центру**: `.cal-block.short` центрировал, но `.cal-block-main align-self:stretch` тянул тело → `.bt` к верху. Добавил телу короткого блока flex-col+justify-center.
+- (попытка capsule-кант против «полумесяца» — ОТКАЧЕНА: владельцу нравился border-left, жалоба была про цвет, не форму. Урок «не выдумывай лишнее» → [[learnings]].)
+- **Цвет приоритета ЕДИНЫЙ во всех видах**: был рассинхрон — списки/пикер канон (medium=ember/low=blue), таймлайн/неделя/Гант старьё (medium=warning/low=accent). Свёл к одному источнику `lib/projectColor.priorityColor` (medium→accent, low→blue); DayTimeline re-export, Gantt 2 inline→функция. Канон: high=danger/medium=accent/low=blue/none=null. Держать в синхроне с pickers.PRIORITY_COLOR + theme.css .prio-*.
+- TickTick-ресёрч: пересечения в колонки (как у нас) + зум таймлайна (pinch/Ctrl-wheel) + Day/3-Day режимы. Наш козырь — разводим даже встык-короткие.
+- **Скролл-фил таймлайна (DayTimeline onTE/onTS/onTM)**: (а) инерция теперь velocity-gated — медленный осознанный драг встаёт где отпустил, быстрый флик катится (порог `|v|<7` → без инерции; раньше 0.6 = катилось всегда; владелец «идеально»). (б) убраны `:active`-реакции — `.cal-block:active{scale}` и `.cal-hour:active{bg}` флешили при свайпе → реакция только при зажатии (подъём/создание).
+- **БАГ «скроллит страницу вместо таймлайна» на карточке**: card-scroll регресс — на карточке touchstart pd не зовём (чтоб не убить tap-open), но native-pan на чекбоксе(manipulation)/паддинге/гэпах листал СТРАНИЦУ. Фикс: `.daytimeline--static .cal-block, .cal-cb { touch-action:none }` (scoped на Today; календарь-compact native scroll не тронут). → [[learnings]] (card-scroll).
+- **All-day задачи в порядке смарт-списков**: были без сортировки → теперь проект (порядок шторки) → приоритет↓ → дата/время. Вынес общий `lib/taskSort` (PRIO_RANK/cmpSmartTask/projectRankMap/cmpTaskGrouped); TaskListBody переведён на него (поведение смарт-списков идентично). +4 теста (74).
+
+**Открыто/запарковано:** как в вечер-7 (schedule_kind в стрик-логике, device-проверка Привычек, T4 Цели/T3 Гант, PWA-A/B) + возможный переключатель плотности таймлайна (фоллоу 56/96/120). Память harness: [[planner-timeline-card-scroll]].
+**Trace-карта таймлайна (вечер-8):** высота часа=`lib/timelineLayout.HOUR_H`(96)+MIN_BLOCK; колонки=`layoutColumns`(visEnd); скролл/инерция/реакции=`DayTimeline.tsx` onTE/onTS/onTM + theme.css `.daytimeline--static`/`.cal-block`/`.cal-hour`; цвет приоритета=`lib/projectColor.priorityColor`(канон, единый); сорт задач=`lib/taskSort`.
+
 ## ✅ 2026-06-20/21 (вечер-7): Привычки (T5) добиты целиком + now-линия + параллельная работа 2 чатов — ВСЁ ЗАДЕПЛОЕНО
 **Прод:** бандл `index-CrqiyVF7.js`, health 200. Ветка `planner-v2-phase0` (этот чат вёл трек **Привычки** в worktree `planner-wt-habits`/`feat/habits`, второй чат — Задачи/шторка/смарт-списки на phase0). Все правки подтверждены владельцем на iPhone по ходу.
 

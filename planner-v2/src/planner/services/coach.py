@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from planner.bot.utils import notify_owner
 from planner.config import get_settings
-from planner.db.models import Project, TemplateExercise
+from planner.db.models import Exercise, Project, TemplateExercise
 from planner.db.session import get_session
 from planner.services import workouts as svc
 
@@ -38,17 +38,41 @@ async def _session_scope():
 
 async def _summary(session, sid: int) -> dict:
     ws = await svc.get_session(session, sid)
-    items = [{"exercise_id": s.exercise_id, "weight": s.weight, "reps": s.reps,
-              "rpe": s.rpe, "is_warmup": s.is_warmup, "note": s.note} for s in ws.sets]
-    return {"date": str(ws.date), "review": ws.review_note, "sets": items}
+    ids = {s.exercise_id for s in ws.sets}
+    names: dict[int, str] = {}
+    if ids:
+        rows = (await session.execute(select(Exercise.id, Exercise.name).where(Exercise.id.in_(ids)))).all()
+        names = {i: n for (i, n) in rows}
+    by_ex: dict[int, list] = {}
+    order: list[int] = []
+    for s in ws.sets:
+        if s.exercise_id not in by_ex:
+            by_ex[s.exercise_id] = []
+            order.append(s.exercise_id)
+        by_ex[s.exercise_id].append(s)
+    exercises = [{
+        "упражнение": names.get(exid, f"#{exid}"),
+        "подходы": [{"вес": s.weight, "повторы": s.reps, "разминка": s.is_warmup,
+                     **({"заметка": s.note} if s.note else {})} for s in by_ex[exid]],
+    } for exid in order]
+    return {"дата": str(ws.date), "ревью_атлета": ws.review_note, "упражнения": exercises}
 
 
 def build_prompt(session_summary: dict) -> str:
     return (
         f"{PROGRAM_CONTEXT}\n{HEALTH_RAILS}\n\n"
-        f"Данные тренировки (JSON):\n{json.dumps(session_summary, ensure_ascii=False)}\n\n"
-        "Дай краткий разбор (3-5 предложений): что хорошо, где прогресс, "
-        "1-2 конкретные правки на след. тренировку. Без воды."
+        "Ты тренер. Разбери тренировку атлета. Ниже — упражнения по порядку, в каждом подходы (вес×повторы), "
+        "его РЕВЬЮ и дата.\n"
+        "ВАЖНО:\n"
+        "- ОБЯЗАТЕЛЬНО опирайся на ревью атлета — он объясняет аномалии (ошибся весом, устал, колено и т.п.). "
+        "НЕ ругай за то, что он уже объяснил.\n"
+        "- вес 0 = упражнение со своим весом (подтягивания, планка) — это норма, не ошибка.\n"
+        "- Подходы с меньшим весом перед рабочими = разминка/подводка, это нормально, НЕ называй это хаосом.\n"
+        "- Каждое упражнение в списке встречается один раз по порядку; не выдумывай 'повторы/беспорядок'.\n"
+        "- Не выдумывай факты, которых нет в данных.\n\n"
+        f"Данные (JSON):\n{json.dumps(session_summary, ensure_ascii=False)}\n\n"
+        "Дай короткий разбор (3-5 предложений): что хорошо, где прогресс, 1-2 конкретные правки на след. "
+        "тренировку. По-русски, без воды и жаргона."
     )
 
 
@@ -85,10 +109,16 @@ async def _apply_progression(session, sid: int) -> None:
         sets = by_ex.get(te.exercise_id)
         if not sets:
             continue
-        prog = svc.suggest_progression(sets, te.rep_low, te.rep_high)
-        if prog["action"] in ("up", "down"):
-            last_w = max(s["weight"] for s in sets)
-            te.coach_target_weight = round(last_w + prog["delta"], 2)
+        work_w = max(s["weight"] for s in sets)
+        if work_w <= 0:
+            continue  # упражнение со своим весом — вес не прописываем
+        # считаем прогрессию ТОЛЬКО по подходам на рабочем (макс) весе — разминка/подводка не мешают
+        work_sets = [s for s in sets if s["weight"] == work_w]
+        prog = svc.suggest_progression(work_sets, te.rep_low, te.rep_high)
+        if prog["action"] == "up":
+            te.coach_target_weight = round(work_w + prog["delta"], 2)
+        else:
+            te.coach_target_weight = work_w  # синк цели к реальному рабочему весу (без авто-снижения)
     await session.flush()
 
 

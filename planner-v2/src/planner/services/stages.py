@@ -135,7 +135,11 @@ async def update_project_ai(session, project_id: int, changes: dict) -> Project:
     if sp is not None and not (0 <= sp <= 100):
         raise ValueError("success_probability must be 0..100")
     if "success_probability" in changes:
-        proj.success_probability = changes["success_probability"]
+        new_sp = changes["success_probability"]
+        # сдвигаем prev → текущее перед записью нового, чтобы карточка показала тренд ▲/▼
+        if new_sp != proj.success_probability and proj.success_probability is not None:
+            proj.success_probability_prev = proj.success_probability
+        proj.success_probability = new_sp
     if "target_date" in changes:
         proj.target_date = changes["target_date"]
     if "ai_notes" in changes:

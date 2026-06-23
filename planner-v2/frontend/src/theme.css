@@ -176,7 +176,12 @@ input, textarea, [contenteditable="true"] {
   height: calc(var(--tab-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   display: grid; grid-template-columns: repeat(5, 1fr);
-  background: var(--surface); border-top: 1px solid var(--border); z-index: 30;
+  /* фон = --bg (как у холста body), НЕ --surface: iOS standalone PWA при схлопе вьюпорта
+     рисует ниже таб-бара letterbox цветом canvas (= body --bg). Если таб-бар светлее, под
+     ним видна тёмная полоса. CSS в letterbox не рисует (контент ниже вьюпорта iOS не
+     рендерит — потому «юбки»/фиксы не работали). Совпадение цвета таб-бара с холстом =
+     полоса невидима в любом состоянии. Разделение с контентом — border-top. */
+  background: var(--bg); border-top: 1px solid var(--border); z-index: 30;
 }
 .tabbar button {
   appearance: none; border: none; background: transparent; cursor: pointer;
@@ -1830,6 +1835,7 @@ body.inline-draft .fab { display: none; }
 .t4-ring { flex: 0 0 auto; text-align: center; }
 .t4-ring .v { font-size: 19px; font-weight: 700; color: var(--c, var(--accent)); }
 .t4-ring .l { font-size: 9px; color: var(--text-muted); letter-spacing: 0.5px; }
+.t4-trend { font-size: 11px; font-weight: 600; margin-top: 2px; line-height: 1; }
 .t4-meta { font-size: 12px; color: var(--text-muted); margin: 5px 0 11px; font-family: var(--font-mono); }
 .t4-stages { display: flex; gap: 4px; margin-bottom: 10px; }
 .t4-stages i { flex: 1; height: 6px; border-radius: 3px; background: var(--ring-track); }

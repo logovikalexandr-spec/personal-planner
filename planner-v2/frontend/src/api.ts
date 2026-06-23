@@ -186,6 +186,7 @@ export type ApiHistPoint = { date: string; top_1rm: number; best_set: { weight: 
 export const wGetExercises = () => req<ApiExercise[]>("/api/exercises");
 export const wGetTemplates = (pid: number) => req<ApiTemplate[]>(`/api/projects/${pid}/workout-templates`);
 export const wGetWorkouts = (pid: number) => req<ApiSession[]>(`/api/projects/${pid}/workouts`);
+export const wGetWorkout = (sid: number) => req<ApiSession>(`/api/workouts/${sid}`);
 export const wCreateWorkout = (pid: number, date: string, templateId?: number | null) =>
   req<ApiSession>("/api/workouts", { method: "POST", body: JSON.stringify({ project_id: pid, date, template_id: templateId ?? null }) });
 export const wPutSets = (sid: number, sets: Partial<ApiSet>[]) =>

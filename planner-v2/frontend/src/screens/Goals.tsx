@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getDayTasks, getProjects, getStages, getTasksRange } from "../api";
 import { useRefreshSignal } from "../lib/refreshSignal";
 import { localISO, weekDays } from "../lib/calDates";
@@ -89,6 +89,21 @@ function ProjectCard({ p, stages, onOpenWorkout }: { p: Project; stages: Stage[]
         <div className="t4-ring" data-testid={`goal-ring-${p.id}`}>
           <div className="v">{p.success_probability}%</div>
           <div className="l">ШАНС</div>
+          {(() => {
+            const prev = p.success_probability_prev;
+            const cur = p.success_probability;
+            if (prev == null || cur == null || cur === prev) return null;
+            const up = cur > prev;
+            return (
+              <div
+                className="t4-trend"
+                data-testid={`goal-trend-${p.id}`}
+                style={{ color: up ? "var(--success)" : "var(--danger)" }}
+              >
+                {up ? "▲" : "▼"} {Math.abs(cur - prev)}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -136,6 +151,34 @@ export function Goals() {
   const [workoutGoalId, setWorkoutGoalId] = useState<number | null>(null);
   const workoutApi = useMemo(() => (workoutGoalId == null ? null : makeWorkoutApi(workoutGoalId)), [workoutGoalId]);
   const workoutGoalName = projects.find((p) => p.id === workoutGoalId)?.name ?? "Цель";
+
+  // Оверлей трени: в ПОКОЕ — CSS height:100dvh (полный экран, футер у низа). При ОТКРЫТОЙ
+  // КЛАВЕ — ужимаем height до visualViewport (top=offsetTop), чтобы футер (нижний flex-элемент)
+  // сел РОВНО над клавой, а не «всплывал вверх» (iOS при фокусе скроллит fixed-оверлей 874 вверх
+  // → футер уезжал в середину). Детект клавы = innerHeight − vv.height > 100 (в покое разница ~0,
+  // даже на качелях vv 812↔874; клава даёт ~240). Закрылась → чистим инлайн → назад к CSS 100dvh.
+  const wlOverlayRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (workoutGoalId == null) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const sync = () => {
+      const el = wlOverlayRef.current;
+      if (!el) return;
+      const kbOpen = window.innerHeight - vv.height > 100;
+      if (kbOpen) {
+        el.style.height = `${vv.height}px`;
+        el.style.top = `${vv.offsetTop}px`;
+      } else {
+        el.style.height = "";   // вернуть CSS height:100dvh
+        el.style.top = "";
+      }
+    };
+    sync();
+    vv.addEventListener("resize", sync);
+    vv.addEventListener("scroll", sync);
+    return () => { vv.removeEventListener("resize", sync); vv.removeEventListener("scroll", sync); };
+  }, [workoutGoalId]);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -254,7 +297,7 @@ export function Goals() {
       </button>
 
       {workoutGoalId != null && workoutApi && (
-        <div className="wl-overlay" data-testid="workout-overlay">
+        <div className="wl-overlay" data-testid="workout-overlay" ref={wlOverlayRef}>
           <WorkoutLog
             goalId={workoutGoalId}
             goalName={workoutGoalName}
