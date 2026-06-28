@@ -21,7 +21,10 @@ function nearestScroller(node: Element | null): HTMLElement | null {
 
 // «Скроллер под пальцем на самом верху?» Таймлайн Today = GPU-transform (читаем translateY).
 function atTop(target: Element | null): boolean {
-  const tlHost = target?.closest?.(".daytimeline--static");
+  // Today-таймлайн = GPU-transform (читаем translateY у .cal-grid). НО Календарь-compact
+  // тоже .daytimeline--static, а скроллит НАТИВНО через .cal2-scroll (колонка transform=0
+  // всегда) — для него transform-ветку пропускаем, идём в nearestScroller (.cal2-scroll).
+  const tlHost = target?.closest?.(".daytimeline--static:not(.dt-compact)");
   if (tlHost) {
     const grid = tlHost.querySelector(".cal-grid") as HTMLElement | null;
     if (grid) {

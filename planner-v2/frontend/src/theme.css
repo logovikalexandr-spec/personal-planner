@@ -1412,7 +1412,10 @@ body.wl-active .fab { display: none; }
 /* — общий хром таба — */
 .cal2 { display: flex; flex-direction: column; height: 100%; position: relative; }
 /* нижний отступ прокрутки = свёрнутый лоток (~52px) + воздух, чтобы легенда не пряталась за ним */
-.cal2-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--s4) 76px; }
+/* margin-bottom = высота свёрнутой шторки «Без даты» (.cw-tray ≈64px): скролл КОНЧАЕТСЯ над
+   шторкой, поэтому 00:00 (низ колонки) домотывается ровно к ней — без пустого воздуха под 00:00
+   и без захода под шторку. padding-bottom малый — лишь дыхание. */
+.cal2-scroll { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 var(--s4) 10px; margin-bottom: 64px; }
 .cal2-scroll::-webkit-scrollbar { display: none; }
 /* шапка: заголовок слева + «Сегодня» справа (вынесен из ряда навигации выше) */
 .cal2-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
@@ -1554,10 +1557,15 @@ body.wl-active .fab { display: none; }
 
 /* compact DayTimeline: блоки во всю ширину колонки, часы мелким оверлеем слева */
 .dt-compact .cal-grid {
-  margin-top: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+  /* отступ сверху: первая метка часа (00:00) позиционируется top:-7px над сеткой —
+     без отступа её срезал верх колонки/шапка дня. 8px = метка видна целиком. */
+  margin-top: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
 }
 .dt-compact .cal-hour { padding-left: 0; }
 .dt-compact .cal-hourlabel { left: 3px; top: -7px; width: auto; text-align: left; font-size: 8px; }
+/* now-линия: в узкой compact-колонке Календаря идёт ОТ КРАЯ, а не от 50px-гутера
+   (50px = гутер часов полного Today-вида → в узкой колонке выглядел как «из середины»). */
+.dt-compact .cal-now { left: 0; }
 /* блок над лейблами часов; ::before = непрозрачная подложка под полупрозрачный тинт
    (иначе лейбл «16:00» просвечивает сквозь карточку — грабли «тинт поверх прозрачного») */
 .dt-compact .cal-block { padding: 4px 5px; gap: 0; box-shadow: none; border-radius: 7px; z-index: 3; }
@@ -1743,11 +1751,13 @@ body.wl-active .fab { display: none; }
 
 .t3 .grow { display: flex; align-items: center; border-bottom: 1px solid var(--border); position: relative; }
 .t3 .grow:last-child { border-bottom: none; }
-.t3 .glabel { padding: 0 9px; border-right: 1px solid var(--border); height: 100%; display: flex; flex-direction: column; justify-content: center; position: sticky; left: 0; z-index: 3; background: var(--surface); flex: 0 0 auto; }
+.t3 .glabel { padding: 0 9px; border-right: 1px solid var(--border); height: 100%; display: flex; flex-direction: column; justify-content: center; position: sticky; left: 0; z-index: 3; background: var(--surface); flex: 0 0 auto; overflow: hidden; }
 .t3 .glabel.task { padding-left: 22px; }
-.t3 .glabel .nm { font-size: 11.5px; font-weight: 600; line-height: 1.15; }
+/* имя этапа кламп до 2 строк (+дата) — иначе длинное имя выше ROW_H(46) вылазило из строки,
+   наезжало на соседние и съезжало с барами справа. */
+.t3 .glabel .nm { font-size: 11.5px; font-weight: 600; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .t3 .glabel .nm.tnm { font-size: 11px; font-weight: 500; color: var(--text); }
-.t3 .glabel .tg { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; }
+.t3 .glabel .tg { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .t3 .glabel .tg .d { width: 6px; height: 6px; border-radius: 2px; background: var(--c); }
 .t3 .glabel .tdot { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); width: 5px; height: 5px; border-radius: 50%; }
 .t3 .gtrack { position: relative; height: 100%; flex: 0 0 auto; }

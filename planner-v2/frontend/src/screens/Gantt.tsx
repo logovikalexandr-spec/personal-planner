@@ -28,7 +28,7 @@ const ZOOMS: { key: Zoom; label: string; ecode: string }[] = [
   { key: "month", label: "Мес", ecode: "A5" },
 ];
 
-const ROW_H = 46;
+const ROW_H = 56;
 const TASK_H = 32;
 
 const IcoWarn = () => (

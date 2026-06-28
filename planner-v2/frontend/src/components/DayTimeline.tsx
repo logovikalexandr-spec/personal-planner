@@ -505,7 +505,7 @@ export const DayTimeline = memo(function DayTimeline({
         // Нижний воздух: (а) ~110px у Today, чтобы метку 24:00 (00:00) можно было проскроллить
         // выше плавающих «Список»/FAB/таб-бара (иначе она прячется за ними у нижней границы);
         // (б) при редактировании черновика +360 (≈высота клавы) — late-черновик поднимается над клавой.
-        style={{ height: HOURS.length * HOUR_H + (compact ? 0 : 110) + (draft?.state === "editing" ? 360 : 0) }}
+        style={{ height: HOURS.length * HOUR_H + (compact ? 8 : 110) + (draft?.state === "editing" ? 360 : 0) }}
         onPointerDown={onCreateDraft ? onHourDown : undefined}
         onPointerMove={onCreateDraft ? onHourMove : undefined}
         onPointerUp={onCreateDraft ? onHourUp : undefined}
