@@ -1,12 +1,14 @@
 /* WorkoutLog — подраздел Цели. Onyx/ember, Geist. Только дизайн-токены theme.css. */
 
 /* оверлей подраздела поверх Целей */
-/* overlay = flex-column: header + скроллящееся тело + футер снизу. Скролл живёт в .wl-body
-   (не в overlay) — футер остаётся нижним flex-элементом, контент не торчит под ним.
-   ⚠️ ВЫСОТА = 100dvh, НЕ inset:0/bottom:0. На iOS standalone PWA `fixed; inset:0` берёт
-   layout-вьюпорт (documentElement.clientHeight = 812 на замере), а 100dvh = полный экран
-   (874, как у .app). С inset:0 футер не доходил до низа на 62px. dvh = доходит. */
-.wl-overlay { position: fixed; top: 0; left: 0; right: 0; height: 100dvh; z-index: 60; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
+/* overlay = flex-column: header + скроллящееся тело (.wl-body). Действие «Завершить» —
+   обычный элемент В КОНЦЕ потока .wl-body, НЕ прижато к низу вьюпорта (см. .wl-action):
+   так весь класс iOS-keyboard/viewport-багов снят by-construction.
+   ⚠️ ВЫСОТА = 100vh, НЕ inset:0/bottom:0/100%/100dvh. На iOS standalone PWA `fixed; inset:0`
+   и `height:100%` берут layout-вьюпорт/ICB (documentElement.clientHeight = 812 на замере, т.к.
+   black-translucent статус-бар), а 100dvh ненадёжен на cold-start. 100vh = полный экран 874
+   (как у .app) стабильно → оверлей доходит до реального низа, чёрной полосы нет. */
+.wl-overlay { position: fixed; top: 0; left: 0; right: 0; height: 100vh; z-index: 60; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
 /* кнопка входа «Тренировки» на карточке цели */
 .t4-workout {
   appearance: none; margin-top: 12px; width: 100%; display: flex; align-items: center; justify-content: space-between;
@@ -170,25 +172,15 @@
 }
 .wl-add-ex { width: 100%; justify-content: center; margin: 4px 0 8px; }
 
-/* нижняя панель — обычный нижний flex-элемент внутри .wl (overlay = flex-column).
-   НЕ fixed/НЕ sticky: иначе ловит iOS-баги вьюпорта (качели vv 812↔874 → плавание,
-   контент под плашкой). Контент скроллится в .wl-body НАД футером. */
-.wl-bottom {
-  flex: 0 0 auto;
-  padding: 12px var(--s4) calc(12px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--border);
-  background: var(--bg); /* = цвет холста/letterbox → под футером полосы нет */
+/* Действие «Завершить/Отменить» — последний элемент ПОТОКА в .wl-body, НЕ прижато к низу
+   вьюпорта. Кнопка-у-низа на iOS standalone PWA = первопричина класса багов (клава ужимает
+   visualViewport 874→498 при неизменном 100dvh → всплытие/letterbox-полоса/bleed). Обычная
+   кнопка в конце скролла от этого свободна by-construction. safe-area-bottom = чтобы в конце
+   списка кнопка не упиралась в home-индикатор. */
+.wl-action {
+  margin-top: var(--s5);
+  padding-bottom: env(safe-area-inset-bottom);
 }
-
-/* дебаг-оверлей чисел вьюпорта (флаг wl-debug / ?wldebug) */
-.wl-debug {
-  position: fixed; top: calc(env(safe-area-inset-top) + 4px); right: 4px; z-index: 200;
-  background: rgba(0,0,0,0.82); color: #7CFFB2; font-family: var(--font-mono);
-  font-size: 11px; line-height: 1.5; padding: 6px 8px; border-radius: 8px;
-  pointer-events: none; min-width: 150px;
-}
-.wl-debug div { display: flex; justify-content: space-between; gap: 10px; }
-.wl-debug b { color: #fff; font-weight: 700; }
 
 /* тост-разбор тренера (имитация пуша) */
 .wl-toast {

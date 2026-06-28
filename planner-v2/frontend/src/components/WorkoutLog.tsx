@@ -1,14 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import "./workout-log.css";
-
-// хэш реально загруженного JS-бандла — видимый маркер версии (понять, свежий ли код на устройстве)
-const BUILD_TAG: string = (() => {
-  try {
-    const s = document.querySelector<HTMLScriptElement>('script[type="module"][src*="index-"]');
-    return s?.src.match(/index-([A-Za-z0-9_-]+)\./)?.[1] ?? "?";
-  } catch { return "?"; }
-})();
 
 /* ── Типы (для мокапа локально; при сборке переедут в types.ts) ──────────── */
 export interface WExercise { id: number; name: string; muscle_group: string }
@@ -235,104 +226,15 @@ export function WorkoutLog({ goalId, goalName, onBack, api }: { goalId: number; 
 }
 
 function Header({ title, sub, onBack, right }: { title: string; sub?: string; onBack: () => void; right?: React.ReactNode }) {
-  // скрытый тоггл дебаг-оверлея: 3 быстрых тапа по заголовку (PWA без консоли/URL-параметра)
-  const tapRef = useRef<{ n: number; t: number }>({ n: 0, t: 0 });
-  const onTitleTap = () => {
-    const now = Date.now();
-    const s = tapRef.current;
-    s.n = now - s.t < 600 ? s.n + 1 : 1;
-    s.t = now;
-    if (s.n >= 3) {
-      s.n = 0;
-      try {
-        if (localStorage.getItem("wl-debug")) localStorage.removeItem("wl-debug");
-        else localStorage.setItem("wl-debug", "1");
-      } catch { /* ignore */ }
-      window.dispatchEvent(new Event("wl-debug-toggle"));
-    }
-  };
   return (
     <div className="wl-head">
       <button className="wl-back" onClick={onBack}><IcoBack /></button>
       <div>
-        <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px" }} onClick={onTitleTap}>{title}</div>
+        <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: "-0.3px" }}>{title}</div>
         {sub && <div className="muted" style={{ fontSize: 12 }}>{sub}</div>}
       </div>
       {right && <div style={{ marginLeft: "auto" }}>{right}</div>}
     </div>
-  );
-}
-
-/* ── Футер активной сессии ───────────────────────────────────────────────────
-   Простой flex: футер = нижний НЕскроллящийся элемент ВНУТРИ `.wl` (overlay = flex-
-   column, `.wl-body` = flex:1 overflow:auto скроллер, футер = flex:0 снизу). Не
-   плавает, не прыгает, контент не торчит под ним. Клава просто перекрывает футер
-   снизу (при наборе числа он не нужен). Прошлые попытки (sticky / fixed+портал+
-   visualViewport-якорь) ловили iOS-баги: качели vv 812↔874 → футер уезжал ниже
-   страницы и контент торчал под плашкой. Flex от этого свободен by-construction. */
-function WorkoutFooter({ children }: { children: React.ReactNode }) {
-  return <div className="wl-bottom">{children}</div>;
-}
-
-/* ── Дебаг-оверлей чисел вьюпорта ─────────────────────────────────────────────
-   Включается флагом: localStorage `wl-debug`=1 ИЛИ ?wldebug в URL. Печатает живые
-   числа (vv.height/offsetTop, innerHeight, scrollTop оверлея, rect футера). Нужен
-   т.к. iOS-клаву нельзя репродить в DevTools — владелец открывает с флагом, шлёт
-   скрин с числами при ОТКРЫТОЙ клаве, причина видна по замерам. */
-function isWlDebug(): boolean {
-  try {
-    if (localStorage.getItem("wl-debug")) return true;
-  } catch { /* ignore */ }
-  return /[?&]wldebug\b/.test(window.location.search);
-}
-function WlDebugOverlay() {
-  // on реактивен: тройной тап по заголовку экрана шлёт 'wl-debug-toggle' (PWA без консоли/URL)
-  const [on, setOn] = useState(isWlDebug);
-  useEffect(() => {
-    const onToggle = () => setOn(isWlDebug());
-    window.addEventListener("wl-debug-toggle", onToggle);
-    return () => window.removeEventListener("wl-debug-toggle", onToggle);
-  }, []);
-  const [info, setInfo] = useState<Record<string, number>>({});
-  useEffect(() => {
-    if (!on) return;
-    const tick = () => {
-      const vv = window.visualViewport;
-      const overlay = document.querySelector<HTMLElement>(".wl-overlay");
-      const footer = document.querySelector<HTMLElement>(".wl-bottom");
-      const fr = footer?.getBoundingClientRect();
-      const or = overlay?.getBoundingClientRect();
-      const fpos = footer ? getComputedStyle(footer).position : "?";
-      setInfo({
-        "vv.height": vv ? Math.round(vv.height) : -1,
-        "vv.offsetTop": vv ? Math.round(vv.offsetTop) : -1,
-        "innerH": Math.round(window.innerHeight),
-        "docClientH": Math.round(document.documentElement.clientHeight),
-        "ovl.scrollTop": overlay ? Math.round(overlay.scrollTop) : -1,
-        "ovl.top": or ? Math.round(or.top) : -1,
-        "ovl.height": or ? Math.round(or.height) : -1,
-        "ft.pos": fpos === "fixed" ? 1 : fpos === "sticky" ? 2 : 0,
-        "ft.inlineTop": footer ? Math.round(parseFloat(footer.style.top || "-1")) : -1,
-        "ft.top": fr ? Math.round(fr.top) : -1,
-        "ft.bottom": fr ? Math.round(fr.bottom) : -1,
-        "ft.height": fr ? Math.round(fr.height) : -1,
-      });
-    };
-    tick();
-    const id = window.setInterval(tick, 200);
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", tick);
-    vv?.addEventListener("scroll", tick);
-    return () => { window.clearInterval(id); vv?.removeEventListener("resize", tick); vv?.removeEventListener("scroll", tick); };
-  }, [on]);
-  if (!on) return null;
-  return createPortal(
-    <div className="wl-debug" aria-hidden>
-      {Object.entries(info).map(([k, v]) => (
-        <div key={k}><span>{k}</span><b>{v}</b></div>
-      ))}
-    </div>,
-    document.body,
   );
 }
 
@@ -418,7 +320,7 @@ function ActiveSession({ template, existing, exMap, api, onBack, onDone, onCance
 
   return (
     <div className="wl">
-      <Header title={template.name} sub={`${weekdayLabel(dateISO)}, ${fmtDate(dateISO)} · ${BUILD_TAG}`} onBack={onBack}
+      <Header title={template.name} sub={`${weekdayLabel(dateISO)}, ${fmtDate(dateISO)}`} onBack={onBack}
         right={isDone ? <span className="wl-done-pill"><IcoCheck /> завершена</span> : undefined} />
       <div className="wl-body">
         {isDone && existing?.coach_note && (
@@ -450,17 +352,23 @@ function ActiveSession({ template, existing, exMap, api, onBack, onDone, onCance
         <div className="section-label">Ревью тренировки</div>
         <textarea className="input" rows={3} value={review} onChange={(e) => setReview(e.target.value)}
           placeholder="Как прошло? Что докинул/пропустил и почему — тренер прочитает." style={{ resize: "none", lineHeight: 1.4 }} />
+
+        {/* Действие = последний элемент потока (НЕ прижато к низу вьюпорта). Кнопка-у-низа
+            на iOS standalone PWA = первопричина всего класса багов: клава ужимает
+            visualViewport (874→498) при неизменном 100dvh → любая bottom-привязка
+            всплывала / оставляла letterbox-полосу / просвечивала сквозь полупрозрачный
+            бар клавы. Обычная кнопка в конце скролла от этого свободна by-construction:
+            у низа экрана нет элемента → нечему всплывать/просвечивать. */}
+        <div className="wl-action">
+          {isDone ? (
+            <button className="btn btn-block wl-cancel" onClick={cancel}>Отменить тренировку</button>
+          ) : (
+            <button className="btn btn-block" disabled={saving !== "idle"} onClick={complete}>
+              {saving === "idle" ? "Завершить тренировку" : saving === "saving" ? "Сохраняю…" : "Тренер разбирает…"}
+            </button>
+          )}
+        </div>
       </div>
-      <WorkoutFooter>
-        {isDone ? (
-          <button className="btn btn-block wl-cancel" onClick={cancel}>Отменить тренировку</button>
-        ) : (
-          <button className="btn btn-block" disabled={saving !== "idle"} onClick={complete}>
-            {saving === "idle" ? "Завершить тренировку" : saving === "saving" ? "Сохраняю…" : "Тренер разбирает…"}
-          </button>
-        )}
-      </WorkoutFooter>
-      <WlDebugOverlay />
       {coach && <div className="wl-toast"><div className="wl-coach-badge" style={{ marginBottom: 6 }}>🏋️ тренер · Telegram</div><div style={{ fontSize: 13.5, lineHeight: 1.45 }}>{coach}</div></div>}
     </div>
   );

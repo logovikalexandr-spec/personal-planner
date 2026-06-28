@@ -28,7 +28,16 @@
 }
 
 * { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
+/* ⚠️ ВЫСОТА ДОКУМЕНТА = 100vh, НЕ 100%. На iOS standalone PWA с
+   `apple-mobile-web-app-status-bar-style: black-translucent` + `viewport-fit=cover`
+   initial containing block (ICB) исключает зону под статус-баром/Dynamic Island →
+   `height:100%` резолвится в 812 (замер: documentElement.clientHeight=812 при экране 874).
+   Тогда документ=812, а `bottom:0`/`100dvh` считаются от 812 → низ контента и таб-бара
+   стоит на 812, зона 812..874 (62px) непокрыта → красится canvas-фоном браузера = чёрная
+   полоса снизу на ВСЕХ табах, БЕЗ всякой клавы. `100vh` в standalone (тулбара нет) = полный
+   экран 874 и стабилен с холодного старта (в отличие от 100dvh, ненадёжного до первого
+   "exercise" вьюпорта). Это структурный корень всех «полос/62px». */
+html, body, #root { height: 100vh; margin: 0; }
 /* overscroll-behavior:none — гасит iOS rubber-band документа: на коротких табах (Цели/Гант)
    баунс отрывал fixed-навбар вверх (под ним чёрный провал). PTR-жест свой, не страдает. */
 html, body { overscroll-behavior: none; }
@@ -51,7 +60,9 @@ input, textarea, [contenteditable="true"] {
   -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
 }
 
-.app { min-height: 100dvh; padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
+/* min-height:100vh (=874, см. html выше), НЕ 100dvh: dvh ненадёжен на cold-start iOS standalone,
+   100% резолвился бы в 812-ICB. vh = полный экран стабильно. */
+.app { min-height: 100vh; padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom)); }
 .screen { padding: var(--s5) var(--s4) var(--s6); }
 /* keep-alive: хост таб-экрана. hidden = display:none (экран остаётся в DOM, без remount). */
 .screen-host[hidden] { display: none; }
@@ -235,10 +246,11 @@ input, textarea, [contenteditable="true"] {
   animation: fade-in 200ms ease;
 }
 .drawer {
-  /* height:100dvh (вьюпорт-юнит), НЕ bottom:0 — при открытой шторке body=position:fixed (scroll-lock)
-     короче вьюпорта, и bottom:0 на iOS standalone резолвится по укороченному body → панель
-     обрывалась, снизу чёрный провал. dvh всегда = полный экран. + safe-area-bottom под дом-бар. */
-  position: fixed; top: 0; left: 0; height: 100dvh; width: 84%; max-width: 360px; z-index: 61;
+  /* height:100vh (=874, полный экран), НЕ bottom:0 / НЕ 100% / НЕ 100dvh — при открытой шторке
+     body=position:fixed (scroll-lock) короче вьюпорта, bottom:0 резолвился бы по укороченному body
+     → панель обрывалась, снизу чёрный провал. 100% дал бы 812-ICB, 100dvh ненадёжен на cold-start.
+     vh = полный экран стабильно. + safe-area-bottom под дом-бар. */
+  position: fixed; top: 0; left: 0; height: 100vh; width: 84%; max-width: 360px; z-index: 61;
   background: var(--surface);
   padding: calc(env(safe-area-inset-top) + var(--s5)) 0 calc(var(--s4) + env(safe-area-inset-bottom));
   overflow-y: auto; display: flex; flex-direction: column;
@@ -519,6 +531,10 @@ select.input { appearance: none; -webkit-appearance: none; }
 /* пока открыт инлайн-черновик — прячем таб-бар и FAB, чтобы не налезали на «Готово» над клавиатурой */
 body.inline-draft .tabbar,
 body.inline-draft .fab { display: none; }
+/* открыта трень (полноэкранный оверлей) — прячем общий таб-бар и FAB, чтобы не просвечивали
+   снизу под оверлеем / сквозь полупрозрачный бар клавы («прошивались в футер гант/цели»). */
+body.wl-active .tabbar,
+body.wl-active .fab { display: none; }
 @keyframes cal-pulse { 0%{transform:scale(1)} 50%{transform:scale(1.02)} 100%{transform:scale(1)} }
 .cal-block.created { animation: cal-pulse 200ms ease; }
 /* ручка переноса на ВСЮ высоту карточки (align-self:stretch перебивает align-items:flex-start
@@ -975,11 +991,13 @@ body.inline-draft .fab { display: none; }
 
 /* ── TaskDetail full-screen (мокап #1/C) ── */
 .detail-overlay {
-  position: fixed; inset: 0; z-index: 70; background: var(--bg);
+  /* height:100vh, НЕ inset:0 — inset:0/bottom:0 на iOS standalone резолвится в 812-ICB
+     (под статус-баром black-translucent), снизу 62px чёрной полосы. vh = полный экран 874. */
+  position: fixed; top: 0; left: 0; right: 0; height: 100vh; z-index: 70; background: var(--bg);
   display: flex; flex-direction: column;
 }
 .screen.detail {
-  padding: 0; min-height: 100dvh; display: flex; flex-direction: column;
+  padding: 0; min-height: 100vh; display: flex; flex-direction: column;
   padding-top: env(safe-area-inset-top);
 }
 .detail-top { display: flex; align-items: center; padding: var(--s2) var(--s3); flex: 0 0 auto; }
@@ -1867,7 +1885,7 @@ body.inline-draft .fab { display: none; }
 
 /* ── PWA: экран ввода device-токена (вне Telegram) ── */
 .token-gate {
-  min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
   padding: calc(env(safe-area-inset-top) + 24px) 24px calc(env(safe-area-inset-bottom) + 24px);
   background: var(--bg);
 }
