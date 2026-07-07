@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     mini_app_initdata_max_age_sec: int = 86400
     mini_app_dist_dir: str = "frontend/dist"
+    # Хранилище вложений (фото). Telegram-фото кэшируются сюда по file_id,
+    # фото с устройства лежат тут постоянно (том planner_media:/data/media в prod).
+    media_dir: str = "/data/media"
     log_level: str = "INFO"
     # PWA (вход вне Telegram): device-токен + URL приложения для команды /applink.
     # pwa_token=None → PWA-вход выключен (только Telegram initData).

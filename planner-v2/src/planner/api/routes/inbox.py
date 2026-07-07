@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from planner.api.auth import TelegramUser, require_owner
 from planner.api.deps import get_db
-from planner.api.schemas import InboxOut, TaskOut, TriageIn
+from planner.api.schemas import InboxOut, ResolveIn, TaskOut, TriageIn
 from planner.services import inbox as inbox_svc
 from planner.services import tasks as tasks_svc
 
@@ -32,5 +32,18 @@ async def triage(
         priority=payload.priority, due_date=payload.due_date,
     )
     await db.commit()
-    await db.refresh(t)
+    await db.refresh(t, ["tags", "attachments"])
     return t
+
+
+@router.post("/{item_id}/resolve", response_model=InboxOut)
+async def resolve(
+    item_id: int,
+    payload: ResolveIn,
+    _: Annotated[TelegramUser, Depends(require_owner)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    item = await inbox_svc.resolve(db, item_id, task_id=payload.task_id)
+    await db.commit()
+    await db.refresh(item)
+    return item

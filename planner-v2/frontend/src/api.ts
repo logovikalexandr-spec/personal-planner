@@ -1,9 +1,10 @@
-import { authHeaders } from "./lib/auth";
+import { authHeaders, getToken } from "./lib/auth";
 import { clientToday } from "./lib/clientDate";
+import { tg } from "./telegram";
 import type {
-  AiNote, CheckItem, Counts, HabitInput, HabitOut, InboxItem, MetricInput, MetricOut,
+  AiNote, Attachment, CheckItem, Counts, HabitInput, HabitOut, InboxItem, MetricInput, MetricOut,
   Milestone, Priority, Project, RecurrenceJson,
-  Reminder, ReminderInput, Stage, Tag, Task, TaskDetail,
+  Reminder, ReminderInput, Stage, Tag, Task, TaskDetail, WeekHeat,
 } from "./types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -124,10 +125,38 @@ export const createTag = (name: string, color?: string | null) =>
 export const getInbox = () => req<InboxItem[]>("/api/inbox");
 export const triageInbox = (id: number, projectId: number, title: string, priority: Priority = "none") =>
   req<Task>(`/api/inbox/${id}/triage`, { method: "POST", body: JSON.stringify({ project_id: projectId, title, priority }) });
+export const resolveInbox = (id: number, taskId?: number) =>
+  req<InboxItem>(`/api/inbox/${id}/resolve`, { method: "POST", body: JSON.stringify({ task_id: taskId ?? null }) });
+
+// ── Вложения (фото) ──
+// src для <img>: токен/initData идут в query (img не шлёт заголовки).
+export function attachmentSrc(id: number): string {
+  const p = new URLSearchParams();
+  const token = getToken();
+  if (token) p.set("token", token);
+  const init = tg()?.initData;
+  if (init) p.set("init", init);
+  return `/api/attachments/${id}/file?${p.toString()}`;
+}
+export async function addAttachment(taskId: number, file: File): Promise<Attachment> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const r = await fetch(`/api/tasks/${taskId}/attachments`, {
+    method: "POST",
+    headers: { ...authHeaders() }, // без Content-Type — браузер сам выставит multipart boundary
+    body: fd,
+  });
+  if (!r.ok) throw new Error(`upload -> ${r.status}`);
+  return r.json() as Promise<Attachment>;
+}
+export const deleteAttachment = (id: number) =>
+  reqVoid(`/api/attachments/${id}`, { method: "DELETE" });
 
 // ── Форк E: привычки + метрики ──
 export const getHabits = (on?: string) =>
   req<HabitOut[]>(`/api/habits${on ? `?on=${on}` : ""}`);
+export const getHabitHeatHistory = (weeks = 8) =>
+  req<WeekHeat[]>(`/api/habits/heatmap-history?weeks=${weeks}&today=${clientToday()}`);
 export const createHabit = (data: HabitInput) =>
   req<HabitOut>("/api/habits", { method: "POST", body: JSON.stringify(data) });
 export const deleteHabit = (id: number) => reqVoid(`/api/habits/${id}`, { method: "DELETE" });
@@ -196,3 +225,20 @@ export const wComplete = (sid: number, reviewNote?: string, durationMinutes?: nu
 export const wCancel = (sid: number) => reqVoid(`/api/workouts/${sid}`, { method: "DELETE" });
 export const wHistory = (exId: number) => req<ApiHistPoint[]>(`/api/exercises/${exId}/history`);
 export const wLastSets = (exId: number) => req<{ weight: number; reps: number; rpe: number | null }[]>(`/api/exercises/${exId}/last-sets`);
+
+// ── Питание ──────────────────────────────────────────────────────────────────
+export type NFood = { n: string; q: string; k: number };
+export type NMeal = {
+  id: number; order_index: number; time: string | null; name: string; status: string;
+  kcal: number; protein: number; fat: number; carb: number; items: NFood[];
+};
+export type NTarget = { kcal: number; protein: number; fat: number; carb: number };
+export type NDay = { date: string; target: NTarget; meals: NMeal[] };
+export type NWeekDay = { date: string; kcal: number; protein: number; fat: number; carb: number; done: number; total: number };
+
+export const nGetDay = (pid: number, day: string) => req<NDay>(`/api/projects/${pid}/nutrition/day/${day}`);
+export const nGetWeek = (pid: number, monday: string) => req<NWeekDay[]>(`/api/projects/${pid}/nutrition/week/${monday}`);
+export const nSetStatus = (mid: number, status: string) =>
+  req<NMeal>(`/api/meals/${mid}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+export const nUpdateMeal = (mid: number, patch: Partial<NMeal>) =>
+  req<NMeal>(`/api/meals/${mid}`, { method: "PATCH", body: JSON.stringify(patch) });

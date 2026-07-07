@@ -6,6 +6,7 @@ import type { AiNote, Project, Stage } from "../types";
 import { tg } from "../telegram";
 import { WorkoutLog } from "../components/WorkoutLog";
 import { makeWorkoutApi } from "../components/workoutApi";
+import { Nutrition } from "../components/Nutrition";
 import "../components/workout-log.css";
 
 // ── T4 «Цели» (мокап база-проекта-v3/pages/T4-celi.html) ──
@@ -66,7 +67,7 @@ const IcoWarn = () => (
   </svg>
 );
 
-function ProjectCard({ p, stages, onOpenWorkout }: { p: Project; stages: Stage[]; onOpenWorkout: () => void }) {
+function ProjectCard({ p, stages, onOpenWorkout, onOpenNutrition }: { p: Project; stages: Stage[]; onOpenWorkout: () => void; onOpenNutrition: () => void }) {
   const c = p.color || "var(--accent)";
   const { pos, total } = stagePosition(stages);
   const target = fmtTargetShort(p.target_date);
@@ -138,6 +139,15 @@ function ProjectCard({ p, stages, onOpenWorkout }: { p: Project; stages: Stage[]
         <span>🏋 Тренировки</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
       </button>
+
+      <button
+        className="t4-workout"
+        data-testid={`goal-nutrition-${p.id}`}
+        onClick={(e) => { e.stopPropagation(); onOpenNutrition(); }}
+      >
+        <span>🍽 Питание</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+      </button>
     </div>
   );
 }
@@ -151,6 +161,8 @@ export function Goals() {
   const [workoutGoalId, setWorkoutGoalId] = useState<number | null>(null);
   const workoutApi = useMemo(() => (workoutGoalId == null ? null : makeWorkoutApi(workoutGoalId)), [workoutGoalId]);
   const workoutGoalName = projects.find((p) => p.id === workoutGoalId)?.name ?? "Цель";
+  const [nutritionGoalId, setNutritionGoalId] = useState<number | null>(null);
+  const nutritionGoalName = projects.find((p) => p.id === nutritionGoalId)?.name ?? "Цель";
 
   // Оверлей трени: CSS height:100dvh (полный экран). Действие «Завершить» — обычный элемент
   // в конце скролла .wl-body (НЕ прижато к низу вьюпорта), поэтому отслеживать клаву/ужимать
@@ -161,9 +173,9 @@ export function Goals() {
   // трень = полноэкранный оверлей, таб-бар (fixed bottom, в App вне оверлея) иначе просвечивал бы
   // снизу. Класс на body.
   useEffect(() => {
-    document.body.classList.toggle("wl-active", workoutGoalId != null);
+    document.body.classList.toggle("wl-active", workoutGoalId != null || nutritionGoalId != null);
     return () => document.body.classList.remove("wl-active");
-  }, [workoutGoalId]);
+  }, [workoutGoalId, nutritionGoalId]);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -272,7 +284,7 @@ export function Goals() {
         <>
           <div className="seclbl">Активные</div>
           {projects.map((p) => (
-            <ProjectCard key={p.id} p={p} stages={stagesByProject[p.id] ?? []} onOpenWorkout={() => setWorkoutGoalId(p.id)} />
+            <ProjectCard key={p.id} p={p} stages={stagesByProject[p.id] ?? []} onOpenWorkout={() => setWorkoutGoalId(p.id)} onOpenNutrition={() => setNutritionGoalId(p.id)} />
           ))}
         </>
       )}
@@ -288,6 +300,16 @@ export function Goals() {
             goalName={workoutGoalName}
             api={workoutApi}
             onBack={() => setWorkoutGoalId(null)}
+          />
+        </div>
+      )}
+
+      {nutritionGoalId != null && (
+        <div className="wl-overlay" data-testid="nutrition-overlay">
+          <Nutrition
+            goalId={nutritionGoalId}
+            goalName={nutritionGoalName}
+            onBack={() => setNutritionGoalId(null)}
           />
         </div>
       )}

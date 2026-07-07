@@ -4,6 +4,9 @@ export type TaskStatus = "todo" | "in_progress" | "done" | "wont_do" | "archived
 
 export interface Tag { id: number; name: string; color?: string | null; }
 
+// Вложение (фото). Байты отдаёт /api/attachments/{id}/file?token=… (см. attachmentSrc).
+export interface Attachment { id: number; kind: string; }
+
 // Волна 2 §1: лёгкий пункт чеклиста (НЕ задача). Двигает task.progress.
 export interface CheckItem {
   id: number;
@@ -61,6 +64,7 @@ export interface Task {
   stage_status?: string | null;  // done|current|future|late — цвет метки
   impact?: number | null;     // вклад в успех 0-100, пишет Claude (ZERO-AFK); токен в мете
   description?: string | null; parent_task_id?: number | null; tags?: Tag[];
+  attachments?: Attachment[];
 }
 
 // Форк 0: этап/веха проекта. Зеркало StageOut. order_index → «этап N» (N=order_index+1).
@@ -103,7 +107,7 @@ export type ActiveList =
   | { kind: "smart"; key: SmartKey; title: string }
   | { kind: "project"; id: number; title: string };
 
-export interface InboxItem { id: number; kind: string; source: string; raw_content: string; status: string; }
+export interface InboxItem { id: number; kind: string; source: string; raw_content: string; status: string; created_at: string; attachments?: Attachment[]; }
 
 // Форк B: веха для календаря (проекция Stage). Цвет флажка = цвет проекта.
 export interface Milestone {
@@ -133,6 +137,7 @@ export interface HabitOut {
   schedule_days?: number[] | null;
   goal_date?: string | null;
   goal_total?: number | null;
+  purpose?: string | null;
   record_streak: number;
   archived: boolean;
   order_index: number;
@@ -142,6 +147,10 @@ export interface HabitOut {
   week: boolean[];   // 7 дней пн..вс по зачёту
   heat7: number[];   // градиент 0-4 за 7 дней
 }
+
+// История привычек: недельная тепловая карта за прошлую неделю.
+export interface HabitWeekRow { habit_id: number; name: string; color: string; levels: number[]; }
+export interface WeekHeat { week_start: string; week_end: string; marks: number; rows: HabitWeekRow[]; }
 
 export interface MetricEntryOut { entry_date: string; value: number; }
 export interface MetricOut {
@@ -169,6 +178,7 @@ export interface HabitInput {
   schedule_days?: number[] | null;
   goal_date?: string | null;
   goal_total?: number | null;
+  purpose?: string | null;
 }
 export interface MetricInput {
   name: string;

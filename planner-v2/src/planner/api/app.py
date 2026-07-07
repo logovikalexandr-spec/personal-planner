@@ -4,12 +4,14 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from planner.api.routes import (
+    attachments,
     checkitems,
     counts,
     health,
     inbox,
     me,
     milestones,
+    nutrition,
     projects,
     reminders,
     stages,
@@ -30,11 +32,13 @@ def create_app() -> FastAPI:
     app.include_router(reminders.router)
     app.include_router(tags.router)
     app.include_router(inbox.router)
+    app.include_router(attachments.router)
     app.include_router(counts.router)
     app.include_router(stages.router)
     app.include_router(tracking.router)
     app.include_router(milestones.router)
     app.include_router(workouts.router)
+    app.include_router(nutrition.router)
 
     # Telegram кэширует Mini App агрессивно. index.html (HTML) не кэшируем,
     # чтобы новые сборки (с новыми hashed-ассетами) всегда подхватывались.

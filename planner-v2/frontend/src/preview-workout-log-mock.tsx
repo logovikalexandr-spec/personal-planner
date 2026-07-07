@@ -59,8 +59,9 @@ const TEMPLATES: WTemplate[] = [
   ] },
 ];
 
-function s(ex: number, w: number, reps: number): WSet { return { exercise_id: ex, set_index: 0, weight: w, reps, done: false }; }
-const L = (ex: number, w: number, r: number): WSet[] => [s(ex, w, r), s(ex, w, r), s(ex, w, r)];
+function s(ex: number, w: number, reps: number, rpe?: number): WSet { return { exercise_id: ex, set_index: 0, weight: w, reps, rpe: rpe ?? null, done: false }; }
+// прошлый RPE растёт по подходам (8 → 8.5 → 9) — реалистичная картина усталости
+const L = (ex: number, w: number, r: number): WSet[] => [s(ex, w, r, 8), s(ex, w, r, 8.5), s(ex, w, r, 9)];
 
 // прошлые рабочие подходы (авто-подстановка) — ВСЕ упражнения
 const LAST: Record<number, WSet[]> = {
@@ -120,6 +121,6 @@ const mockApi: WorkoutApi = {
 
 createRoot(document.getElementById("root")!).render(
   <div style={{ width: 390, height: 844, overflow: "auto", background: "var(--bg)", borderRadius: 28, boxShadow: "0 0 0 10px #111" }}>
-    <WorkoutLog goalId={23} goalName="Рекомпозиция" onBack={() => {}} api={mockApi} />
+    <WorkoutLog goalId={23} goalName="Набор массы → 95 кг" onBack={() => {}} api={mockApi} />
   </div>,
 );

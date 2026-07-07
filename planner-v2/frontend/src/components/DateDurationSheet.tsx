@@ -18,10 +18,6 @@ export interface DateDurationValue {
 
 const WD = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const MONTHS = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
-const DURATIONS = [
-  { label: "15 мин", min: 15 }, { label: "30 мин", min: 30 },
-  { label: "1 ч", min: 60 }, { label: "1.5 ч", min: 90 }, { label: "2 ч", min: 120 },
-];
 
 function localISO(d: Date): string {
   return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, "0")}-${`${d.getDate()}`.padStart(2, "0")}`;
@@ -30,6 +26,14 @@ function addMin(time: string, min: number): string {
   const [h, m] = time.split(":").map(Number);
   const total = Math.min(h * 60 + m + min, 23 * 60 + 59);
   return `${`${Math.floor(total / 60)}`.padStart(2, "0")}:${`${total % 60}`.padStart(2, "0")}:00`;
+}
+function durLabel(start: string, end: string): string {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  const diff = eh * 60 + em - (sh * 60 + sm);
+  if (diff <= 0) return "";
+  const h = Math.floor(diff / 60), m = diff % 60;
+  return [h ? `${h} ч` : "", m ? `${m} мин` : ""].filter(Boolean).join(" ");
 }
 function recurSummary(r: RecurrenceJson | null): string {
   if (!r) return "Нет";
@@ -83,9 +87,18 @@ export function DateDurationSheet({
   function pickDay(day: number) {
     setDueDate(localISO(new Date(view.y, view.m, day)));
   }
-  function setDuration(min: number) {
-    if (!dueTime) return;
-    setEndTime(addMin(dueTime, min));
+  function setStart(v: string) {
+    const t = v ? v + ":00" : null;
+    setDueTime(t);
+    // конец < начала → подтянуть конец на +1ч
+    if (t && endTime && endTime <= t) setEndTime(addMin(t, 60));
+  }
+  function setEnd(v: string) {
+    if (!v) { setEndTime(null); return; }
+    const t = v + ":00";
+    // конец не раньше начала
+    if (dueTime && t <= dueTime) { setEndTime(addMin(dueTime, 15)); return; }
+    setEndTime(t);
   }
   function toggleAllDay() {
     setAllDay((v) => {
@@ -173,19 +186,31 @@ export function DateDurationSheet({
           </>
         ) : (
           <div>
-            <div className="muted" style={{ marginBottom: 12 }}>
-              {allDay ? "Длительность недоступна для задачи «весь день»."
-                : dueTime ? `Начало ${dueTime.slice(0, 5)}. Выбери длительность:`
-                : "Сначала задай время начала на вкладке «Дата»."}
-            </div>
-            <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
-              {DURATIONS.map((d) => (
-                <button key={d.min}
-                  className={endTime && dueTime && addMin(dueTime, d.min) === endTime ? "btn-chip active" : "btn-chip"}
-                  disabled={!dueTime || allDay} onClick={() => setDuration(d.min)}>{d.label}</button>
-              ))}
-            </div>
-            {endTime && !allDay && <div className="muted" style={{ marginTop: 12 }}>Конец: {endTime.slice(0, 5)}</div>}
+            {allDay ? (
+              <div className="muted">Время недоступно для задачи «весь день».</div>
+            ) : (
+              <>
+                <div className="dr-row">
+                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="dd-glyph"><IcoClock /></span>Начало
+                  </span>
+                  <input type="time" className="dr-input" value={dueTime ? dueTime.slice(0, 5) : ""}
+                    onChange={(e) => setStart(e.target.value)} />
+                </div>
+                <div className="dr-row">
+                  <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="dd-glyph"><IcoClock /></span>Конец
+                  </span>
+                  <input type="time" className="dr-input" value={endTime ? endTime.slice(0, 5) : ""}
+                    disabled={!dueTime} onChange={(e) => setEnd(e.target.value)} />
+                </div>
+                <div className="muted" style={{ marginTop: 12 }}>
+                  {!dueTime ? "Задай время начала."
+                    : !endTime ? "Задай время конца."
+                    : `Длительность: ${durLabel(dueTime, endTime)}`}
+                </div>
+              </>
+            )}
           </div>
         )}
       </Sheet>

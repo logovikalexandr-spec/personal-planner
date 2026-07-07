@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useRefreshSignal } from "../lib/refreshSignal";
 import { Empty } from "../components/Empty";
@@ -10,10 +10,10 @@ import { tg } from "../telegram";
 import { confirmDialog } from "../lib/confirm";
 import {
   backfillHabit, completeTask, createHabit, createMetric, deleteHabit, deleteMetric, deleteMetricEntry,
-  getHabits, getHabitHistory, getMetrics, getRetro, measureMetric, patchHabit, patchMetric, toggleHabit,
+  getHabits, getHabitHistory, getHabitHeatHistory, getMetrics, getRetro, measureMetric, patchHabit, patchMetric, toggleHabit,
   type HabitHistoryOut, type RetroOut,
 } from "../api";
-import type { HabitInput, HabitOut, MetricOut, Task } from "../types";
+import type { HabitInput, HabitOut, MetricOut, Task, WeekHeat } from "../types";
 
 // ── Форк E (T5): таб «Привычки» на реальном API. ZERO-AFK — бэк LLM не зовёт.
 // Сегменты: Привычки | Метрики | Ретро. Зачёт привычки-счётчика = градиент (heat7 0-4 с бэка).
@@ -234,6 +234,105 @@ function HabitsView({ habits, onToggle, onCount, onOpen, onMenu, onCellTap, onNe
         </div>
         <div style={{ fontSize: 10.5, color: "var(--text-muted)", marginTop: 7 }}>Тап по прошлому дню — отметить, снять или вписать значение.</div>
       </div>
+
+      <HabitsHistory />
+    </>
+  );
+}
+
+// ── История: недельные тепловые карты прошлых недель (Месяц → Неделя → карта) ──
+const MONTH_SH = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+function histYmd(s: string): { y: number; m: number; d: number } {
+  const [y, m, d] = s.split("-").map(Number);
+  return { y, m: m - 1, d };
+}
+function histWeekLabel(ws: string, we: string): string {
+  const a = histYmd(ws), b = histYmd(we);
+  return a.m === b.m
+    ? `Неделя ${a.d}–${b.d} ${MONTH_SH[a.m]}`
+    : `Неделя ${a.d} ${MONTH_SH[a.m]} – ${b.d} ${MONTH_SH[b.m]}`;
+}
+function HistChevron({ open }: { open: boolean }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"
+      style={{ transform: open ? "none" : "rotate(-90deg)", transition: "transform .18s", flex: "0 0 auto" }}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+function HabitsHistory() {
+  const [weeks, setWeeks] = useState<WeekHeat[] | null>(null);
+  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
+  const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    getHabitHeatHistory(8)
+      .then((w) => {
+        setWeeks(w);
+        if (w.length) setOpenMonths(new Set([w[0].week_start.slice(0, 7)])); // свежий месяц раскрыт
+      })
+      .catch(() => setWeeks([]));
+  }, []);
+
+  if (!weeks || weeks.length === 0) return null; // нет истории — секцию не показываем
+
+  function toggle(setter: typeof setOpenMonths, key: string) {
+    setter((s) => {
+      const n = new Set(s);
+      if (n.has(key)) n.delete(key); else n.add(key);
+      return n;
+    });
+  }
+
+  // группировка по месяцу (weeks уже newest-first)
+  const months: { key: string; label: string; marks: number; weeks: WeekHeat[] }[] = [];
+  for (const wk of weeks) {
+    const key = wk.week_start.slice(0, 7);
+    let mo = months.find((x) => x.key === key);
+    if (!mo) {
+      const p = histYmd(wk.week_start);
+      mo = { key, label: `${MONTHS_NOM[p.m]} ${p.y}`, marks: 0, weeks: [] };
+      months.push(mo);
+    }
+    mo.weeks.push(wk);
+    mo.marks += wk.marks;
+  }
+
+  return (
+    <>
+      <div className="trk-seclbl">История</div>
+      {months.map((mo) => (
+        <div key={mo.key} className="histcard">
+          <button className="hist-row" onClick={() => toggle(setOpenMonths, mo.key)}>
+            <HistChevron open={openMonths.has(mo.key)} />
+            <span className="hist-title">{mo.label}</span>
+            <span className="hist-badge">{mo.marks}</span>
+          </button>
+          {openMonths.has(mo.key) && mo.weeks.map((wk) => (
+            <div key={wk.week_start} className="hist-wk">
+              <button className="hist-row sub" onClick={() => toggle(setOpenWeeks, wk.week_start)}>
+                <HistChevron open={openWeeks.has(wk.week_start)} />
+                <span className="hist-wlabel">{histWeekLabel(wk.week_start, wk.week_end)}</span>
+                <span className="hist-badge">{wk.marks}</span>
+              </button>
+              {openWeeks.has(wk.week_start) && (
+                <div className="heat" style={{ marginTop: 6, marginBottom: 10 }}>
+                  <div className="hgrid">
+                    <div className="hd" />
+                    {WD.map((d) => <div className="hd" key={d}>{d}</div>)}
+                    {wk.rows.map((r) => (
+                      <Fragment key={r.habit_id}>
+                        <div className="rn">{r.name}</div>
+                        {r.levels.map((lv, i) => <div key={i} className={`cell lv${lv}`} />)}
+                      </Fragment>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
     </>
   );
 }
@@ -826,6 +925,9 @@ function HabitDetail({ habit, onClose, onChange, onMenu }: {
   const monthStr = `${year}-${String(month0 + 1).padStart(2, "0")}`;
   const [hist, setHist] = useState<HabitHistoryOut | null>(null);
   const [rev, setRev] = useState(0);
+  const [editingPurpose, setEditingPurpose] = useState(false);
+  const [purposeDraft, setPurposeDraft] = useState(habit.purpose ?? "");
+  const [purposeSaving, setPurposeSaving] = useState(false);
   useEffect(() => {
     let live = true;
     getHabitHistory(habit.id, monthStr).then((h) => { if (live) setHist(h); }).catch(() => {});
@@ -860,6 +962,16 @@ function HabitDetail({ habit, onClose, onChange, onMenu }: {
 
   const backfill = async (iso: string) => {
     try { onChange(await backfillHabit(habit.id, iso, habit.target ?? 1)); setRev((r) => r + 1); } catch { /* ignore */ }
+  };
+
+  const savePurpose = async () => {
+    if (purposeSaving) return;
+    setPurposeSaving(true);
+    try {
+      const updated = await patchHabit(habit.id, { purpose: purposeDraft.trim() || null });
+      onChange(updated);
+      setEditingPurpose(false);
+    } catch { /* ignore */ } finally { setPurposeSaving(false); }
   };
 
   return (
@@ -908,6 +1020,56 @@ function HabitDetail({ habit, onClose, onChange, onMenu }: {
           })}
         </div>
         <div style={{ color: "var(--text-muted)", fontSize: 11 }}>Тап по прошлому пустому дню — отметить задним числом.</div>
+
+        {/* ── Цель ── */}
+        <div style={{ marginTop: 20, borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: ".4px", marginBottom: 10 }}>Цель</div>
+          {editingPurpose ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <textarea
+                autoFocus
+                value={purposeDraft}
+                onChange={(e) => setPurposeDraft(e.target.value)}
+                rows={3}
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  background: "var(--surface-2)", border: "1px solid var(--border)",
+                  borderRadius: 10, padding: "10px 12px",
+                  color: "var(--text)", fontSize: 14, lineHeight: 1.5,
+                  resize: "none", fontFamily: "inherit", outline: "none",
+                }}
+                placeholder="Зачем эта привычка..."
+              />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={savePurpose} disabled={purposeSaving} style={{
+                  flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                  background: "var(--accent)", color: "#fff", fontSize: 14,
+                  fontWeight: 600, cursor: purposeSaving ? "default" : "pointer", opacity: purposeSaving ? 0.6 : 1,
+                }}>Сохранить</button>
+                <button onClick={() => { setEditingPurpose(false); setPurposeDraft(habit.purpose ?? ""); }} style={{
+                  flex: 1, padding: "10px 0", borderRadius: 10,
+                  border: "1px solid var(--border)", background: "var(--surface-2)",
+                  color: "var(--text-muted)", fontSize: 14, cursor: "pointer",
+                }}>Отмена</button>
+              </div>
+            </div>
+          ) : habit.purpose ? (
+            <div onClick={() => { setPurposeDraft(habit.purpose ?? ""); setEditingPurpose(true); }}
+              style={{
+                background: "var(--surface-2)", borderRadius: 10, padding: "12px 14px",
+                fontSize: 14, lineHeight: 1.55, color: "var(--text)", cursor: "pointer",
+                borderLeft: `3px solid ${habit.color}`,
+              }}>
+              {habit.purpose}
+            </div>
+          ) : (
+            <button onClick={() => { setPurposeDraft(""); setEditingPurpose(true); }} style={{
+              width: "100%", padding: "12px 14px", borderRadius: 10, textAlign: "left",
+              border: "1px dashed var(--border)", background: "transparent",
+              color: "var(--text-muted)", fontSize: 14, cursor: "pointer",
+            }}>Задать цель...</button>
+          )}
+        </div>
       </div>
     </div>
   );

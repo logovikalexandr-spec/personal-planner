@@ -20,6 +20,8 @@ from planner.api.schemas import (
     MetricMeasureIn,
     MetricOut,
     MetricPatch,
+    HabitWeekRowOut,
+    WeekHeatOut,
 )
 from planner.services import tracking as svc
 
@@ -43,6 +45,7 @@ async def _habit_out(db: AsyncSession, h, on: date_cls) -> HabitOut:
         id=h.id, name=h.name, color=h.color, mark_type=h.mark_type, target=h.target,
         unit=h.unit, step=h.step, schedule_kind=h.schedule_kind, schedule_n=h.schedule_n,
         schedule_days=h.schedule_days, goal_date=h.goal_date, goal_total=h.goal_total,
+        purpose=h.purpose,
         record_streak=h.record_streak, archived=h.archived, order_index=h.order_index,
         today_value=today_v, done_today=svc.habit_is_done(h.mark_type, today_v, h.target),
         streak=streak, week=week, heat7=heat7,
@@ -128,6 +131,36 @@ async def habit_history(habit_id: int, _: Owner, db: Db, month: str = Query(...)
     win = await svc.entries_map(db, habit_id, today - timedelta(days=29), today)
     done = sum(1 for v in win.values() if svc.habit_is_done(h.mark_type, v, h.target))
     return HabitHistoryOut(month=month, pct30=done / 30, days=days)
+
+
+@router.get("/habits/heatmap-history", response_model=list[WeekHeatOut])
+async def heatmap_history(
+    _: Owner, db: Db,
+    weeks: int = Query(8, ge=1, le=26),
+    today: date_cls = Query(default_factory=date_cls.today),  # дата клиента (его TZ), не сервера UTC
+):
+    """История привычек: недельные тепловые карты (привычки × Пн–Вс) за прошлые
+    недели (без текущей), новые сверху. Пустые недели (без зачётов) пропускаются."""
+    cur_monday = today - timedelta(days=today.weekday())
+    habits = await svc.list_habits(db)
+    out: list[WeekHeatOut] = []
+    for w in range(1, weeks + 1):
+        ws = cur_monday - timedelta(days=7 * w)
+        we = ws + timedelta(days=6)
+        rows: list[HabitWeekRowOut] = []
+        marks = 0
+        for h in habits:
+            mp = await svc.entries_map(db, h.id, ws, we)
+            levels: list[int] = []
+            for i in range(7):
+                lv = svc.habit_heat_level(h.mark_type, mp.get(ws + timedelta(days=i), 0.0), h.target)
+                levels.append(lv)
+                if lv > 0:
+                    marks += 1
+            rows.append(HabitWeekRowOut(habit_id=h.id, name=h.name, color=h.color, levels=levels))
+        if marks > 0:  # показываем только недели с активностью
+            out.append(WeekHeatOut(week_start=ws, week_end=we, marks=marks, rows=rows))
+    return out
 
 
 # ── метрики ───────────────────────────────────────────────────────────────── #

@@ -1,0 +1,165 @@
+/* ── Модуль «Питание» — onyx/ember, зеркало workout-log ───────────────────── */
+.nut { min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--font);
+  display: flex; flex-direction: column; }
+.nut-body { padding: 14px 16px calc(28px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; }
+
+/* хедер — safe-area сверху (чёлка/статус-бар iPhone), как .wl-head */
+.nut-head { display: flex; align-items: flex-start; gap: 12px; padding: calc(env(safe-area-inset-top) + 10px) 16px 6px; }
+.nut-head .h-title { font-weight: 700; font-size: 26px; letter-spacing: -0.4px; line-height: 1.1; }
+.nut-head .h-sub { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+.nut-gear { margin-left: auto; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 4px; }
+
+/* карточка цели */
+.nut-goal { background: var(--surface); border-radius: var(--radius); padding: 16px 18px; }
+.nut-goal-top { display: flex; align-items: baseline; }
+.nut-goal-title { font-weight: 700; font-size: 19px; }
+.nut-goal-week { margin-left: auto; text-align: right; color: var(--text-muted); font-size: 13px; }
+.nut-goal-pct { color: var(--accent); font-weight: 700; font-size: 22px; font-family: var(--font-mono); }
+.nut-goal-stage { color: var(--text-muted); font-size: 13px; margin-top: 3px; }
+.nut-bar { height: 8px; border-radius: 6px; background: var(--surface-2); margin-top: 12px; overflow: hidden; }
+.nut-bar > span { display: block; height: 100%; border-radius: 6px; background: var(--accent); }
+
+/* карточка дня (кольцо + макро) */
+.nut-card { background: var(--surface); border-radius: var(--radius); padding: 16px 18px; }
+.nut-card-head { display: flex; align-items: center; margin-bottom: 14px; }
+.nut-card-title { font-weight: 700; font-size: 18px; }
+.nut-badge { margin-left: auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+.nut-badge.go { color: var(--success); background: rgba(63,182,139,0.14); }
+.nut-badge.plan { color: var(--text-muted); background: var(--surface-2); }
+
+.nut-day-main { display: flex; align-items: center; gap: 18px; }
+.nut-ring { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
+.nut-ring svg { transform: rotate(-90deg); }
+.nut-ring .ring-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 22px; }
+.nut-kcal { flex: 1; }
+.nut-kcal-row { font-family: var(--font-mono); font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.nut-kcal-row .muted { color: var(--text-muted); font-size: 15px; }
+
+/* макро-триплет */
+.nut-macros { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 14px; }
+.nut-macro .m-top { font-size: 12px; white-space: nowrap; }
+.nut-macro .m-top b { font-weight: 700; font-size: 13px; }
+.nut-macro .m-top .muted { color: var(--text-muted); font-weight: 400; }
+.nut-macro .m-pct { font-family: var(--font-mono); font-weight: 600; font-size: 14px; margin-top: 2px; }
+.nut-macro.p .m-pct { color: var(--success); }
+.nut-macro.c .m-pct { color: #5b9bd5; }
+.nut-macro.f .m-pct { color: var(--warning); }
+
+/* до цели осталось */
+.nut-left { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.nut-left .ll { color: var(--text-muted); font-size: 12px; margin-bottom: 8px; }
+.nut-left-items { display: flex; flex-wrap: wrap; gap: 14px 16px; font-size: 13px; }
+.nut-left-items span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; }
+.dot.p { background: var(--success); } .dot.c { background: #5b9bd5; }
+.dot.f { background: var(--warning); } .dot.k { background: var(--accent); }
+
+/* неделя — кружки дней */
+.nut-week-head { display: flex; align-items: baseline; margin-bottom: 14px; }
+.nut-week-head .wt { font-weight: 700; font-size: 18px; }
+.nut-week-head .wc { margin-left: auto; color: var(--text-muted); font-size: 13px; }
+.nut-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.nut-day { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.nut-day .wd { font-size: 11px; color: var(--text-muted); }
+.nut-day .circ { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border); color: var(--text-muted); }
+.nut-day.done .circ { background: var(--success); border-color: var(--success); color: #fff; }
+.nut-day.today .circ { border-color: var(--accent); color: var(--accent); }
+.nut-day.plan .circ { border-style: dashed; }
+.nut-day .dp { font-size: 11px; font-family: var(--font-mono); }
+.nut-day.done .dp { color: var(--success); }
+.nut-day.today .dp { color: var(--accent); }
+.nut-day.plan .dp { color: var(--text-muted); }
+
+/* строки-переходы */
+.nut-row { display: flex; align-items: center; gap: 12px; background: var(--surface); border-radius: var(--radius);
+  padding: 14px 16px; cursor: pointer; border: none; width: 100%; text-align: left; color: var(--text); }
+.nut-row:active { background: var(--surface-2); }
+.nut-row .r-ico { width: 38px; height: 38px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nut-row .r-title { font-weight: 600; font-size: 15px; }
+.nut-row .r-sub { color: var(--text-muted); font-size: 12px; margin-top: 1px; }
+.nut-row .r-chev { margin-left: auto; color: var(--text-muted); }
+
+/* кнопка добавить */
+.nut-add { display: flex; align-items: center; justify-content: center; gap: 8px; position: relative;
+  border: 1.5px solid var(--accent); color: var(--accent); background: transparent; border-radius: var(--radius-sm);
+  padding: 15px; font-size: 16px; font-weight: 600; cursor: pointer; }
+.nut-add .cam { position: absolute; right: 16px; color: var(--accent); }
+
+/* приёмы пищи (экран День) */
+.nut-meals { display: flex; flex-direction: column; }
+.nut-meal { display: flex; align-items: center; gap: 12px; padding: 14px 2px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.nut-meal:last-child { border-bottom: none; }
+.nut-meal:active { opacity: 0.7; }
+.nut-meal .m-time { font-family: var(--font-mono); color: var(--accent); font-size: 13px; width: 46px; flex-shrink: 0; }
+.nut-meal .m-mid { flex: 1; min-width: 0; }
+.nut-meal .m-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; row-gap: 3px; }
+.nut-meal .m-name { font-weight: 600; font-size: 15px; }
+.nut-meal .m-st { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+.nut-meal .m-st.done { color: var(--success); background: rgba(63,182,139,0.14); }
+.nut-meal .m-st.plan { color: var(--text-muted); background: var(--surface-2); }
+.nut-meal .m-macros { color: var(--text-muted); font-size: 12px; margin-top: 3px; font-family: var(--font-mono); }
+.nut-meal .m-kcal { text-align: right; flex-shrink: 0; }
+.nut-meal .m-kcal b { font-family: var(--font-mono); font-weight: 700; font-size: 16px; color: var(--accent); }
+.nut-meal .m-kcal span { display: block; font-size: 10px; color: var(--text-muted); }
+.nut-meal .m-thumb { width: 46px; height: 46px; border-radius: 10px; background: var(--surface-2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; }
+.nut-meal .m-chev { color: var(--text-muted); flex-shrink: 0; }
+
+/* строки приёмов: заголовок секции */
+.nut-meals-hd { color: var(--text-muted); font-size: 13px; font-weight: 600; margin: 4px 2px 2px; }
+
+/* экран Неделя — строки дней */
+.nut-wrow { display: flex; align-items: center; gap: 14px; padding: 14px 4px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.nut-wrow:active { opacity: 0.7; }
+.nut-wrow .w-circ { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+.nut-wrow.done .w-circ { background: var(--success); border-color: var(--success); color: #fff; }
+.nut-wrow.today .w-circ { border-color: var(--accent); color: var(--accent); }
+.nut-wrow .w-mid { flex: 1; min-width: 0; }
+.nut-wrow .w-day { font-weight: 600; font-size: 14px; }
+.nut-wrow .w-kcal { font-family: var(--font-mono); font-size: 13px; margin-top: 2px; }
+.nut-wrow .w-kcal .muted { color: var(--text-muted); }
+.nut-wrow .w-macros { color: var(--text-muted); font-size: 11px; font-family: var(--font-mono); margin-top: 1px; }
+.nut-wrow .w-pct { font-family: var(--font-mono); font-weight: 700; font-size: 15px; flex-shrink: 0; }
+.nut-wrow.done .w-pct { color: var(--success); }
+.nut-wrow.today .w-pct { color: var(--accent); }
+.nut-wrow.plan .w-pct { color: var(--text-muted); }
+.nut-wrow .w-prog { height: 5px; border-radius: 4px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+.nut-wrow .w-prog > span { display: block; height: 100%; border-radius: 4px; }
+.nut-wrow.done .w-prog > span { background: var(--success); }
+.nut-wrow.today .w-prog > span { background: var(--accent); }
+.nut-wrow.today { border: 1.5px solid var(--accent); border-radius: var(--radius-sm); padding: 14px 12px; margin: 4px 0; }
+.nut-wweek { background: var(--surface); border-radius: var(--radius); padding: 16px 18px; }
+
+/* экран приёма — состав (продукты) */
+.nut-meal-hero { display: flex; align-items: center; gap: 14px; }
+.nut-meal-hero .mh-thumb { width: 56px; height: 56px; border-radius: 14px; background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+.nut-meal-hero .mh-kcal { margin-left: auto; text-align: right; }
+.nut-meal-hero .mh-kcal b { font-family: var(--font-mono); font-weight: 700; font-size: 24px; color: var(--accent); }
+.nut-meal-hero .mh-kcal span { display: block; font-size: 11px; color: var(--text-muted); }
+.nut-meal-hero .mh-macros { color: var(--text-muted); font-size: 12px; font-family: var(--font-mono); margin-top: 3px; }
+
+.nut-prod { display: flex; align-items: center; gap: 12px; padding: 13px 2px; border-bottom: 1px solid var(--border); }
+.nut-prod:last-child { border-bottom: none; }
+.nut-prod .p-name { font-weight: 500; font-size: 15px; }
+.nut-prod .p-qty { color: var(--text-muted); font-size: 12px; font-family: var(--font-mono); margin-top: 1px; }
+.nut-prod .p-kcal { margin-left: auto; font-family: var(--font-mono); font-size: 14px; color: var(--text-muted); flex-shrink: 0; }
+
+.nut-actions { display: flex; gap: 10px; margin-top: 4px; }
+.nut-act { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--radius-sm);
+  padding: 15px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; }
+.nut-act.eat { background: var(--accent); color: var(--accent-contrast); }
+.nut-act.swap { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+.nut-act:active { opacity: 0.85; }
+.nut-done-pill { display: inline-flex; align-items: center; gap: 6px; color: var(--success);
+  background: rgba(63,182,139,0.14); border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+
+/* нижние табы (демо) */
+.nut-tabs { display: grid; grid-template-columns: repeat(5,1fr); border-top: 1px solid var(--border);
+  background: var(--bg); padding: 8px 0 22px; }
+.nut-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text-muted); font-size: 10px; }
+.nut-tab.active { color: var(--accent); }

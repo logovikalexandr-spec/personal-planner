@@ -44,6 +44,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://planner:${POSTGRES_PASSWORD:-planner}@planner-postgres:5432/planner
       REDIS_URL: redis://planner-redis:6379/0
       MINI_APP_DIST_DIR: /app/frontend/dist
+      MEDIA_DIR: /data/media
+    volumes: ["planner_media:/data/media"]
     depends_on:
       planner-migrate: { condition: service_completed_successfully }
     networks: [planner_net]
@@ -83,6 +85,7 @@ volumes:
   planner_redisdata:
   planner_caddy_data:
   planner_caddy_config:
+  planner_media:
 
 networks:
   planner_net:

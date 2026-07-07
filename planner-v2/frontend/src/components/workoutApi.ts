@@ -43,7 +43,7 @@ export function makeWorkoutApi(goalId: number): WorkoutApi {
       const s = await wGetWorkout(sessionId);
       return (s.sets ?? []).map((x) => ({
         exercise_id: x.exercise_id, set_index: x.set_index, weight: x.weight, reps: x.reps,
-        is_warmup: x.is_warmup, done: x.done, note: x.note,
+        rpe: x.rpe, is_warmup: x.is_warmup, done: x.done, note: x.note,
       }));
     },
 
@@ -51,19 +51,35 @@ export function makeWorkoutApi(goalId: number): WorkoutApi {
 
     lastSets: async (exId): Promise<WSet[]> =>
       (await wLastSets(exId)).map((s, i) => ({
-        exercise_id: exId, set_index: i, weight: s.weight, reps: s.reps, is_warmup: false, done: false,
+        exercise_id: exId, set_index: i, weight: s.weight, reps: s.reps, rpe: s.rpe, is_warmup: false, done: false,
       })),
 
     completeSession: async ({ template_id, sets, review_note }) => {
       const ws = await wCreateWorkout(goalId, clientToday(), template_id);
       await wPutSets(ws.id, sets.map((s) => ({
         exercise_id: s.exercise_id, set_index: s.set_index, weight: s.weight, reps: s.reps,
-        is_warmup: false, done: s.done ?? false, note: s.note ?? null,
+        rpe: s.rpe ?? null, is_warmup: false, done: s.done ?? false, note: s.note ?? null,
       })));
       await wComplete(ws.id, review_note);
       return { coach_note: "Тренировка сохранена. Разбор тренера придёт в Telegram." };
     },
 
     cancelSession: async (id) => { await wCancel(id); },
+
+    // ── Автосейв-на-сервер (по ходу трени) ──
+    startSession: async ({ template_id, date }) => {
+      const ws = await wCreateWorkout(goalId, date, template_id);
+      return ws.id;
+    },
+    putSets: async (sid, sets) => {
+      await wPutSets(sid, sets.map((s) => ({
+        exercise_id: s.exercise_id, set_index: s.set_index, weight: s.weight, reps: s.reps,
+        rpe: s.rpe ?? null, is_warmup: false, done: s.done ?? false, note: s.note ?? null,
+      })));
+    },
+    finishSession: async (sid, review) => {
+      await wComplete(sid, review);
+      return { coach_note: "Тренировка сохранена. Разбор тренера придёт в Telegram." };
+    },
   };
 }

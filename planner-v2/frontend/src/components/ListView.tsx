@@ -133,7 +133,7 @@ export function ListView({
         <h1 style={{ margin: 0 }}>{active.title}</h1>
       </div>
       {isInbox ? (
-        <Inbox onChange={onInboxChange} />
+        <Inbox onChange={onInboxChange} onOpenTask={onOpenTask} />
       ) : status === "loading" ? (
         <div className="list" aria-busy="true">
           {[0, 1, 2, 3, 4].map((i) => <div key={i} className="skeleton" />)}

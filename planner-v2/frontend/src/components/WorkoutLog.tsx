@@ -8,7 +8,7 @@ export interface WTemplateExercise {
 }
 export interface WTemplate { id: number; name: string; exercises: WTemplateExercise[] }
 export interface WSet {
-  exercise_id: number; set_index: number; weight: number; reps: number; done?: boolean; note?: string | null;
+  exercise_id: number; set_index: number; weight: number; reps: number; rpe?: number | null; done?: boolean; note?: string | null;
 }
 export interface WSession {
   id: number; date: string; template_name: string; duration_minutes?: number | null;
@@ -25,6 +25,10 @@ export interface WorkoutApi {
   lastSets(exerciseId: number): Promise<WSet[]>;
   completeSession(input: { template_id: number; template_name: string; sets: WSet[]; review_note: string }): Promise<{ coach_note: string }>;
   cancelSession?(id: number): Promise<void>;
+  // Автосейв-на-сервер (по ходу трени, не только в конце). Опциональны: превью-мок их не даёт.
+  startSession?(input: { template_id: number; date: string }): Promise<number>;
+  putSets?(sid: number, sets: WSet[]): Promise<void>;
+  finishSession?(sid: number, review: string): Promise<{ coach_note: string }>;
 }
 
 /* ── Иконки (inline SVG) ─────────────────────────────────────────────────── */
@@ -69,6 +73,7 @@ function SetRow({ n, row, onChange, onDelete }: { n: number; row: WSet; onChange
       <button className="wl-idx" onPointerDown={start} onPointerUp={stop} onPointerLeave={stop} title="зажми → удалить">{n}</button>
       <EditNum value={row.weight} unit="кг" onChange={(w) => onChange({ weight: w })} />
       <EditNum value={row.reps} onChange={(r) => onChange({ reps: r })} />
+      <EditNum value={row.rpe ?? 0} onChange={(v) => onChange({ rpe: v })} />
       <button className={"wl-check" + (row.done ? " on" : "")} onClick={() => onChange({ done: !row.done })} aria-label="сделал">
         {row.done ? <IcoCheck /> : null}
       </button>
@@ -140,7 +145,7 @@ export function WorkoutLog({ goalId, goalName, onBack, api }: { goalId: number; 
       <div className="wl-body">
         <div className="wl-weeknow">
           <div className="wl-weeknow-range">Эта неделя · {weekRangeNow()}</div>
-          <div className="wl-weeknow-prog">{doneNames.size} из 4 тренировок</div>
+          <div className="wl-weeknow-prog">{doneNames.size} из {templates.length} тренировок</div>
         </div>
 
         <div className="section-label">Начать тренировку</div>
@@ -166,10 +171,10 @@ export function WorkoutLog({ goalId, goalName, onBack, api }: { goalId: number; 
           <div className="wl-weeksum">
             <span className="wl-weeksum-emo"><IcoTrophy /></span>
             <div className="grow">
-              <div className="wl-weeksum-title">{weekSessions.length >= 4 ? "Неделя закрыта!" : "Итоги недели"}</div>
-              <div className="muted" style={{ fontSize: 12 }}>{weekSessions.length} из 4 тренировок</div>
+              <div className="wl-weeksum-title">{weekSessions.length >= templates.length ? "Неделя закрыта!" : "Итоги недели"}</div>
+              <div className="muted" style={{ fontSize: 12 }}>{weekSessions.length} из {templates.length} тренировок</div>
             </div>
-            {weekSessions.length >= 4 && <span className="wl-tpl-done"><IcoCheck /></span>}
+            {weekSessions.length >= templates.length && <span className="wl-tpl-done"><IcoCheck /></span>}
           </div>
         )}
 
@@ -249,7 +254,11 @@ function ActiveSession({ template, existing, exMap, api, onBack, onDone, onCance
   const [prev, setPrev] = useState<Record<number, WSet[]>>({});
   const [review, setReview] = useState(existing?.review_note ?? "");
   const [saving, setSaving] = useState<"idle" | "saving" | "coach">("idle");
+  const [saveErr, setSaveErr] = useState(false);
   const [coach, setCoach] = useState<string | null>(null);
+  const [serverSid, setServerSid] = useState<number | null>(existing?.id ?? null);
+  const touchedRef = useRef(false);   // была ли правка юзером (не автосейвим голый засев)
+  const autoBusyRef = useRef(false);  // идёт ли автосейв (не наслаивать)
 
   const draftKey = `wl-draft:${template.id}:${dateISO}`;
 
@@ -283,7 +292,8 @@ function ActiveSession({ template, existing, exMap, api, onBack, onDone, onCance
         const last = all[i];
         const baseW = te.coach_target_weight ?? (last[0]?.weight ?? 0);
         sl[te.exercise_id] = Array.from({ length: te.target_sets }, (_, k) => ({
-          exercise_id: te.exercise_id, set_index: k, weight: baseW, reps: last[k]?.reps ?? last[0]?.reps ?? te.rep_low, done: false,
+          exercise_id: te.exercise_id, set_index: k, weight: baseW, reps: last[k]?.reps ?? last[0]?.reps ?? te.rep_low,
+          rpe: last[k]?.rpe ?? last[0]?.rpe ?? null, done: false,
         }));
       });
       setLive(sl);
@@ -299,21 +309,62 @@ function ActiveSession({ template, existing, exMap, api, onBack, onDone, onCance
 
   const cancel = () => { if (existing && window.confirm("Отменить эту тренировку? Она пропадёт из истории.")) onCancel(existing.id); };
 
-  const setRow = (exId: number, idx: number, patch: Partial<WSet>) =>
+  const setRow = (exId: number, idx: number, patch: Partial<WSet>) => {
+    touchedRef.current = true;
     setLive((s) => ({ ...s, [exId]: s[exId].map((r, i) => (i === idx ? { ...r, ...patch } : r)) }));
-  const delRow = (exId: number, idx: number) =>
+  };
+  const delRow = (exId: number, idx: number) => {
+    touchedRef.current = true;
     setLive((s) => ({ ...s, [exId]: s[exId].filter((_, i) => i !== idx) }));
-  const addRow = (exId: number) =>
+  };
+  const addRow = (exId: number) => {
+    touchedRef.current = true;
     setLive((s) => ({ ...s, [exId]: [...s[exId], { exercise_id: exId, set_index: s[exId].length, weight: s[exId].at(-1)?.weight ?? 0, reps: s[exId].at(-1)?.reps ?? 8, done: false }] }));
+  };
+
+  // Автосейв НА СЕРВЕР по ходу трени (не только на «Завершить»). Как только юзер тронул
+  // подход — создаём сессию (лениво, один раз) и льём сеты debounced. Тогда даже если
+  // «Завершить» не дожал / сеть моргнула — трень уже на сервере, теряться нечему.
+  useEffect(() => {
+    if (existing) return;                       // завершённую не автосейвим
+    if (!touchedRef.current) return;            // голый засев не сохраняем
+    if (!api.startSession || !api.putSets) return; // превью-мок — пропускаем
+    const t = setTimeout(async () => {
+      if (autoBusyRef.current) return;
+      autoBusyRef.current = true;
+      try {
+        let sid = serverSid;
+        if (sid == null) { sid = await api.startSession!({ template_id: template.id, date: dateISO }); setServerSid(sid); }
+        await api.putSets!(sid, Object.values(live).flat());
+      } catch { /* не вышло — повторим на следующем изменении */ }
+      finally { autoBusyRef.current = false; }
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [live, existing, api, template.id, dateISO, serverSid]);
 
   const complete = async () => {
-    setSaving("saving");
+    setSaving("saving"); setSaveErr(false);
     const allSets = Object.values(live).flat();
-    const r = await api.completeSession({ template_id: template.id, template_name: template.name, sets: allSets, review_note: review });
+    let r: { coach_note: string };
+    try {
+      if (serverSid != null && api.putSets && api.finishSession) {
+        // Уже автосохранена по ходу — досейвим финальные сеты и просто завершаем.
+        await api.putSets(serverSid, allSets);
+        r = await api.finishSession(serverSid, review);
+      } else {
+        // Фолбэк: автосейв не успел/недоступен — старый путь (создать+записать+завершить).
+        r = await api.completeSession({ template_id: template.id, template_name: template.name, sets: allSets, review_note: review });
+      }
+    } catch {
+      // Сеть/сервер упали. НЕ трогаем черновик (localStorage жив) — данные не теряем,
+      // показываем ошибку, кнопка снова активна для повтора. Раньше висело «Сохраняю…» молча.
+      setSaving("idle"); setSaveErr(true);
+      return;
+    }
     try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
     setSaving("coach"); setCoach(r.coach_note);
     setTimeout(() => onDone({
-      id: Math.floor(Date.parse(dateISO) / 1000) % 1e6, date: dateISO, template_name: template.name,
+      id: serverSid ?? Math.floor(Date.parse(dateISO) / 1000) % 1e6, date: dateISO, template_name: template.name,
       review_note: review, coach_note: r.coach_note, set_count: allSets.length,
     }), 1500);
   };
@@ -339,7 +390,7 @@ function ActiveSession({ template, existing, exMap, api, onBack, onDone, onCance
               </div>
               <div className="wl-prev">{prevTxt}{te.coach_target_weight != null && <span className="wl-target">цель {te.coach_target_weight} кг</span>}</div>
               <div className="wl-sets">
-                <div className="wl-sets-hd"><span>#</span><span>вес</span><span>повт</span><span>сделал</span></div>
+                <div className="wl-sets-hd"><span>#</span><span>вес</span><span>повт</span><span>RPE</span><span>сделал</span></div>
                 {(live[te.exercise_id] ?? []).map((row, i) => (
                   <SetRow key={i} n={i + 1} row={row} onChange={(p2) => setRow(te.exercise_id, i, p2)} onDelete={() => delRow(te.exercise_id, i)} />
                 ))}
@@ -360,11 +411,14 @@ function ActiveSession({ template, existing, exMap, api, onBack, onDone, onCance
             бар клавы. Обычная кнопка в конце скролла от этого свободна by-construction:
             у низа экрана нет элемента → нечему всплывать/просвечивать. */}
         <div className="wl-action">
+          {saveErr && !isDone && (
+            <div className="wl-save-err">❌ Не сохранилось (нет связи). Данные целы — жми ещё раз.</div>
+          )}
           {isDone ? (
             <button className="btn btn-block wl-cancel" onClick={cancel}>Отменить тренировку</button>
           ) : (
-            <button className="btn btn-block" disabled={saving !== "idle"} onClick={complete}>
-              {saving === "idle" ? "Завершить тренировку" : saving === "saving" ? "Сохраняю…" : "Тренер разбирает…"}
+            <button className={"btn btn-block" + (saveErr ? " wl-retry" : "")} disabled={saving !== "idle"} onClick={complete}>
+              {saving === "idle" ? (saveErr ? "Повторить сохранение" : "Завершить тренировку") : saving === "saving" ? "Сохраняю…" : "Тренер разбирает…"}
             </button>
           )}
         </div>

@@ -33,6 +33,14 @@ class TaskCreate(BaseModel):
     tag_ids: list[int] | None = None
 
 
+class AttachmentOut(BaseModel):
+    id: int
+    kind: str
+    # Клиент строит src = /api/attachments/{id}/file?token=… (байты отдаёт отдельный роут).
+
+    model_config = {"from_attributes": True}
+
+
 class TaskOut(BaseModel):
     id: int
     title: str
@@ -55,6 +63,7 @@ class TaskOut(BaseModel):
     stage_status: str | None = None     # done|current|future|late — цвет метки
     impact: int | None = None
     tags: list[TagOut] = []
+    attachments: list[AttachmentOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -276,6 +285,8 @@ class InboxOut(BaseModel):
     source: str
     raw_content: str
     status: str
+    created_at: datetime
+    attachments: list[AttachmentOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -285,6 +296,11 @@ class TriageIn(BaseModel):
     title: str
     priority: str = "none"
     due_date: date | None = None
+
+
+class ResolveIn(BaseModel):
+    # id созданной из входящего задачи — чтобы перенести вложения (фото) на неё.
+    task_id: int | None = None
 
 
 # ── Форк E: привычки + метрики ─────────────────────────────────────────────── #
@@ -300,6 +316,7 @@ class HabitCreate(BaseModel):
     schedule_days: list[int] | None = None
     goal_date: date | None = None
     goal_total: int | None = None
+    purpose: str | None = None
 
 
 class HabitPatch(BaseModel):
@@ -316,6 +333,7 @@ class HabitPatch(BaseModel):
     goal_total: int | None = None
     archived: bool | None = None
     order_index: int | None = None
+    purpose: str | None = None
 
 
 class HabitOut(BaseModel):
@@ -331,6 +349,7 @@ class HabitOut(BaseModel):
     schedule_days: list[int] | None = None
     goal_date: date | None = None
     goal_total: int | None = None
+    purpose: str | None = None
     record_streak: int
     archived: bool
     order_index: int
@@ -379,6 +398,21 @@ class HabitHistoryOut(BaseModel):
     month: str
     pct30: float
     days: list[HabitDayLevel] = []
+
+
+# История привычек: недельная тепловая карта (привычки × Пн–Вс) за прошлые недели.
+class HabitWeekRowOut(BaseModel):
+    habit_id: int
+    name: str
+    color: str
+    levels: list[int]  # 7 уровней 0-4, Пн..Вс
+
+
+class WeekHeatOut(BaseModel):
+    week_start: date
+    week_end: date
+    marks: int  # сколько ячеек с зачётом (level>0) за неделю
+    rows: list[HabitWeekRowOut] = []
 
 
 class MetricOut(BaseModel):
@@ -496,3 +530,55 @@ class ExerciseHistoryPoint(BaseModel):
 
 class CoachTargetIn(BaseModel):
     weight: float | None = None
+
+
+# ── Питание ──────────────────────────────────────────────────────────────────
+class NutritionTargetOut(BaseModel):
+    kcal: int
+    protein: int
+    fat: int
+    carb: int
+    model_config = {"from_attributes": True}
+
+
+class MealOut(BaseModel):
+    id: int
+    order_index: int
+    time: str | None = None
+    name: str
+    status: str
+    kcal: int
+    protein: int
+    fat: int
+    carb: int
+    items: list = []
+    model_config = {"from_attributes": True}
+
+
+class DayOut(BaseModel):
+    date: date
+    target: NutritionTargetOut
+    meals: list[MealOut] = []
+
+
+class DaySummaryOut(BaseModel):
+    date: date
+    kcal: int
+    protein: int
+    fat: int
+    carb: int
+    done: int
+    total: int
+
+
+class MealStatusIn(BaseModel):
+    status: str
+
+
+class MealUpdateIn(BaseModel):
+    name: str | None = None
+    kcal: int | None = None
+    protein: int | None = None
+    fat: int | None = None
+    carb: int | None = None
+    items: list | None = None

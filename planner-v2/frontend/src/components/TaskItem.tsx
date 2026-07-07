@@ -4,6 +4,7 @@ import { tg } from "../telegram";
 import { shouldShowImpact } from "../lib/impact";
 import { stageColor } from "../lib/stage";
 import { IcoCalendar2, IcoMove, IcoTrash, IcoCheck, IcoSelectCircle, IcoXCircle, IcoStage, IcoEdit } from "./icons";
+import { attachmentSrc } from "../api";
 
 // Волна 2 F2 — строка задачи со свайпом + long-press → multi-select. Мокапы B (swipe) + D (select/won't-do).
 // ОДНО поведение везде (PATTERNS): этот компонент — единственная строка задачи в списках.
@@ -73,6 +74,7 @@ function TaskItemBase({
   const LEFT_REVEAL = leftCount * BTN_W;
   const done = task.status === "done";
   const wontDo = task.status === "wont_do";
+  const atts = task.attachments ?? [];
   const isOverdue = !done && !wontDo && isOverdueDate(task.due_date);
   // Кант СТРОГО по приоритету (визуал-спека §3): high/medium/low дают полосу,
   // none — нет полосы. Цвет проекта больше НЕ красит кант (ушёл в тинт фона).
@@ -262,7 +264,7 @@ function TaskItemBase({
           <div className={done || wontDo ? "title-done" : ""}>{task.title}</div>
           {wontDo ? (
             <div className="muted mono" style={{ fontSize: 13, marginTop: 2 }}>Не буду делать</div>
-          ) : (task.due_date || task.due_time || task.stage_label || shouldShowImpact(task)) ? (
+          ) : (task.due_date || task.due_time || task.stage_label || shouldShowImpact(task) || atts.length > 0) ? (
             <div
               className="mono"
               style={{ fontSize: 13, marginTop: 2, color: isOverdue ? "var(--danger)" : "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}
@@ -274,9 +276,21 @@ function TaskItemBase({
                 </span>
               )}
               {shouldShowImpact(task) && <span className="imp">{task.impact}%</span>}
+              {atts.length > 0 && <span className="ti-att-cnt">📎 {atts.length}</span>}
             </div>
           ) : null}
+          {/* несколько фото → стрип миниатюр под текстом */}
+          {!wontDo && atts.length > 1 && (
+            <div className="ti-strip" onClick={bodyTap}>
+              {atts.slice(0, 3).map((a) => <img key={a.id} className="s" src={attachmentSrc(a.id)} alt="" />)}
+              {atts.length > 3 && <div className="s more">+{atts.length - 3}</div>}
+            </div>
+          )}
         </div>
+        {/* одно фото → миниатюра справа */}
+        {!wontDo && atts.length === 1 && (
+          <img className="ti-thumb" src={attachmentSrc(atts[0].id)} alt="" onClick={bodyTap} />
+        )}
       </div>
     </div>
   );

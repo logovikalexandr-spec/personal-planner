@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  createTask, deleteTask, getProjects, getTaskDetail, patchTask, putReminders,
+  addAttachment, attachmentSrc, createTask, deleteTask, getProjects, getTaskDetail,
+  patchTask, putReminders,
 } from "../api";
 import { tg } from "../telegram";
 import { confirmDialog } from "../lib/confirm";
@@ -13,15 +14,16 @@ import type {
 import { Checklist } from "./Checklist";
 import { DateDurationSheet } from "./DateDurationSheet";
 import {
-  Flag, PRIORITY_COLOR, PriorityPicker, ProjectPickerSheet, TagPickerSheet,
+  Flag, PRIORITY_COLOR, PriorityPicker, ProjectPickerSheet,
 } from "./pickers";
+import { PhotoViewer } from "./PhotoViewer";
 import { TaskItem } from "./TaskItem";
 import {
   IcoBack, IcoBell, IcoCalendar2, IcoCheck, IcoList2, IcoMore, IcoPlus,
-  IcoRepeat, IcoTag, IcoTrash, IcoXCircle,
+  IcoRepeat, IcoTrash, IcoXCircle,
 } from "./icons";
 
-type Picker = "date" | "priority" | "project" | "tag" | null;
+type Picker = "date" | "priority" | "project" | null;
 
 const PRIORITY_LABEL: Record<Priority, string> = {
   high: "Высокий", medium: "Средний", low: "Низкий", none: "Нет",
@@ -95,8 +97,10 @@ export function TaskDetail({
   const [subDraft, setSubDraft] = useState("");
   const [addingSub, setAddingSub] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false); // ⋯ меню шапки (Подзадача/Не буду делать/Удалить)
+  const [viewerStart, setViewerStart] = useState<number | null>(null); // открытый просмотрщик фото
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setStatus("loading");
@@ -176,6 +180,13 @@ export function TaskDetail({
     await load();
     onChanged();
   }
+  async function addPhotos(files: FileList | null) {
+    if (!task || !files || files.length === 0) return;
+    for (const f of Array.from(files)) await addAttachment(task.id, f);
+    if (fileRef.current) fileRef.current.value = "";
+    await load();
+    onChanged();
+  }
   async function setPriority(p: Priority) {
     if (!task) return;
     patchLocal({ priority: p });
@@ -250,6 +261,7 @@ export function TaskDetail({
 
   const done = task.status === "done";
   const wontDo = task.status === "wont_do";
+  const atts = task.attachments ?? [];
   const closed = done || wontDo;   // wont_do = как выполненная (зачёркнут), но крестик
   const pColor = PRIORITY_COLOR[task.priority];
   const proj = task.project_id != null ? byId.get(task.project_id) : undefined;
@@ -377,14 +389,26 @@ export function TaskDetail({
           </span>
         </button>
 
-        <button className="detail-row" onClick={() => setPicker("tag")}>
-          <span className="detail-lab"><span className="detail-glyph"><IcoTag /></span>Теги</span>
-          <span className="detail-val">
-            {task.tags?.length
-              ? task.tags.map((t) => <span key={t.id} className="tagpill">#{t.name}</span>)
-              : <span className="muted mono">Нет</span>}
-          </span>
-        </button>
+        {/* вложения (фото): сетка миниатюр + добавить с устройства */}
+        <div className="att-sec">
+          <div className="att-head">
+            <span className="t">Вложения</span>
+            {atts.length > 0 && <span className="c">{atts.length}</span>}
+          </div>
+          <div className="att-grid">
+            {atts.map((a, i) => (
+              <button key={a.id} className="att-cell" onClick={() => setViewerStart(i)} aria-label="Открыть фото">
+                <img src={attachmentSrc(a.id)} alt="" />
+                <span className="exp">⛶</span>
+              </button>
+            ))}
+            <button className="att-add" aria-label="Добавить фото" onClick={() => fileRef.current?.click()}>＋</button>
+          </div>
+          <input
+            ref={fileRef} type="file" accept="image/*" multiple hidden
+            onChange={(e) => addPhotos(e.target.files)}
+          />
+        </div>
 
         {/* чеклист + кольцо прогресса */}
         <Checklist
@@ -460,11 +484,12 @@ export function TaskDetail({
       {picker === "project" && (
         <ProjectPickerSheet value={task.project_id} onPick={setProject} onClose={() => setPicker(null)} />
       )}
-      {picker === "tag" && (
-        <TagPickerSheet
-          value={task.tags?.map((t) => t.id) ?? []}
-          onChange={async (ids) => { patchLocal({ tags: ids.map((id) => ({ id, name: "" })) }); await patchTask(task.id, { tag_ids: ids }); await load(); onChanged(); }}
-          onClose={() => setPicker(null)}
+      {viewerStart != null && atts.length > 0 && (
+        <PhotoViewer
+          atts={atts}
+          start={viewerStart}
+          onClose={() => setViewerStart(null)}
+          onDeleted={async () => { await load(); onChanged(); }}
         />
       )}
     </div>

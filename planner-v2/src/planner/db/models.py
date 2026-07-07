@@ -113,6 +113,13 @@ class Task(Base):
         lazy="selectin",
     )
     stage: Mapped["Stage | None"] = relationship("Stage", lazy="selectin")
+    attachments: Mapped[list["Attachment"]] = relationship(
+        "Attachment",
+        primaryjoin="Task.id == Attachment.task_id",
+        order_by="Attachment.id",
+        lazy="selectin",
+        viewonly=True,
+    )
 
     @property
     def stage_label(self) -> str | None:
@@ -182,6 +189,14 @@ class InboxItem(Base):
     suggested_project_id: Mapped[int | None] = mapped_column(ForeignKey("project.id"), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
+    attachments: Mapped[list["Attachment"]] = relationship(
+        "Attachment",
+        primaryjoin="InboxItem.id == Attachment.inbox_item_id",
+        order_by="Attachment.id",
+        lazy="selectin",
+        viewonly=True,
+    )
+
 
 class Attachment(Base):
     __tablename__ = "attachment"
@@ -211,6 +226,7 @@ class Habit(Base):
     schedule_days: Mapped[list | None] = mapped_column(JSON, default=None)   # [0..6] для by_days
     goal_date: Mapped[date | None] = mapped_column(Date, default=None)       # для goal_date
     goal_total: Mapped[int | None] = mapped_column(Integer, default=None)
+    purpose: Mapped[str | None] = mapped_column(String(500), default=None)   # смысл/цель привычки
     record_streak: Mapped[int] = mapped_column(Integer, default=0)
     archived: Mapped[bool] = mapped_column(Boolean, default=False)
     order_index: Mapped[int] = mapped_column(Integer, default=0)
@@ -343,3 +359,52 @@ class SetLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     session: Mapped[WorkoutSession] = relationship(back_populates="sets")
+
+
+# ── Питание (скелет v1: зеркало workout — цель/шаблон-день/лог-день) ──────────
+class NutritionTarget(Base):
+    __tablename__ = "nutrition_target"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"), unique=True)
+    kcal: Mapped[int] = mapped_column(Integer, default=0)
+    protein: Mapped[int] = mapped_column(Integer, default=0)
+    fat: Mapped[int] = mapped_column(Integer, default=0)
+    carb: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MealTemplateItem(Base):
+    """Идеальный день — приёмы пищи (Завтрак/Обед/...). Сеет Claude. items = состав [{n,q,k}]."""
+    __tablename__ = "meal_template_item"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"))
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+    time: Mapped[str | None] = mapped_column(String(8), default=None)
+    name: Mapped[str] = mapped_column(String(80))
+    kcal: Mapped[int] = mapped_column(Integer, default=0)
+    protein: Mapped[int] = mapped_column(Integer, default=0)
+    fat: Mapped[int] = mapped_column(Integer, default=0)
+    carb: Mapped[int] = mapped_column(Integer, default=0)
+    items: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MealLog(Base):
+    """Факт по дню — приём, засеян из шаблона при первом открытии даты. status: planned|done."""
+    __tablename__ = "meal_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("project.id", ondelete="CASCADE"))
+    date: Mapped[date] = mapped_column(Date)
+    order_index: Mapped[int] = mapped_column(Integer, default=0)
+    time: Mapped[str | None] = mapped_column(String(8), default=None)
+    name: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(12), default="planned")
+    kcal: Mapped[int] = mapped_column(Integer, default=0)
+    protein: Mapped[int] = mapped_column(Integer, default=0)
+    fat: Mapped[int] = mapped_column(Integer, default=0)
+    carb: Mapped[int] = mapped_column(Integer, default=0)
+    items: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

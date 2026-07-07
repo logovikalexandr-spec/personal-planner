@@ -39,6 +39,9 @@
 /* кнопка отмены завершённой тренировки */
 .wl-cancel { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
 .wl-cancel:active { background: rgba(255,92,92,0.10); }
+.wl-save-err { color: #ff6b6b; background: rgba(255,107,107,0.12); border-radius: 10px;
+  padding: 10px 14px; font-size: 13px; margin-bottom: 10px; text-align: center; line-height: 1.35; }
+.wl-retry { background: #ff6b6b; }
 /* карточка дня в истории — кликабельна (открыть/отменить) */
 .wl-daycard { cursor: pointer; transition: background 140ms ease; }
 .wl-daycard:active { background: var(--surface-2); }
@@ -118,13 +121,13 @@
 
 .wl-sets { display: flex; flex-direction: column; gap: 6px; }
 .wl-sets-hd {
-  display: grid; grid-template-columns: 30px 1fr 1fr 44px; align-items: center; gap: 8px;
+  display: grid; grid-template-columns: 28px 1fr 0.78fr 0.78fr 40px; align-items: center; gap: 7px;
   font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); padding: 0 6px 2px;
 }
 .wl-sets-hd span { text-align: center; }
 .wl-sets-hd span:first-child { text-align: left; padding-left: 4px; }
 .wl-setrow {
-  display: grid; grid-template-columns: 30px 1fr 1fr 44px; align-items: center; gap: 8px;
+  display: grid; grid-template-columns: 28px 1fr 0.78fr 0.78fr 40px; align-items: center; gap: 7px;
   background: var(--surface-2); border-radius: 10px; padding: 6px;
 }
 

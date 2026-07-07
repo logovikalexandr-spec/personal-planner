@@ -94,7 +94,10 @@ async def create_task(
     if payload.tag_ids is not None:
         await svc.set_task_tags(db, t.id, payload.tag_ids)
     await db.commit()
-    await db.refresh(t, ["tags"])
+    # tags + attachments: у свежесозданного объекта связи не загружены (selectin срабатывает
+    # на SELECT, не на конструировании) → грузим явно, иначе TaskOut сериализация лезет лениво
+    # в async вне greenlet → MissingGreenlet 500.
+    await db.refresh(t, ["tags", "attachments"])
     return t
 
 

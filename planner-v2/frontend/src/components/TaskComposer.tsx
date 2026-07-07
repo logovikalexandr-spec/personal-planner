@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createTag, createTask, getProjects, getTags } from "../api";
-import type { Priority, Project, Tag } from "../types";
+import type { Priority, Project, Tag, Task } from "../types";
 import { Sheet } from "./Sheet";
 import { DateSheet, type DateValue } from "./DateSheet";
 import { Flag, PRIORITY_COLOR, PriorityPicker, ProjectPickerSheet, TagPickerSheet } from "./pickers";
@@ -29,7 +29,7 @@ export function TaskComposer({
   initialTitle?: string;       // текст, перенесённый из quick-add при «Развернуть»/тапе чипа
   initialPicker?: Picker;      // сразу открыть нужный пикер (тап чипа дата/приоритет/тег)
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (task?: Task) => void;
 }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projLoading, setProjLoading] = useState(true);
@@ -119,7 +119,7 @@ export function TaskComposer({
       for (const st of subtasks) {
         if (st.trim()) await createTask(st.trim(), { parent_task_id: created.id, project_id: projectId ?? nlProj });
       }
-      onSaved();
+      onSaved(created);
       onClose();
     } finally {
       setSaving(false);
@@ -196,10 +196,7 @@ export function TaskComposer({
           <span className="cbar-ico">{proj?.icon ?? "📥"}</span>
           <span className="cbar-txt">{proj?.name ?? "Входящие"}</span>
         </button>
-        <button className="cbar-btn" onClick={() => openPicker("tag")}>
-          <span className="cbar-ico">🏷️</span>
-          {tagIds.length > 0 && <span className="cbar-txt">{tagIds.length}</span>}
-        </button>
+        {/* Теги скрыты из UI (не используются). NL-парс #тегов всё ещё работает. */}
         <button className="cbar-btn" onClick={() => setExpanded((x) => !x)} aria-label="Развернуть">
           {expanded ? <IcoMore /> : <IcoExpand />}
         </button>
