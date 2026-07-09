@@ -582,3 +582,37 @@ class MealUpdateIn(BaseModel):
     fat: int | None = None
     carb: int | None = None
     items: list | None = None
+
+
+class MealCreateIn(BaseModel):
+    """Добавить произвольный приём в день. По умолчанию сразу done (съел)."""
+    name: str
+    kcal: int = 0
+    protein: int = 0
+    fat: int = 0
+    carb: int = 0
+    time: str | None = None
+    items: list = []
+    status: str = "done"
+
+
+class NutritionTargetIn(BaseModel):
+    kcal: int = 0
+    protein: int = 0
+    fat: int = 0
+    carb: int = 0
+
+
+class MealParseIn(BaseModel):
+    """Свободный текст «200г курицы + рис» → оценка БЖУ."""
+    text: str
+
+
+class MealParseOut(BaseModel):
+    name: str
+    kcal: int
+    protein: int
+    fat: int
+    carb: int
+    items: list = []
+    estimated: bool  # True = оценил LLM; False = фолбэк (ключа нет), заполни руками

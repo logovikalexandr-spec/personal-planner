@@ -242,3 +242,21 @@ export const nSetStatus = (mid: number, status: string) =>
   req<NMeal>(`/api/meals/${mid}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
 export const nUpdateMeal = (mid: number, patch: Partial<NMeal>) =>
   req<NMeal>(`/api/meals/${mid}`, { method: "PATCH", body: JSON.stringify(patch) });
+
+export type NMealCreate = {
+  name: string; kcal?: number; protein?: number; fat?: number; carb?: number;
+  time?: string | null; items?: NFood[]; status?: string;
+};
+export type NParse = {
+  name: string; kcal: number; protein: number; fat: number; carb: number;
+  items: NFood[]; estimated: boolean;
+};
+
+export const nAddMeal = (pid: number, day: string, body: NMealCreate) =>
+  req<NMeal>(`/api/projects/${pid}/nutrition/day/${day}/meals`, { method: "POST", body: JSON.stringify(body) });
+export const nDeleteMeal = (mid: number) =>
+  reqVoid(`/api/meals/${mid}`, { method: "DELETE" });
+export const nSetTarget = (pid: number, body: NTarget) =>
+  req<NTarget>(`/api/projects/${pid}/nutrition/target`, { method: "PUT", body: JSON.stringify(body) });
+export const nParseFood = (text: string) =>
+  req<NParse>(`/api/nutrition/parse`, { method: "POST", body: JSON.stringify({ text }) });

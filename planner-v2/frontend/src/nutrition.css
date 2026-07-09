@@ -43,6 +43,7 @@
 .nut-macro .m-top .muted { color: var(--text-muted); font-weight: 400; }
 .nut-macro .m-pct { font-family: var(--font-mono); font-weight: 600; font-size: 14px; margin-top: 2px; }
 .nut-macro.p .m-pct { color: var(--success); }
+/* hex-allowlist: цвет углеводов (carb) */
 .nut-macro.c .m-pct { color: #5b9bd5; }
 .nut-macro.f .m-pct { color: var(--warning); }
 
@@ -52,6 +53,7 @@
 .nut-left-items { display: flex; flex-wrap: wrap; gap: 14px 16px; font-size: 13px; }
 .nut-left-items span { display: inline-flex; align-items: center; gap: 6px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; }
+/* hex-allowlist: цвет углеводов (carb) */
 .dot.p { background: var(--success); } .dot.c { background: #5b9bd5; }
 .dot.f { background: var(--warning); } .dot.k { background: var(--accent); }
 
@@ -64,6 +66,7 @@
 .nut-day .wd { font-size: 11px; color: var(--text-muted); }
 .nut-day .circ { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   border: 2px solid var(--border); color: var(--text-muted); }
+/* hex-allowlist: белый глиф на залитом success-кружке */
 .nut-day.done .circ { background: var(--success); border-color: var(--success); color: #fff; }
 .nut-day.today .circ { border-color: var(--accent); color: var(--accent); }
 .nut-day.plan .circ { border-style: dashed; }
@@ -116,6 +119,7 @@
 .nut-wrow:active { opacity: 0.7; }
 .nut-wrow .w-circ { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+/* hex-allowlist: белый глиф на залитом success-кружке */
 .nut-wrow.done .w-circ { background: var(--success); border-color: var(--success); color: #fff; }
 .nut-wrow.today .w-circ { border-color: var(--accent); color: var(--accent); }
 .nut-wrow .w-mid { flex: 1; min-width: 0; }
@@ -163,3 +167,52 @@
   background: var(--bg); padding: 8px 0 22px; }
 .nut-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text-muted); font-size: 10px; }
 .nut-tab.active { color: var(--accent); }
+
+/* ── Добавление/правка приёма (v2) ─────────────────────────────────────────── */
+.nut-head-end { margin-left: auto; }
+
+.nut-add { display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 14px; border-radius: var(--radius); border: 1px dashed var(--border);
+  background: var(--surface); color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; }
+.nut-add:active { background: var(--surface-2); }
+.nut-add .na-ico { display: inline-flex; color: var(--accent); }
+
+.nut-empty { color: var(--text-muted); font-size: 14px; text-align: center; padding: 18px 0; }
+
+.nut-act.edit { background: var(--surface-2); color: var(--text); }
+
+/* шторка приёма/цели */
+.meal-ai { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
+.meal-ai-in { flex: 1; resize: none; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-family: var(--font); font-size: 15px; }
+.meal-ai-in:focus { outline: none; border-color: var(--accent); }
+.meal-ai-btn { flex-shrink: 0; align-self: stretch; padding: 0 14px; border: none; border-radius: 12px;
+  background: var(--accent); color: var(--bg); font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.meal-ai-btn:disabled { opacity: 0.5; }
+
+.meal-hint { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+
+.meal-field { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+.meal-field .mf-label { color: var(--text-muted); font-size: 13px; }
+.meal-field .mf-input { background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 14px; font-family: var(--font); font-size: 16px; }
+.meal-field .mf-input:focus { outline: none; border-color: var(--accent); }
+
+.meal-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+.meal-num { display: flex; flex-direction: column; gap: 5px; }
+.meal-num .mn-label { color: var(--text-muted); font-size: 12px; text-align: center; }
+.meal-num .mn-input { width: 100%; text-align: center; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 6px; font-size: 18px; font-weight: 600; }
+.meal-num .mn-input:focus { outline: none; border-color: var(--accent); }
+.meal-num.k .mn-label { color: var(--accent); }
+.meal-num.p .mn-label { color: var(--success); }
+/* hex-allowlist: цвет углеводов (carb), совпадает с .nut-macro.c/.dot.c */
+.meal-num.c .mn-label { color: #5b9bd5; }
+.meal-num.f .mn-label { color: var(--warning); }
+
+.meal-items { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.meal-item { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+
+.meal-del { width: 100%; margin-top: 20px; padding: 13px; border: none; border-radius: 12px;
+  background: rgba(255,92,92,0.12); color: var(--danger); font-weight: 600; font-size: 15px; cursor: pointer; }
+.meal-del:disabled { opacity: 0.5; }

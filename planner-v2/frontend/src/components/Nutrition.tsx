@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import "./../nutrition.css";
 import {
-  type NDay, type NMeal, type NWeekDay,
-  nGetDay, nGetWeek, nSetStatus,
+  type NDay, type NMeal, type NMealCreate, type NTarget, type NWeekDay,
+  nAddMeal, nDeleteMeal, nGetDay, nGetWeek, nSetTarget, nSetStatus, nUpdateMeal,
 } from "../api";
 import { clientToday } from "../lib/clientDate";
+import { MealSheet } from "./MealSheet";
+import { TargetSheet } from "./TargetSheet";
 
 /* Модуль «Питание» (скелет v1). Цель→День→Приём + Неделя. Данные с бэка. */
 
@@ -16,6 +18,8 @@ const IcoCheck = () => svg(<path d="M5 12l5 5L20 7" />, 15);
 const IcoArrow = () => svg(<path d="M5 12h14M13 6l6 6-6 6" />, 15);
 const IcoBack = () => svg(<path d="M15 18l-6-6 6-6" />, 22);
 const IcoBars = () => svg(<><path d="M8 21V9" /><path d="M16 21V5" /><path d="M12 21v-6" /></>, 20);
+const IcoPlus = () => svg(<><path d="M12 5v14" /><path d="M5 12h14" /></>, 18);
+const IcoGear = () => svg(<><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></>, 18);
 
 const WD = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const WD_FULL = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
@@ -98,6 +102,7 @@ export function Nutrition({ goalId, goalName, onBack }: { goalId: number; goalNa
   const [day, setDay] = useState<NDay | null>(null);
   const [week, setWeek] = useState<NWeekDay[]>([]);
   const [ready, setReady] = useState(false);
+  const [sheet, setSheet] = useState<{ s: "add" } | { s: "edit"; meal: NMeal } | { s: "target" } | null>(null);
 
   const monday = mondayOf(today);
 
@@ -115,6 +120,22 @@ export function Nutrition({ goalId, goalName, onBack }: { goalId: number; goalNa
     await nSetStatus(m.id, m.status === "done" ? "planned" : "done");
     await load();
   };
+  const addMeal = async (body: NMealCreate) => { await nAddMeal(goalId, date, body); await load(); };
+  const editMeal = async (mid: number, body: NMealCreate) => {
+    await nUpdateMeal(mid, { name: body.name, kcal: body.kcal, protein: body.protein, fat: body.fat, carb: body.carb, items: body.items });
+    await load();
+  };
+  const removeMeal = async (mid: number) => { await nDeleteMeal(mid); await load(); };
+  const saveTarget = async (t: NTarget) => { await nSetTarget(goalId, t); await load(); };
+
+  const sheetEl = sheet && (
+    sheet.s === "add"
+      ? <MealSheet meal={null} onSave={addMeal} onClose={() => setSheet(null)} />
+      : sheet.s === "edit"
+        ? <MealSheet meal={sheet.meal} onSave={(b) => editMeal(sheet.meal.id, b)}
+            onDelete={() => removeMeal(sheet.meal.id)} onClose={() => setSheet(null)} />
+        : <TargetSheet target={target} onSave={saveTarget} onClose={() => setSheet(null)} />
+  );
 
   if (!ready || !day) {
     return <div className="nut"><div className="nut-head"><button className="nut-gear" style={{ marginLeft: 0 }} onClick={onBack}><IcoBack /></button><div><div className="h-title">Питание</div><div className="h-sub">{goalName}</div></div></div>
@@ -130,9 +151,14 @@ export function Nutrition({ goalId, goalName, onBack }: { goalId: number; goalNa
         <div className="nut-head">
           <button className="nut-gear" style={{ marginLeft: 0 }} onClick={onBack}><IcoBack /></button>
           <div><div className="h-title">Питание</div><div className="h-sub">{goalName}</div></div>
+          <button className="nut-gear nut-head-end" onClick={() => setSheet({ s: "target" })} aria-label="Цель"><IcoGear /></button>
         </div>
         <div className="nut-body">
           <div onClick={() => setView({ s: "day" })} style={{ cursor: "pointer" }}><DayCard day={day} /></div>
+
+          <button className="nut-add" onClick={() => setView({ s: "day" })}>
+            <span className="na-ico"><IcoPlus /></span>Добавить, что съел сегодня
+          </button>
 
           <div className="nut-card" onClick={() => setView({ s: "week" })} style={{ cursor: "pointer" }}>
             <div className="nut-week-head"><div className="wt">Неделя · {fmtDM(monday)}–{fmtDM(addDays(monday, 6))}</div><div className="wc">{doneCount} из 7 дней</div></div>
@@ -158,6 +184,7 @@ export function Nutrition({ goalId, goalName, onBack }: { goalId: number; goalNa
             <span className="r-chev"><IcoChev /></span>
           </button>
         </div>
+        {sheetEl}
       </div>
     );
   }
@@ -175,6 +202,7 @@ export function Nutrition({ goalId, goalName, onBack }: { goalId: number; goalNa
           <div className="nut-meals-hd">Приёмы пищи</div>
           <div className="nut-card" style={{ padding: "2px 14px" }}>
             <div className="nut-meals">
+              {day.meals.length === 0 && <div className="nut-empty">Пусто. Добавь, что съел →</div>}
               {day.meals.map((m, i) => (
                 <div key={m.id} className="nut-meal" onClick={() => setView({ s: "meal", i })}>
                   <div className="m-time">{m.time ?? ""}</div>
@@ -192,7 +220,11 @@ export function Nutrition({ goalId, goalName, onBack }: { goalId: number; goalNa
               ))}
             </div>
           </div>
+          <button className="nut-add" onClick={() => setSheet({ s: "add" })}>
+            <span className="na-ico"><IcoPlus /></span>Добавить приём
+          </button>
         </div>
+        {sheetEl}
       </div>
     );
   }
@@ -230,8 +262,10 @@ export function Nutrition({ goalId, goalName, onBack }: { goalId: number; goalNa
           </div>
           <div className="nut-actions">
             <button className="nut-act eat" onClick={() => toggleMeal(m)}><IcoCheck /> {done ? "Отменить" : "Съел как план"}</button>
+            <button className="nut-act edit" onClick={() => setSheet({ s: "edit", meal: m })}>Изменить</button>
           </div>
         </div>
+        {sheetEl}
       </div>
     );
   }

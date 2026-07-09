@@ -1043,6 +1043,7 @@ function HabitDetail({ habit, onClose, onChange, onMenu }: {
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={savePurpose} disabled={purposeSaving} style={{
                   flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                  // hex-allowlist: белый текст на ember-кнопке
                   background: "var(--accent)", color: "#fff", fontSize: 14,
                   fontWeight: 600, cursor: purposeSaving ? "default" : "pointer", opacity: purposeSaving ? 0.6 : 1,
                 }}>Сохранить</button>
